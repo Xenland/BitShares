@@ -1,0 +1,30 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+fc
+doc/html
+CMakeCache.txt
+Makefile
+CMakeFiles
+cmake_install.cmake
+ecc_test
+pow_test
+unit_tests
+wallet_test
+libbshare.a
+tests/dds_test
+tests/pow_test
+vendor/miniupnp/miniupnpc/miniupnpcstrings.h
+bitshared
+bitchatc

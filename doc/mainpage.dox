@@ -1,0 +1,44 @@
+/**
+  @mainpage BitShares 
+
+  BitShares is a new dividend-paying crypto-asset known as a polymorphic digital 
+  asset that facilitates hedging against price fluxuations in other assets such 
+  as gold, silver, and dollars.
+
+  This project is divided into two parts:
+  
+  <ol><li><b>libBitShares</b> - which implements the a
+  reusable toolkit to enable the development of a wide variety of BitShares 
+  enabled applications.</li>
+      <li><b>BitShares</b>  - which provides a fully function client to the BitShares
+      network</li>
+  </ol>
+
+  @section design_principles  Design Principles
+
+  libBitShares is targeted for high performance and reusability and borrows many of the
+  design principles employed by libbitcoin (http://libbitcoin.dyne.org).  Specifically,
+  it is designed to be asynchronous and yet easy to follow.
+
+  -# Scalability - The library should facilitate the development of applications that scale to thousands of concurrent opperations.
+  -# Intuitive   - The library should model concepts in a clear and intuitive manner.
+  -# Layered     - The library should support development of higher-level APIs
+  -# No Blocking - There should be no blocking except at the lowest level.
+
+  libBitShares is implementing a financial system that requires a high degree of stability and
+  correctness.  These are requirements that can be designed into the development process to ensure
+  that the resulting code is as free from bugs as possible.
+
+  -# Simplicity.   It is very important for the implementation to be simple and easy to follow.
+  -# Consistant.   It is very important to follow consistant design patterns and avoid special cases.
+  -# Testable.     It is very important for as many components in the system to be independently testable as possible
+  -# Robust.       Errors should be detected, handled, and logged in a robust and meaninful manner. All assumptions,
+                   must be documented and checked 
+  -# Documented.   All code must be intential and have a purpose and this purpose should be documented.
+
+  @section development_process Development Process
+
+  
+
+
+*/
