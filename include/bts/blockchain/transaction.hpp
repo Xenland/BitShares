@@ -16,7 +16,7 @@ namespace bts {
 struct output_reference
 {
   output_reference():output_idx(0){}
-  fc::sha224        trx_hash;   // the hash of a transaction.
+  fc::uint128       trx_hash;   // the hash of a transaction.
   uint8_t           output_idx; // the output index in the transaction trx_hash
   friend bool operator==( const output_reference& a, const output_reference& b )
   {
@@ -40,25 +40,29 @@ enum claim_type
 /**
  *  Defines the source of an input used 
  *  as part of a transaction.  If must first
- *  reference an existing unspent output which
- *  it can do in one of two ways:
- *
- *  1) provide the index in the deterministic unspent output
- *     table, or provide the hash of the transaction and the
- *     index of the output.
- *
- *  2) provide the hash of the transaction and the output index.
- *
- *  Any unspent output that is older than 24 hours can safely
- *  be addressed using the unique id assigned in the unspent
- *  output table.  Transactions that reference 'newer' outputs
- *  will have to reference the Transaction directly to survive
- *  a potential reorganization.
+ *  reference an existing unspent output and
+ *  then provide the input data required to
+ *  cause the claim function to evaluate true.
  */
 struct trx_input
 {
+    template<typename InputType>
+    trx_input( const InputType& t, const ouptut_ref& src )
+    :output_ref(src),output_type( InputType::type )
+    {
+       input_data = fc::raw::pack(t);
+    }
+
+    template<typename InputType>
+    InputType as()const
+    {
+       FC_ASSERT( InputType::type == output_type );
+       return fc::raw::unpack<InputType>(input_data);
+    }
+
     output_reference   output_ref;
     claim_type         output_type;
+    std::vector<char>  input_data;
 };
 
 
@@ -69,10 +73,23 @@ struct trx_input
  *   allow the public key and therefore address to be discovered and
  *   validated against the output claim function.
  */
-struct trx_input_by_address : public trx_input
+struct claim_by_address_input 
 {
-   enum type_enum { type =  claim_type::claim_by_address };
+   static const claim_type type = claim_type::claim_by_address;
    fc::ecc::compact_signature address_sig;
+};
+
+struct claim_by_address_output
+{
+   static const claim_type type = claim_type::claim_by_address;
+   uint160  address_sig; // hash of public key
+};
+
+struct claim_by_bid_output
+{
+   uint160                                ask_address; // where to send ask_unit
+   fc::enum_type<uint8_t,bitasset_type>   ask_unit;    // the unit we are asking for
+   fc::uint128                            ask_ppu;     // price per ask unit
 };
 
 
@@ -87,61 +104,46 @@ struct trx_input_by_address : public trx_input
  */
 struct trx_output
 {
-    trx_output( claim_type t)
-    :amount(0),
-     claim_func(t){}
-    uint64_t       amount;
-    bond_type      unit;
-    claim_type     claim_func;
+    template<typename ClaimType>
+    trx_output( const ClaimType& t, const fc::uint128& a, bitasset_type u )
+    :amount(a),unit(u)
+    {
+       claim_func = ClaimType::type;
+       claim_data = fc::raw::pack(t);
+    }
+
+    template<typename ClaimType>
+    ClaimType as()const
+    {
+       FC_ASSERT( unit == ClaimType::type );
+       return fc::raw::unpack<ClaimType>(claim_data);
+    }
+
+    trx_output(){}
+
+    fc::uint128                                 amount;
+    fc::enum_type<uint8_t,bitasset_type>        unit;
+    fc::enum_type<fc::unsigned_int,claim_type>  claim_func;
+    std::vector<char>                           claim_data;
 };
 
-/**
- *  Used by normal bitcoin-style outputs spendable with
- *  the signature of the private key.
- */
-struct trx_output_by_address : public trx_output
-{
-   enum type_enum { type =  claim_type::claim_by_address };
-   trx_output_by_address()
-   :trx_output( claim_type::claim_by_address ), lock_time(0){}
-
-   uint32_t lock_time;
-   address  claim_address;  // the address that can claim this input.
-   friend bool operator==( const trx_output_by_address& a, const trx_output_by_address& b )
-   {
-      return a.claim_address == b.claim_address && (a.lock_time == b.lock_time);
-   }
-};
-
-
-/**
- *  Holds any type of transaction input in the data field.
- */
-struct generic_trx_in
-{
-  uint8_t           in_type;
-  std::vector<char> data;
-};
-
-struct generic_trx_out
-{
-  uint8_t           out_type;
-  std::vector<char> data;
-};
 
 /**
  *  @brief maps inputs to outputs.
  */
 struct transaction
 {
-   uint16_t                     version;
-   uint32_t                     expire_block;
-   std::vector<generic_trx_in>  inputs;
-   std::vector<generic_trx_out> outputs;
+   fc::unsigned_int             version;      ///< trx version number
+   fc::unsigned_int             valid_after;  ///< trx is only valid after block num, 0 means always valid
+   fc::unsigned_int             valid_blocks; ///< number of blocks after valid after that this trx is valid, 0 means always valid
+   std::vector<trx_input>       inputs;
+   std::vector<trx_output>      outputs;
 };
 
 struct signed_transaction : public transaction
 {
+    /** @return the addresses that have signed this trx */
+    std::vector<uint160> get_signed_addresses()const
     std::vector<fc::ecc::compact_signature> sigs;
 };
 

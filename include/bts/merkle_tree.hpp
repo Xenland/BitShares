@@ -13,10 +13,10 @@ namespace bts {
      merkle_branch()
      :branch(0){}
 
-     fc::sha224 calculate_root()const;
+     fc::uint128 calculate_root()const;
 
      uint32_t                branch;
-     std::vector<fc::sha224> mid_states;
+     std::vector<fc::uint128> mid_states;
   };
 
   /**
@@ -32,12 +32,12 @@ namespace bts {
         *  Updates all hashes in the merkle branch to index.
         *  @throw out_of_range_exception if index > size
         */
-       void       set( uint64_t index, const fc::sha224& val );
+       void       set( uint64_t index, const fc::uint128& val );
 
        /**
         *  @throw out_of_range_exception if index > size
         */
-       fc::sha224 get( uint32_t index );
+       fc::uint128 get( uint32_t index );
 
        /**
         *  @return the full merkle branch for the tree.
@@ -49,7 +49,7 @@ namespace bts {
         *        automatically be updated after every call to
         *        set / get.
         */
-       fc::sha224                                mroot;
+       fc::uint128                                mroot;
 
        /**
         *  mtree[0] is the leef layer of the tree
@@ -62,7 +62,7 @@ namespace bts {
         *        TODO: update fc::reflect to support private
         *              members.
         */
-       std::vector< std::vector < fc::sha224 > > mtree;
+       std::vector< std::vector < fc::uint128 > > mtree;
   };
 
 } 

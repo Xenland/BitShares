@@ -68,6 +68,7 @@ set( sources
      src/bitchat/bitchat_channel.cpp
      src/bitchat/bitchat_client.cpp 
 
+     src/blockchain/asset.cpp
      src/mini_pow.cpp 
      src/address.cpp
      src/wallet.cpp

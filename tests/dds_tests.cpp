@@ -8,10 +8,73 @@
 #include <bts/bitchat_message.hpp>
 #include <bts/mini_pow.hpp>
 #include <bts/dds/mmap_array.hpp>
+#include <bts/blockchain/asset.hpp>
 #include <fc/io/json.hpp>
 #include <fc/io/raw.hpp>
 
 using namespace bts;
+using bts::blockchain::asset;
+using bts::blockchain::price;
+
+BOOST_AUTO_TEST_CASE( fixed_math )
+{
+  try{
+   asset usd( 3, asset::usd );
+   asset bts( 5, asset::bts );
+   auto  usd_bts = usd / bts;
+   auto  bts_usd = bts / usd;
+   
+   ilog( "usd: ${u}  bts: ${b}", ("u",usd)("b",bts) );
+   ilog( "usd_bts = ${ub}   bts_usd = ${bu}", ("ub", usd_bts)("bu",bts_usd) );
+    
+   asset usd56( 5, asset::usd );
+   asset bts43( 43, asset::bts );
+
+   auto bts43_in_usd =  bts43 * bts_usd;
+   auto back_to_bts = bts43_in_usd * bts_usd;
+   ilog( " ${b} * ${p}  =>  ${a}", ("b", bts43)("p",bts_usd)("a",bts43_in_usd) );
+   ilog( " ${b} * ${p}  =>  ${a}", ("b", bts43_in_usd)("p",bts_usd)("a",back_to_bts) );
+//   BOOST_CHECK( back_to_bts == bts43 );
+   {
+   asset usd( 5, asset::usd );
+   asset bts( 3, asset::bts );
+   auto  usd_bts = usd / bts;
+   auto  bts_usd = bts / usd;
+   
+   ilog( "usd: ${u}  bts: ${b}", ("u",usd)("b",bts) );
+   ilog( "usd_bts = ${ub}   bts_usd = ${bu}", ("ub", usd_bts)("bu",bts_usd) );
+   }
+
+  } catch ( const fc::exception& e )
+  {
+    elog( "${e}", ("e",e.to_detail_string()) );
+    throw;
+  }
+/*
+   fc::bigint  one( 1000*1000ll*1000*1000ll );
+   fc::bigint  bts = 1234 * one;
+   fc::bigint  usd =    7 * one;
+
+   fc::bigint  bts_usd = (bts*one) / usd;
+   fc::bigint  usd_bts = (usd*one) / bts;
+ 
+   std::cout<<"bts: "<<std::string(bts)<<"\n";
+   std::cout<<"usd: "<<std::string(usd)<<"\n";
+   std::cout<<"bts_usd: "<<std::string(bts_usd)<<"\n";
+   std::cout<<"usd_bts: "<<std::string(usd_bts)<<"\n";
+
+   auto ibu =  (one*one)/bts_usd;
+   auto iub =  (one*one)/usd_bts;
+   std::cout<<"1/bts_usd: "<<std::string(ibu)<<"\n";
+   std::cout<<"1/usd_bts: "<<std::string(iub)<<"\n";
+
+   auto iibu =  (one*one)/ibu;
+   auto iiub =  (one*one)/iub;
+   std::cout<<"1/(1/bts_usd): "<<std::string(iibu)<<"\n";
+   std::cout<<"1/(1/usd_bts): "<<std::string(iiub)<<"\n";
+   */
+}
+
 BOOST_AUTO_TEST_CASE( mini_pow_test )
 {
   std::string hello_world( "hello world");
