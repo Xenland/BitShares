@@ -1,5 +1,6 @@
 #pragma once
 #include <fc/uint128.hpp>
+#include <fc/io/enum_type.hpp>
 
 namespace bts { namespace blockchain {
 
@@ -7,8 +8,9 @@ namespace bts { namespace blockchain {
 
   /**
    *  An asset is a fixed point number with
-   *  64.64 bit precision where the lower 8
-   *  bits represent the asset type.  
+   *  64.64 bit precision.  This is used
+   *  for accumalating dividends and 
+   *  calculating prices on the built in exchange.
    */
   struct asset
   {
@@ -44,7 +46,6 @@ namespace bts { namespace blockchain {
 
       operator std::string()const;
        
-  //    type          unit()const { return static_cast<type>((amount & unit_mask()).to_integer()); }
       fc::uint128_t amount;
       type          unit;
   };
@@ -105,6 +106,8 @@ namespace bts { namespace blockchain {
    */
   asset operator * ( const asset& a, const price& p );
 
+
+  typedef fc::enum_type<uint8_t,asset::type> asset_type;
 
 } } // bts::blockchain
 

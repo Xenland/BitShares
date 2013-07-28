@@ -24,7 +24,7 @@ namespace bts
       *  Includes the full merkel branch to the hash of the header.
       */
      merkel_branch           header_branch;
-     uint64_t                nonce;
+     uint32_t                nonce;
   };
 
 }

@@ -34,12 +34,14 @@ namespace bts { namespace blockchain {
     */
    struct block_proof : public block_header
    {
-      proof        pow;
+      proof        pow; ///< contains the merkle branch + nonce
    };
 
 
    /**
-    *  Tracks the ratio of bitshares to issued bit-assets.
+    *  Tracks the ratio of bitshares to issued bit-assets, the
+    *  unit types are defined by the location in the 
+    *  block_state::issuance array
     */
    struct asset_issuance 
    {
@@ -57,7 +59,7 @@ namespace bts { namespace blockchain {
    struct block_state
    {
       /** initial condition prior to applying trx in this block */
-      fc::array<bitasset_type::count,asset_issuance> issuance;  // 16 * 32 bytes = 512
+      fc::array<asset::type::count,asset_issuance> issuance;  // 16 * 32 bytes = 512
 
       /**
        *  Features desired / supported by the miner. Once 75% of the past week worth
