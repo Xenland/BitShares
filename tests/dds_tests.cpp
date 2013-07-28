@@ -19,8 +19,8 @@ using bts::blockchain::price;
 BOOST_AUTO_TEST_CASE( fixed_math )
 {
   try{
-   asset usd( 3, asset::usd );
-   asset bts( 5, asset::bts );
+   asset usd( 30000, asset::usd );
+   asset bts( 5000, asset::bts );
    auto  usd_bts = usd / bts;
    auto  bts_usd = bts / usd;
    
@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE( fixed_math )
    auto back_to_bts = bts43_in_usd * bts_usd;
    ilog( " ${b} * ${p}  =>  ${a}", ("b", bts43)("p",bts_usd)("a",bts43_in_usd) );
    ilog( " ${b} * ${p}  =>  ${a}", ("b", bts43_in_usd)("p",bts_usd)("a",back_to_bts) );
-//   BOOST_CHECK( back_to_bts == bts43 );
+   BOOST_CHECK( back_to_bts.amount.high_bits() == bts43.amount.high_bits() );
    {
    asset usd( 5, asset::usd );
    asset bts( 3, asset::bts );

@@ -1,5 +1,4 @@
 #pragma once
-#include <fc/crypto/sha224.hpp>
 #include <fc/reflect/reflect.hpp>
 #include <bts/merkel_tree.hpp>
 

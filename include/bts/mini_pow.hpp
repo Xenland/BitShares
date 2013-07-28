@@ -9,7 +9,7 @@ namespace bts
   /** 
    *  As of July 2013, the bitcoin network as a whole is only able
    *  to find a collision on 56 bits every 10 minutes.  And this level
-   *  of work costs $2500.  Removing 16 bits of difficulty would still cost
+   *  of work costs $2500 / 10 min.   Removing 16 bits of difficulty would still cost
    *  $0.50 which is far more than anyone would reasonably pay to broadcast
    *  a single message on the P2P network.
    *
@@ -31,7 +31,8 @@ namespace bts
    *  calculation would still result in 80,000 years to break assuming the
    *  power of the Bitcoin network scaled as well.  It would take a bitcoin
    *  network 1000 times larger than the current network to bring this attack
-   *  within the posability of our lifetime. 
+   *  within the posability of our lifetime and in our use cases, this
+   *  hash only need to be unique for a much shorter period.
    *
    *  To generate a collision would require over 1 trillion attempts and
    *  the difficulty of an attempt depends upon the first byte which
@@ -42,6 +43,19 @@ namespace bts
    *
    *  If the first byte is 255 then the hash security is essentially
    *  double SHA512 truncated to 72 bits. 
+   *
+   *  Use cases:
+   *    Block Header Hash - 10,000+ CPUs crunching for 5 minutes to find
+   *       a block with ~30+ leeding 0's and thus effectively 104+ bit. 
+   *
+   *    BitChat - propagating messages in a bandwidth effecient manner and
+   *       identifying those messages with a unique hash.  The proof of work
+   *       requirement on messages plus the relatively short life time means
+   *       collisions are unlikely.
+   *
+   *    BitName - users are attempting to find a hash for proof of work and 
+   *       spend at least 1 hour of CPU time name hash.  
+   *
    **/
   typedef fc::array<char,10>  mini_pow;
 

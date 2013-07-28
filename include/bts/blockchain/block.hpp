@@ -1,10 +1,11 @@
 #pragma once
 #include <bts/proof.hpp>
+#include <bts/small_hash.hpp>
+#include <bts/mini_pow.hpp>
 #include <bts/blockchain/transaction.hpp>
 #include <bts/blockchain/bitassets.hpp>
 
 namespace bts { namespace blockchain {
-   typedef fc::sha1 uint160;
 
    /**
     *  Light-weight summary of a block that links it to
@@ -22,8 +23,8 @@ namespace bts { namespace blockchain {
       mini_pow            prev;
       uint32_t            block_num;
       fc::time_point_sec  timestamp;   ///< seconds from 1970
-      fc::uint160         state_hash;  ///< ripemd160(  sha512( block_state ) )
-      fc::uint160         trx_mroot;   ///< merkle root of trx included in block, required for light client validation
+      uint160             state_hash;  ///< ripemd160(  sha512( block_state ) )
+      uint160             trx_mroot;   ///< merkle root of trx included in block, required for light client validation
    };
 
 
@@ -42,8 +43,8 @@ namespace bts { namespace blockchain {
     */
    struct asset_issuance 
    {
-      uint128_t  backing; /** total BitShares backing the issued currency */
-      uint128_t  issued;  /** total asset issued */
+      uint64_t  backing; /** total BitShares backing the issued currency */
+      uint64_t  issued;  /** total asset issued */
    };
 
 
