@@ -61,19 +61,18 @@ namespace bts { namespace blockchain {
           *
           *  @throw exception if trx can not be applied to the current chain state.
           */
-         trx_eval evaluate_signed_transaction( const signed_transaction& trx );       
+         trx_eval   evaluate_signed_transaction( const signed_transaction& trx );       
 
-         void               store_trx( const signed_transaction& trx );
-         meta_trx           fetch_trx( const uint160& trx_id );
+         meta_trx   fetch_trx( const uint160& trx_id );
 
-         uint32_t           fetch_block_num( const fc::sha256& block_id );
-         block              fetch_block( uint32_t block_num );
-         full_block         fetch_block_trxs( uint32_t block_num );
+         uint32_t   fetch_block_num( const fc::sha256& block_id );
+         block      fetch_block( uint32_t block_num );
+         full_block fetch_block_trxs( uint32_t block_num );
 
          /**
           *  Calculate the dividends due to a given asset accumulated durrning blocks from_num to to_num
           */
-         asset              calculate_dividends( const asset& a, uint32_t from_num, uint32_t to_num );
+         asset      calculate_dividends( const asset& a, uint32_t from_num, uint32_t to_num );
          
          /**
           *  Attempts to append block b to the block chain with the given trxs.
@@ -87,6 +86,7 @@ namespace bts { namespace blockchain {
          void pop_block( full_block& b, std::vector<signed_transaction>& trxs );
 
        private:
+         void       store_trx( const signed_transaction& trx );
          std::unique_ptr<detail::blockchain_db_impl> my;          
     };
 

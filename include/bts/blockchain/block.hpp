@@ -20,7 +20,7 @@ namespace bts { namespace blockchain {
       :version(0),block_num(0){}
 
       fc::unsigned_int    version;
-      fc::sha256          prev;
+      fc::sha224          prev;
       uint32_t            block_num;
       fc::time_point_sec  timestamp;   ///< seconds from 1970
       uint160             state_hash;  ///< ripemd160(  sha512( block_state ) )

@@ -1,6 +1,8 @@
 #include <bts/blockchain/blockchain_db.hpp>
 #include <leveldb/db.h>
-#include "../db.hpp"
+#include <bts/db/level_map.hpp>
+#include <fc/io/enum_type.hpp>
+#include <fc/reflect/variant.hpp>
 
 #include <fc/filesystem.hpp>
 
@@ -11,15 +13,14 @@ namespace bts { namespace blockchain {
       class blockchain_db_impl
       {
          public:
-            std::unique_ptr<ldb::DB> blk_id2num;  // maps blocks to unique IDs
+            //std::unique_ptr<ldb::DB> blk_id2num;  // maps blocks to unique IDs
             std::unique_ptr<ldb::DB> blocks;      // block num to block struct
             std::unique_ptr<ldb::DB> block_trxs;  // bluck num to trx hashes
             std::unique_ptr<ldb::DB> trx_id2num;  // maps trxs to unique numbers
             std::unique_ptr<ldb::DB> trxs;        // trxnum to trx;
 
-
+            bts::db::level_map<fc::sha224,uint32_t> blk_id2num;
             // Dividend Table needs to be memory mapped
-
       };
     }
 
@@ -43,20 +44,24 @@ namespace bts { namespace blockchain {
              }
              fc::create_directories( dir );
         }
+        /*
         my->blk_id2num = init_db( dir / "blk_id2num", create );
         my->blocks     = init_db( dir / "blocks",     create );
         my->block_trxs = init_db( dir / "block_trxs", create );
         my->trx_id2num = init_db( dir / "trx_id2num", create );
         my->trxs       = init_db( dir / "trxs",       create );
-
+        */
      }
      void blockchain_db::close()
      {
+        /*
         my->blk_id2num.reset();
         my->blocks.reset();
         my->block_trxs.reset();
         my->trx_id2num.reset();
         my->trxs.reset();
+        */
+        my->blk_id2num.close();
      }
 
     /**
@@ -73,20 +78,26 @@ namespace bts { namespace blockchain {
     {
     }
 
-    void               blockchain_db::store_trx( const signed_transaction& trx )
+    void        blockchain_db::store_trx( const signed_transaction& trx )
     {
+       try {
+         
+
+       } FC_RETHROW_EXCEPTIONS( warn, 
+          "an error occured while trying to store the transaction", 
+          ("trx",trx) );
     }
-    meta_trx           blockchain_db::fetch_trx( const uint160& trx_id )
+    meta_trx    blockchain_db::fetch_trx( const uint160& trx_id )
     {
     }
 
-    uint32_t           blockchain_db::fetch_block_num( const fc::sha256& block_id )
+    uint32_t    blockchain_db::fetch_block_num( const fc::sha256& block_id )
     {
     }
-    block         blockchain_db::fetch_block( uint32_t block_num )
+    block       blockchain_db::fetch_block( uint32_t block_num )
     {
     }
-    full_block              blockchain_db::fetch_block_trxs( uint32_t block_num )
+    full_block  blockchain_db::fetch_block_trxs( uint32_t block_num )
     {
     }
 
