@@ -74,6 +74,9 @@ namespace bts { namespace blockchain {
      */
     trx_eval blockchain_db::evaluate_signed_transaction( const signed_transaction& trx )       
     {
+       trx_eval e;
+
+       return e;
     }
 
     /**
@@ -105,12 +108,19 @@ namespace bts { namespace blockchain {
 
     uint32_t    blockchain_db::fetch_block_num( const fc::sha224& block_id )
     {
+       return my->blk_id2num.fetch( block_id ); 
     }
+
     block       blockchain_db::fetch_block( uint32_t block_num )
     {
+       return my->blocks.fetch(block_num);
     }
+
     full_block  blockchain_db::fetch_block_trxs( uint32_t block_num )
     {
+       full_block fb = my->blocks.fetch(block_num);
+       fb.trx_ids = my->block_trxs.fetch( block_num );
+       return fb;
     }
 
     /**
@@ -118,6 +128,7 @@ namespace bts { namespace blockchain {
      */
     asset              blockchain_db::calculate_dividends( const asset& a, uint32_t from_num, uint32_t to_num )
     {
+       return asset();
     }
     
     /**
@@ -125,6 +136,11 @@ namespace bts { namespace blockchain {
      */
     void blockchain_db::push_block( const full_block& b, const std::vector<signed_transaction>& trxs )
     {
+       asset total_fees;
+       for( auto itr = trxs.begin(); itr != trxs.end(); ++itr )
+       {
+           total_fees += evaluate_signed_transaction( *itr ).fees;
+       }
     }
 
     /**
@@ -136,3 +152,5 @@ namespace bts { namespace blockchain {
     }
 
 }  } // bts::blockchain
+
+

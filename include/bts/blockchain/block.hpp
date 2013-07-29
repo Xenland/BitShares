@@ -86,6 +86,9 @@ namespace bts { namespace blockchain {
     */
    struct full_block : public block 
    {
+      full_block( const block& b )
+      :block(b){}
+      full_block(){}
       std::vector<uint160>  trx_ids; 
    };
 
