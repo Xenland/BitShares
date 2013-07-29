@@ -1,4 +1,6 @@
 #pragma once
+#include <bts/blockchain/asset.hpp>
+#include <bts/blockchain/outputs.hpp>
 #include <bts/units.hpp>
 #include <bts/address.hpp>
 #include <bts/proof_of_work.hpp>
@@ -16,8 +18,8 @@ namespace bts { namespace blockchain {
 struct output_reference
 {
   output_reference():output_idx(0){}
-  fc::uint160       trx_hash;   // the hash of a transaction.
-  uint8_t           output_idx; // the output index in the transaction trx_hash
+  uint160  trx_hash;   // the hash of a transaction.
+  uint8_t  output_idx; // the output index in the transaction trx_hash
   
   friend bool operator==( const output_reference& a, const output_reference& b )
   {
@@ -39,8 +41,8 @@ struct output_reference
 struct trx_input
 {
     template<typename InputType>
-    trx_input( const InputType& t, const ouptut_ref& src )
-    :output_ref(src),output_type( InputType::type )
+    trx_input( const InputType& t, const output_reference& src )
+    :output_ref(src)
     {
        input_data = fc::raw::pack(t);
     }
@@ -68,7 +70,7 @@ struct trx_input
 struct trx_output
 {
     template<typename ClaimType>
-    trx_output( const ClaimType& t, const fc::uint128& a, bitasset_type u )
+    trx_output( const ClaimType& t, uint64_t a, asset::type u )
     :amount(a),unit(u)
     {
        claim_func = ClaimType::type;
@@ -107,7 +109,7 @@ struct transaction
 struct signed_transaction : public transaction
 {
     /** @return the addresses that have signed this trx */
-    std::vector<address>                    get_signed_addresses()const
+    std::vector<address>                    get_signed_addresses()const;
     std::vector<fc::ecc::compact_signature> sigs;
 };
 

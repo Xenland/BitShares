@@ -1,4 +1,9 @@
 #pragma once
+#include <bts/address.hpp>
+#include <bts/blockchain/asset.hpp>
+#include <fc/time.hpp>
+#include <fc/reflect/reflect.hpp>
+#include <fc/io/enum_type.hpp>
 
 namespace bts { namespace blockchain {
 
@@ -29,13 +34,13 @@ typedef fc::enum_type<fc::unsigned_int,claim_type_enum> claim_type;
  */
 struct claim_by_signature_input 
 {
-   static const claim_type type = claim_type::claim_by_signature;
+   static const claim_type_enum type = claim_type_enum::claim_by_signature;
 //   fc::ecc::compact_signature address_sig;
 };
 
 struct claim_by_signature_output
 {
-   static const claim_type type = claim_type::claim_by_signature;
+   static const claim_type_enum type = claim_type_enum::claim_by_signature;
    address  owner; // checksummed hash of public key
 };
 
@@ -49,9 +54,9 @@ struct claim_by_signature_output
  **/
 struct claim_by_bid_output
 {
-   static const claim_type type = claim_type::claim_by_bid;
-   bts::address                           pay_address; // where to send ask_unit (or cancel sig)
-   bts::price                             ask_price;     // price base per unit
+   static const claim_type_enum type = claim_type_enum::claim_by_bid;
+   address                           pay_address; // where to send ask_unit (or cancel sig)
+   price                             ask_price;     // price base per unit
 };
 
 /**
@@ -61,7 +66,7 @@ struct claim_by_bid_output
  */
 struct claim_by_bid_input
 {
-   static const claim_type type = claim_type::claim_by_bid;
+   static const claim_type_enum type = claim_type_enum::claim_by_bid;
 //   fc::ecc::compact_signature  cancel_sig;  ///< signed by claim_by_bid_output::pay_address
 };
 
@@ -73,9 +78,9 @@ struct claim_by_bid_input
  */
 struct claim_by_long_output
 {
-   static const claim_type type = claim_type::claim_by_long;
-   bts::address                           pay_address; // where to send ask_unit (or cancel sig)
-   bts::price                             ask_price;     // price per unit (base must be bts)
+   static const claim_type_enum type = claim_type_enum::claim_by_long;
+   address                           pay_address; // where to send ask_unit (or cancel sig)
+   price                             ask_price;     // price per unit (base must be bts)
 };
 
 /**
@@ -84,7 +89,7 @@ struct claim_by_long_output
  */
 struct claim_by_long_input
 {
-   static const claim_type type = claim_type::claim_by_long;
+   static const claim_type_enum type = claim_type_enum::claim_by_long;
 //   fc::ecc::compact_signature  cancel_sig;  ///< signed by claim_by_short_output::pay_address
 };
 
@@ -99,7 +104,7 @@ struct claim_by_long_input
  */
 struct claim_by_cover_output
 {
-   static const claim_type type = claim_type::claim_by_cover;
+   static const claim_type_enum type = claim_type_enum::claim_by_cover;
    asset::type    payoff_unit;
    uint64_t       payoff_amount;
    bts::address   owner;
@@ -111,7 +116,7 @@ struct claim_by_cover_output
  */
 struct claim_by_cover_input
 {
-   static const claim_type type = claim_type::claim_by_cover;
+   static const claim_type_enum type = claim_type_enum::claim_by_cover;
 //   fc::ecc::compact_signature owner_sig;
 };
 
@@ -157,7 +162,7 @@ struct claim_by_cover_input
  */
 struct claim_by_opt_execute_output
 {
-   static const claim_type type = claim_type::claim_by_opt_execute;
+   static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
    address             optionor; // who to pay for this option (also who may cancel this offer)
    fc::time_point_sec  expire_time;   
    asset_type          strike_unit; 
@@ -167,7 +172,7 @@ struct claim_by_opt_execute_output
 
 struct claim_by_opt_execute_input
 {
-   static const claim_type type = claim_type::claim_by_opt_execute;
+   static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
 // this signature is for the entire trx, and not just the input
 //   fc::ecc::compact_signature   sig; // either optionor or optionee
 };
@@ -198,7 +203,7 @@ struct escrow_terms
 
 struct claim_by_escrow_output
 {
-    static const claim_type type = claim_type::claim_by_opt_execute;
+    static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
     uint160 agreement;    // hash of any agreement between payee and payor
     uint160 agent_terms;  // hash of escrow terms published by the agent
     address agent;        // agent must be registered with the network.
@@ -208,7 +213,7 @@ struct claim_by_escrow_output
 
 struct claim_by_escrow_input
 {
-    static const claim_type type = claim_type::claim_by_opt_execute;
+    static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
 };
 
 /**
@@ -217,10 +222,10 @@ struct claim_by_escrow_input
  */
 struct claim_by_password_output
 {
-    static const claim_type type = claim_type::claim_by_password;
-    fc::address  payer;
-    fc::address  payee;
-    ripemd160    hashed_password;
+    static const claim_type_enum type = claim_type_enum::claim_by_password;
+    address          payer;
+    address          payee;
+    fc::ripemd160    hashed_password;
 };
 
 /**
@@ -228,8 +233,8 @@ struct claim_by_password_output
  */
 struct claim_by_password_input
 {
-    static const claim_type type = claim_type::claim_by_password;
-    uint128     password; ///< random number generated for cross chain trading
+    static const claim_type_enum type = claim_type_enum::claim_by_password;
+    fc::uint128     password; ///< random number generated for cross chain trading
 };
 
 
@@ -239,9 +244,9 @@ struct claim_by_password_input
  */
 struct claim_by_multi_sig_output
 {
-    static const claim_type type = claim_type::claim_by_multi_sig;
+    static const claim_type_enum type = claim_type_enum::claim_by_multi_sig;
     fc::unsigned_int    required;
-    fc::vector<address> addresses;
+    std::vector<address> addresses;
 };
 
 

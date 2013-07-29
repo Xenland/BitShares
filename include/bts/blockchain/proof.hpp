@@ -1,9 +1,8 @@
 #pragma once
 #include <fc/reflect/reflect.hpp>
-#include <bts/merkel_tree.hpp>
+#include <bts/merkle_tree.hpp>
 
-namespace bts
-{
+namespace bts { namespace blockchain {
 
   /**
    *  @brief Data that is paired with 
@@ -11,22 +10,22 @@ namespace bts
   struct proof
   {
      proof()
-     :branch_path(-1),nonce(0){}
+     :branch_path(),nonce(0){}
 
      /**
       *  Does not include the leaf_hash which must be passed to the
-      *  merkel_root() method to properly reconstruct the merkel root.
+      *  merkle_root() method to properly reconstruct the merkle root.
       *
       *  The leaf is not included in this struct because it can always be
       *  calculated from the header and it is helpful to avoid an extra
       *  28 bytes.
       *
-      *  Includes the full merkel branch to the hash of the header.
+      *  Includes the full merkle branch to the hash of the header.
       */
-     merkel_branch           header_branch;
+     merkle_branch           branch_path;
      uint32_t                nonce;
   };
 
-}
+} } // bts::blockchain
 
-FC_REFLECT( bts::proof, (header_branch)(nonce) )
+FC_REFLECT( bts::blockchain::proof, (branch_path)(nonce) )

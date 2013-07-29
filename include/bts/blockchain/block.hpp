@@ -1,9 +1,9 @@
 #pragma once
-#include <bts/proof.hpp>
 #include <bts/small_hash.hpp>
 #include <bts/mini_pow.hpp>
+#include <bts/blockchain/proof.hpp>
 #include <bts/blockchain/transaction.hpp>
-#include <bts/blockchain/bitassets.hpp>
+#include <bts/blockchain/asset.hpp>
 
 namespace bts { namespace blockchain {
 
@@ -17,10 +17,10 @@ namespace bts { namespace blockchain {
    struct block_header
    {
       block_header()
-      :version(0),block_num(0),timestamp(0){}
+      :version(0),block_num(0){}
 
       fc::unsigned_int    version;
-      mini_pow            prev;
+      fc::sha256          prev;
       uint32_t            block_num;
       fc::time_point_sec  timestamp;   ///< seconds from 1970
       uint160             state_hash;  ///< ripemd160(  sha512( block_state ) )
@@ -59,7 +59,7 @@ namespace bts { namespace blockchain {
    struct block_state
    {
       /** initial condition prior to applying trx in this block */
-      fc::array<asset::type::count,asset_issuance> issuance;  // 16 * 32 bytes = 512
+      fc::array<asset_issuance,asset::type::count> issuance;  // 16 * 32 bytes = 512
 
       /**
        *  Features desired / supported by the miner. Once 75% of the past week worth
@@ -86,7 +86,7 @@ namespace bts { namespace blockchain {
     */
    struct full_block : public block 
    {
-      std::vector<fc::uint160>  trx_ids; 
+      std::vector<uint160>  trx_ids; 
    };
 
 } } // bts::blockchain
