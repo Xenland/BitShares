@@ -87,7 +87,7 @@ namespace bts { namespace blockchain {
          trx_num    fetch_trx_num( const uint160& trx_id );
          meta_trx   fetch_trx( const trx_num& t );
 
-         uint32_t   fetch_block_num( const fc::sha256& block_id );
+         uint32_t   fetch_block_num( const fc::sha224& block_id );
          block      fetch_block( uint32_t block_num );
          full_block fetch_block_trxs( uint32_t block_num );
 

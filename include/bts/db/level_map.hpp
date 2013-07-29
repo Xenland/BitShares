@@ -2,6 +2,7 @@
 #include <leveldb/db.h>
 #include <leveldb/comparator.h>
 #include <fc/filesystem.hpp>
+#include <fc/reflect/reflect.hpp>
 #include <fc/io/raw.hpp>
 #include <fc/exception/exception.hpp>
 
@@ -53,7 +54,9 @@ namespace bts { namespace db {
                  FC_THROW_EXCEPTION( exception, "database error: ${msg}", ("msg", status.ToString() ) );
              }
              fc::datastream<const char*> ds(value.c_str(), value.size());
-             return fc::raw::unpack<Value>(ds);
+             Value tmp;
+             fc::raw::unpack(ds, tmp);
+             return tmp;
           } FC_RETHROW_EXCEPTIONS( warn, "error fetching key ${key}", ("key",k) );
         }
 

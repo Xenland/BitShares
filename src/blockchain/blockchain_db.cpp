@@ -90,6 +90,7 @@ namespace bts { namespace blockchain {
          my->trx_id2num.store( trx.id(), trx_idx );
          
          meta_trx mt(trx);
+         mt.meta_outputs.resize( trx.outputs.size() );
          my->meta_trxs.store( trx_idx, mt );
 
        } FC_RETHROW_EXCEPTIONS( warn, 
@@ -99,9 +100,10 @@ namespace bts { namespace blockchain {
 
     meta_trx    blockchain_db::fetch_trx( const trx_num& trx_id )
     {
+       return my->meta_trxs.fetch( trx_id );
     }
 
-    uint32_t    blockchain_db::fetch_block_num( const fc::sha256& block_id )
+    uint32_t    blockchain_db::fetch_block_num( const fc::sha224& block_id )
     {
     }
     block       blockchain_db::fetch_block( uint32_t block_num )

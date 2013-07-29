@@ -40,6 +40,7 @@ struct output_reference
  */
 struct trx_input
 {
+    trx_input(){}
     template<typename InputType>
     trx_input( const InputType& t, const output_reference& src )
     :output_ref(src)
