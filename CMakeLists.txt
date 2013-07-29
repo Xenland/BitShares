@@ -71,6 +71,7 @@ set( sources
      src/blockchain/asset.cpp
      src/blockchain/blockchain_db.cpp
 
+     src/db.cpp
      src/small_hash.cpp
      src/mini_pow.cpp 
      src/address.cpp

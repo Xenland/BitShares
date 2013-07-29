@@ -1,5 +1,6 @@
 #include <bts/bitname/name_db.hpp>
 #include <leveldb/db.h>
+#include "../db.hpp"
 #include <fc/io/raw.hpp>
 #include <fc/reflect/variant.hpp>
 
@@ -8,7 +9,8 @@ namespace bts { namespace bitname {
 
     namespace ldb = leveldb;
    
-    static_assert( sizeof(bts::bitname::name_db::name_location) == 12, "name_location requires dense packing with no padding" );
+    static_assert( sizeof(bts::bitname::name_db::name_location) == 12, 
+                      "name_location requires dense packing with no padding" );
 
     namespace detail 
     {
@@ -17,24 +19,6 @@ namespace bts { namespace bitname {
           public:
             std::unique_ptr<ldb::DB> name_index_db;
             std::unique_ptr<ldb::DB> name_block_db;
-
-            std::unique_ptr<ldb::DB> init_db( const fc::path& dbfile, bool create )
-            {
-               ldb::Options opts;
-               opts.create_if_missing = create;
-
-               ldb::DB* ndb = nullptr;
-               auto ntrxstat = ldb::DB::Open( opts, dbfile.generic_string().c_str(), &ndb );
-               if( !ntrxstat.ok() )
-               {
-                   FC_THROW_EXCEPTION( exception, "Unable to open database ${db}\n\t${msg}", 
-                        ("db",dbfile)
-                        ("msg",ntrxstat.ToString()) 
-                        );
-               }
-
-               return std::unique_ptr<ldb::DB>(ndb);
-            }
        };
     }
 
@@ -55,8 +39,8 @@ namespace bts { namespace bitname {
        auto nidx = db_dir / "name_idx";
        auto nblk = db_dir / "blocks";
 
-       my->name_index_db = my->init_db( db_dir / "name_idx", create ); 
-       my->name_block_db = my->init_db( db_dir / "blocks", create ); 
+       my->name_index_db = init_db( db_dir / "name_idx", create ); 
+       my->name_block_db = init_db( db_dir / "blocks", create ); 
 
     }
     void name_db::close()
