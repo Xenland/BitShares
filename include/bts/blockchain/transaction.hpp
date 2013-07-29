@@ -99,6 +99,8 @@ struct trx_output
  */
 struct transaction
 {
+   fc::sha256                   digest()const;
+
    fc::unsigned_int             version;      ///< trx version number
    fc::unsigned_int             valid_after;  ///< trx is only valid after block num, 0 means always valid
    fc::unsigned_int             valid_blocks; ///< number of blocks after valid after that this trx is valid, 0 means always valid
@@ -109,7 +111,10 @@ struct transaction
 struct signed_transaction : public transaction
 {
     /** @return the addresses that have signed this trx */
-    std::vector<address>                    get_signed_addresses()const;
+    std::unordered_set<address>             get_signed_addresses()const;
+    uint160                                 id()const;
+    void                                    sign( const fc::ecc::private_key& k );
+
     std::vector<fc::ecc::compact_signature> sigs;
 };
 

@@ -20,20 +20,41 @@ namespace bts { namespace blockchain {
        asset              fees; // any fees that would be generated
     };
 
+    struct trx_num
+    {
+      trx_num(uint32_t b = 0, uint16_t t = 0):block_num(b),trx_idx(t){}
+      uint32_t block_num;
+      uint16_t trx_idx;
+
+      friend bool operator < ( const trx_num& a, const trx_num& b )
+      {
+        return a.block_num == b.block_num ? 
+                    a.trx_idx < b.trx_idx : 
+                    a.block_num < b.block_num;
+      }
+      friend bool operator == ( const trx_num& a, const trx_num& b )
+      {
+        return a.block_num == b.block_num && a.trx_idx == b.trx_idx;
+      }
+    };
+
     /**
      *  Meta information maintained for each output that links it
      *  to the block, trx, and output
      */
     struct meta_trx_output
     {
-       uint32_t  block_num;
-       uint16_t  trx_num;
+       meta_trx_output()
+       :input_num(0){}
+       trx_num   trx_id;
        uint8_t   input_num;
     };
 
     struct meta_trx : public signed_transaction
     {
-       uint32_t block_num; // the block that contains the trx;
+       meta_trx(){}
+       meta_trx( const signed_transaction& t )
+       :signed_transaction(t){}
        std::vector<meta_trx_output> meta_outputs; // tracks where the output was spent
     };
 
@@ -63,7 +84,8 @@ namespace bts { namespace blockchain {
           */
          trx_eval   evaluate_signed_transaction( const signed_transaction& trx );       
 
-         meta_trx   fetch_trx( const uint160& trx_id );
+         trx_num    fetch_trx_num( const uint160& trx_id );
+         meta_trx   fetch_trx( const trx_num& t );
 
          uint32_t   fetch_block_num( const fc::sha256& block_id );
          block      fetch_block( uint32_t block_num );
@@ -86,12 +108,13 @@ namespace bts { namespace blockchain {
          void pop_block( full_block& b, std::vector<signed_transaction>& trxs );
 
        private:
-         void       store_trx( const signed_transaction& trx );
+         void   store_trx( const signed_transaction& trx, const trx_num& t );
          std::unique_ptr<detail::blockchain_db_impl> my;          
     };
 
 }  } // bts::blockchain
 
 FC_REFLECT( bts::blockchain::trx_eval, (fees) )
-FC_REFLECT( bts::blockchain::meta_trx_output, (block_num)(trx_num)(input_num) )
-FC_REFLECT_DERIVED( bts::blockchain::meta_trx, (bts::blockchain::signed_transaction), (block_num)(meta_outputs) );
+FC_REFLECT( bts::blockchain::trx_num, (block_num)(trx_idx) );
+FC_REFLECT( bts::blockchain::meta_trx_output, (trx_id)(input_num) )
+FC_REFLECT_DERIVED( bts::blockchain::meta_trx, (bts::blockchain::signed_transaction), (meta_outputs) );

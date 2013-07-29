@@ -6,20 +6,22 @@
 
 #include <fc/filesystem.hpp>
 
+
+
 namespace bts { namespace blockchain {
     namespace ldb = leveldb;
     namespace detail  
     { 
+
       class blockchain_db_impl
       {
          public:
             //std::unique_ptr<ldb::DB> blk_id2num;  // maps blocks to unique IDs
-            std::unique_ptr<ldb::DB> blocks;      // block num to block struct
-            std::unique_ptr<ldb::DB> block_trxs;  // bluck num to trx hashes
-            std::unique_ptr<ldb::DB> trx_id2num;  // maps trxs to unique numbers
-            std::unique_ptr<ldb::DB> trxs;        // trxnum to trx;
-
-            bts::db::level_map<fc::sha224,uint32_t> blk_id2num;
+            bts::db::level_map<fc::sha224,uint32_t>             blk_id2num;
+            bts::db::level_map<uint160,trx_num>                 trx_id2num;
+            bts::db::level_map<trx_num,meta_trx>                meta_trxs;
+            bts::db::level_map<uint32_t,block>                  blocks;
+            bts::db::level_map<uint32_t,std::vector<uint160> >  block_trxs; 
             // Dividend Table needs to be memory mapped
       };
     }
@@ -44,24 +46,20 @@ namespace bts { namespace blockchain {
              }
              fc::create_directories( dir );
         }
-        /*
-        my->blk_id2num = init_db( dir / "blk_id2num", create );
-        my->blocks     = init_db( dir / "blocks",     create );
-        my->block_trxs = init_db( dir / "block_trxs", create );
-        my->trx_id2num = init_db( dir / "trx_id2num", create );
-        my->trxs       = init_db( dir / "trxs",       create );
-        */
+        my->blk_id2num.open( dir / "blk_id2num", create );
+        my->trx_id2num.open( dir / "trx_id2num", create );
+        my->meta_trxs.open(  dir / "meta_trxs",  create );
+        my->blocks.open(     dir / "blocks",     create );
+        my->block_trxs.open( dir / "block_trxs", create );
      }
+
      void blockchain_db::close()
      {
-        /*
-        my->blk_id2num.reset();
-        my->blocks.reset();
-        my->block_trxs.reset();
-        my->trx_id2num.reset();
-        my->trxs.reset();
-        */
         my->blk_id2num.close();
+        my->trx_id2num.close();
+        my->blocks.close();
+        my->block_trxs.close();
+        my->meta_trxs.close();
      }
 
     /**
@@ -78,16 +76,28 @@ namespace bts { namespace blockchain {
     {
     }
 
-    void        blockchain_db::store_trx( const signed_transaction& trx )
+    /**
+     *  @pre trx must pass evaluate_signed_transaction() without exception
+     *  @pre block_num must be a valid block 
+     *
+     *  @param block_num - the number of the block that contains this trx.
+     *
+     *  @return the index / trx number that was assigned to trx as part of storing it.
+     */
+    void  blockchain_db::store_trx( const signed_transaction& trx, const trx_num& trx_idx )
     {
        try {
+         my->trx_id2num.store( trx.id(), trx_idx );
          
+         meta_trx mt(trx);
+         my->meta_trxs.store( trx_idx, mt );
 
        } FC_RETHROW_EXCEPTIONS( warn, 
           "an error occured while trying to store the transaction", 
           ("trx",trx) );
     }
-    meta_trx    blockchain_db::fetch_trx( const uint160& trx_id )
+
+    meta_trx    blockchain_db::fetch_trx( const trx_num& trx_id )
     {
     }
 
