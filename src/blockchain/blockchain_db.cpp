@@ -1,12 +1,25 @@
 #include <bts/blockchain/blockchain_db.hpp>
+#include <leveldb/db.h>
+#include "../db.hpp"
+
+#include <fc/filesystem.hpp>
 
 namespace bts { namespace blockchain {
-
+    namespace ldb = leveldb;
     namespace detail  
     { 
       class blockchain_db_impl
       {
          public:
+            std::unique_ptr<ldb::DB> blk_id2num;  // maps blocks to unique IDs
+            std::unique_ptr<ldb::DB> blocks;      // block num to block struct
+            std::unique_ptr<ldb::DB> block_trxs;  // bluck num to trx hashes
+            std::unique_ptr<ldb::DB> trx_id2num;  // maps trxs to unique numbers
+            std::unique_ptr<ldb::DB> trxs;        // trxnum to trx;
+
+
+            // Dividend Table needs to be memory mapped
+
       };
     }
 
@@ -21,9 +34,29 @@ namespace bts { namespace blockchain {
 
      void blockchain_db::open( const fc::path& dir, bool create )
      {
+        if( !fc::exists( dir ) )
+        {
+             if( !create )
+             {
+                FC_THROW_EXCEPTION( file_not_found_exception, 
+                    "Unable to open name database ${dir}", ("dir",dir) );
+             }
+             fc::create_directories( dir );
+        }
+        my->blk_id2num = init_db( dir / "blk_id2num", create );
+        my->blocks     = init_db( dir / "blocks",     create );
+        my->block_trxs = init_db( dir / "block_trxs", create );
+        my->trx_id2num = init_db( dir / "trx_id2num", create );
+        my->trxs       = init_db( dir / "trxs",       create );
+
      }
      void blockchain_db::close()
      {
+        my->blk_id2num.reset();
+        my->blocks.reset();
+        my->block_trxs.reset();
+        my->trx_id2num.reset();
+        my->trxs.reset();
      }
 
     /**
@@ -50,13 +83,10 @@ namespace bts { namespace blockchain {
     uint32_t           blockchain_db::fetch_block_num( const fc::sha256& block_id )
     {
     }
-    full_block         blockchain_db::fetch_block( uint32_t block_num )
+    block         blockchain_db::fetch_block( uint32_t block_num )
     {
     }
-    block_proof        blockchain_db::fetch_block_proof( uint32_t block_num )
-    {
-    }
-    block_state        blockchain_db::fetch_block_state( uint32_t block_num )
+    full_block              blockchain_db::fetch_block_trxs( uint32_t block_num )
     {
     }
 

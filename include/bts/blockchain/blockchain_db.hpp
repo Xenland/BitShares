@@ -67,9 +67,8 @@ namespace bts { namespace blockchain {
          meta_trx           fetch_trx( const uint160& trx_id );
 
          uint32_t           fetch_block_num( const fc::sha256& block_id );
-         block_proof        fetch_block_proof( uint32_t block_num );
-         block_state        fetch_block_state( uint32_t block_num );
-         full_block         fetch_block( uint32_t block_num );
+         block              fetch_block( uint32_t block_num );
+         full_block         fetch_block_trxs( uint32_t block_num );
 
          /**
           *  Calculate the dividends due to a given asset accumulated durrning blocks from_num to to_num

@@ -1,8 +1,8 @@
 #pragma once
 #include <memory>
 
-namespace fc { class path; }
 namespace leveldb { class DB; }
+namespace fc { class path; }
 namespace bts 
 {
    /**
