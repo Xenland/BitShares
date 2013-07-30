@@ -74,21 +74,28 @@ struct claim_by_bid_input
 };
 
 /**
+ *  This output may be spent via signature (to cancel) or via a market action
+ *  of a miner.
+ *
  *  Assumptions:
- *     trx_output.unit == asset::type  ie: usd
- *     trx_output.amount == amount of usd
- *     ask_ppu = usd / bts short price
+ *     trx_output.unit   ==  bts  
+ *     trx_output.amount == amount of bts held as collateral
+ *     ask_price         == price to convert to usd
  */
 struct claim_by_long_output
 {
    static const claim_type_enum type = claim_type_enum::claim_by_long;
-   address                           pay_address; // where to send ask_unit (or cancel sig)
-   price                             ask_price;     // price per unit (base must be bts)
+   uint64_t                          min_trade;   ///< measured in bts to accept this order
+   address                           pay_address; ///< where to send ask_unit (or cancel sig)
+   price                             ask_price;   ///< price per unit (base must be bts)
 };
 
 /**
  *  There are only two ways to claim a short output, cancel it or take a long position by
  *  pairing it against a matching bid.  
+ *
+ *  Creates a negitive BTS input and positive USD input
+ *
  */
 struct claim_by_long_input
 {
@@ -104,6 +111,8 @@ struct claim_by_long_input
  *  Assumptions:
  *    trx_output.unit = bts
  *    trx_output.amount = total collateral held
+ *
+ *    payoff_amount / unit counts as a 'negative input' to the transaction.
  */
 struct claim_by_cover_output
 {

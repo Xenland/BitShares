@@ -71,6 +71,7 @@ set( sources
      src/blockchain/asset.cpp
      src/blockchain/block.cpp
      src/blockchain/transaction.cpp
+     src/blockchain/trx_validation_state.cpp
      src/blockchain/blockchain_db.cpp
 
      src/db.cpp

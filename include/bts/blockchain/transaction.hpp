@@ -114,10 +114,9 @@ struct transaction
 
 struct signed_transaction : public transaction
 {
-    /** @return the addresses that have signed this trx */
-    std::unordered_set<address>             get_signed_addresses()const;
-    uint160                                 id()const;
-    void                                    sign( const fc::ecc::private_key& k );
+    std::unordered_set<address>      get_signed_addresses()const;
+    uint160                          id()const;
+    void                             sign( const fc::ecc::private_key& k );
 
     std::unordered_set<fc::ecc::compact_signature> sigs;
 };
