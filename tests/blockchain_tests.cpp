@@ -32,6 +32,9 @@ BOOST_AUTO_TEST_CASE( mining_reward_rate )
   ilog( "LAST_BLOCK_REWARD+1 ${i}", ("i",calculate_mining_reward(BLOCKS_WITH_REWARD+1)) );
   ilog( "end supply: ${e}  target supply ${t}", ("e",supply)("t",MAX_BITSHARE_SUPPLY) );
   ilog( "error: ${e}       error per block: ${epp}", ("e", (supply-MAX_BITSHARE_SUPPLY) )("epp", (supply-MAX_BITSHARE_SUPPLY)/BLOCKS_WITH_REWARD ) );
+  BOOST_REQUIRE( supply == MAX_BITSHARE_SUPPLY );
+  BOOST_REQUIRE( 0 == calculate_mining_reward(BLOCKS_WITH_REWARD+1));
+  BOOST_REQUIRE( 0 == calculate_mining_reward(BLOCKS_WITH_REWARD));
 }
 
 BOOST_AUTO_TEST_CASE( fixed_math )
