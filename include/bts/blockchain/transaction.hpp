@@ -85,7 +85,7 @@ struct trx_output
        return fc::raw::unpack<ClaimType>(claim_data);
     }
 
-    trx_output(){}
+    trx_output():amount(0){}
 
     uint64_t                                    amount;
     asset_type                                  unit;
@@ -116,7 +116,7 @@ struct signed_transaction : public transaction
     uint160                                 id()const;
     void                                    sign( const fc::ecc::private_key& k );
 
-    std::vector<fc::ecc::compact_signature> sigs;
+    std::unordered_set<fc::ecc::compact_signature> sigs;
 };
 
 } }  // namespace bts::blockchain

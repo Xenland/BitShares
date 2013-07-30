@@ -1,5 +1,6 @@
 #pragma once
 #include <bts/address.hpp>
+#include <bts/small_hash.hpp>
 #include <bts/blockchain/asset.hpp>
 #include <fc/time.hpp>
 #include <fc/reflect/reflect.hpp>

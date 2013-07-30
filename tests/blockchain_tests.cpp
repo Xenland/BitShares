@@ -8,12 +8,31 @@
 #include <bts/mini_pow.hpp>
 #include <bts/dds/mmap_array.hpp>
 #include <bts/blockchain/asset.hpp>
+#include <bts/blockchain/blockchain_db.hpp>
+#include <bts/config.hpp>
 #include <fc/io/json.hpp>
 #include <fc/io/raw.hpp>
 
 using namespace bts;
 using bts::blockchain::asset;
 using bts::blockchain::price;
+using namespace bts::blockchain;
+
+BOOST_AUTO_TEST_CASE( mining_reward_rate )
+{
+  uint64_t supply = -INITIAL_REWARD/2;
+  for( uint32_t i = 0; i < BLOCKS_WITH_REWARD; ++i )
+  {
+     supply += bts::blockchain::calculate_mining_reward(i);
+  }
+  ilog( "INITIAL_REWARD ${i}", ("i",INITIAL_REWARD) );
+  ilog( "BLOCKS_WITH_REWARD ${i}", ("i",BLOCKS_WITH_REWARD) );
+  ilog( "REWARD_DELTA_PER_BLOCK ${i}", ("i",REWARD_DELTA_PER_BLOCK) );
+  ilog( "LAST_BLOCK_REWARD ${i}", ("i",calculate_mining_reward(BLOCKS_WITH_REWARD)) );
+  ilog( "LAST_BLOCK_REWARD+1 ${i}", ("i",calculate_mining_reward(BLOCKS_WITH_REWARD+1)) );
+  ilog( "end supply: ${e}  target supply ${t}", ("e",supply)("t",MAX_BITSHARE_SUPPLY) );
+  ilog( "error: ${e}       error per block: ${epp}", ("e", (supply-MAX_BITSHARE_SUPPLY) )("epp", (supply-MAX_BITSHARE_SUPPLY)/BLOCKS_WITH_REWARD ) );
+}
 
 BOOST_AUTO_TEST_CASE( fixed_math )
 {

@@ -69,6 +69,7 @@ set( sources
      src/bitchat/bitchat_client.cpp 
 
      src/blockchain/asset.cpp
+     src/blockchain/transaction.cpp
      src/blockchain/blockchain_db.cpp
 
      src/db.cpp

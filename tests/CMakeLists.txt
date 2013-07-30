@@ -1,5 +1,5 @@
 add_executable( blockchain_tests blockchain_tests.cpp )
-target_link_libraries( blockchain_tests bshare fc ${BOOST_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}  )
+target_link_libraries( blockchain_tests bshare fc leveldb ${BOOST_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}  )
 
 add_executable( dds_test dds_tests.cpp )
 target_link_libraries( dds_test bshare fc ${BOOST_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}  )

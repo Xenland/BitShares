@@ -4,12 +4,12 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
 set( sources 
     db/builder.cc
     db/c.cc
-    db/db_bench.cc
+#    db/db_bench.cc
     db/db_impl.cc
     db/db_iter.cc
     db/dbformat.cc
     db/filename.cc
-    db/leveldb_main.cc
+#    db/leveldb_main.cc
     db/log_reader.cc
     db/log_writer.cc
     db/memtable.cc

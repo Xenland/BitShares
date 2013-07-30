@@ -1,11 +1,17 @@
 #pragma once
 
-#define SHARE                         (1000ll)               // used to position the decimal place
-#define INIT_BLOCK_REWARD             (5000000ll)            // initial reward amount
-#define BLOCK_INTERVAL                (5)                    // minutes between blocks
+#define SHARE                         (1000ll)                    // used to position the decimal place
+#define MAX_BITSHARE_SUPPLY           (2000000000000ll * SHARE)   // 1 Trillion with 3 decimal places
+#define YEARS_TO_MINE                 (12ll)                      // how many years until the full bitshare supply is mined
+#define BLOCK_INTERVAL                (5ll)                       // minutes between blocks
 #define BLOCKS_PER_HOUR               (60/BLOCK_INTERVAL)           
-#define BLOCKS_PER_DAY                (BLOCKS_PER_HOUR*24)
-#define BLOCKS_PER_YEAR               (BLOCKS_PER_DAY*365)
+#define BLOCKS_PER_DAY                (BLOCKS_PER_HOUR*24ll)
+#define BLOCKS_PER_YEAR               (BLOCKS_PER_DAY*365ll)
+#define BLOCKS_WITH_REWARD            (1250000ll)
+#define INITIAL_REWARD                ((2ll * MAX_BITSHARE_SUPPLY) / BLOCKS_WITH_REWARD)  
+#define REWARD_DELTA_PER_BLOCK        (INITIAL_REWARD / BLOCKS_WITH_REWARD)
+
+
 #define COINBASE_WAIT_PERIOD          (BLOCKS_PER_HOUR*8) // blocks before a coinbase can be spent
 #define DEFAULT_SERVER_PORT           (9876)
 #define DESIRED_PEER_COUNT            (8)                 // number of nodes to connect to

@@ -58,6 +58,8 @@ namespace bts { namespace blockchain {
        std::vector<meta_trx_output> meta_outputs; // tracks where the output was spent
     };
 
+    uint64_t calculate_mining_reward( uint32_t blk_num );
+
     /**
      *  This database only stores valid blocks and applied transactions,
      *  it does not store invalid/orphaned blocks and transactions which
