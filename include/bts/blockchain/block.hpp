@@ -19,6 +19,11 @@ namespace bts { namespace blockchain {
       block_header()
       :version(0),block_num(0){}
 
+      /** digest used in proof of work calculation as 
+       * the base of the proof merkle branch 
+       **/
+      uint160 digest()const;
+
       fc::unsigned_int    version;
       fc::sha224          prev;
       uint32_t            block_num;
@@ -35,6 +40,7 @@ namespace bts { namespace blockchain {
     */
    struct block_proof : public block_header
    {
+      mini_pow     proof_of_work()const;
       proof        pow; ///< contains the merkle branch + nonce
    };
 

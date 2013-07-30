@@ -76,6 +76,7 @@ set( sources
      src/db.cpp
      src/small_hash.cpp
      src/mini_pow.cpp 
+     src/merkle_tree.cpp
      src/address.cpp
      src/wallet.cpp
      src/bitmessage.cpp

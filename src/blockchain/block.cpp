@@ -1,4 +1,5 @@
 #include <bts/blockchain/block.hpp>
+#include <bts/proof_of_work.hpp>
 #include <bts/config.hpp>
 #include <bts/small_hash.hpp>
 #include <fc/io/raw.hpp>
@@ -45,7 +46,7 @@ namespace bts { namespace blockchain  {
       b.version    = 0;
       b.prev       = fc::sha224();
       b.block_num  = 0;
-      b.timestamp  = fc::time_point::now();
+      b.timestamp  = fc::time_point::from_iso_string("20130730T054434");
       b.state_hash = b.state.digest();
 
       signed_transaction coinbase;
@@ -59,6 +60,8 @@ namespace bts { namespace blockchain  {
       b.trxs.emplace_back( std::move(coinbase) );
  //     full_block fb = b;
       b.trx_mroot   = b.calculate_merkle_root();
+
+      b.pow.branch_path.mid_states.push_back( b.digest() );
       return b;
     } FC_RETHROW_EXCEPTIONS( warn, "error creating gensis block" );
   }
@@ -105,6 +108,29 @@ namespace bts { namespace blockchain  {
   }
 
   uint160 block_state::digest()const
+  {
+     fc::sha512::encoder enc;
+     fc::raw::pack( enc, *this );
+     return small_hash( enc.result() );
+  }
+
+  /**
+   *  Calculate the proof of work hash from the merkle root + nonce
+   */
+  mini_pow block_proof::proof_of_work()const
+  {
+     FC_ASSERT( pow.branch_path.mid_states.size() > 0 );
+     FC_ASSERT( pow.branch_path.mid_states[0] == block_header::digest() );
+     fc::sha256::encoder enc;
+     fc::raw::pack( enc, pow.nonce );
+     fc::raw::pack( enc, pow.branch_path.calculate_root() );
+     return bts::proof_of_work( enc.result() );
+  }
+
+  /**
+   *  @return the digest of the block header used to evaluate the proof of work
+   */
+  uint160 block_header::digest()const
   {
      fc::sha512::encoder enc;
      fc::raw::pack( enc, *this );
