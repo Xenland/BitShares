@@ -22,7 +22,11 @@ namespace bts { namespace blockchain {
 
     struct trx_num
     {
-      trx_num(uint32_t b = 0, uint16_t t = 0):block_num(b),trx_idx(t){}
+      /** 
+       *  -1 block_num is used to identifiy default initialization.
+       */
+      static const uint32_t invalid_block_id = -1;
+      trx_num(uint32_t b = invalid_block_id, uint16_t t = 0):block_num(b),trx_idx(t){}
       uint32_t block_num;
       uint16_t trx_idx;
 
@@ -45,9 +49,26 @@ namespace bts { namespace blockchain {
     struct meta_trx_output
     {
        meta_trx_output()
-       :input_num(0){}
+       :input_num(-1){}
        trx_num   trx_id;
        uint8_t   input_num;
+
+       bool is_spent()const 
+       {
+         return trx_id.block_num != trx_num::invalid_block_id;
+       }
+    };
+
+    /**
+     *  Caches output information used by inputs while
+     *  evaluating a transaction.
+     */
+    struct meta_trx_input
+    {
+       trx_num           source;
+       uint8_t           output_num;
+       trx_output        output;
+       meta_trx_output   meta_output;
     };
 
     struct meta_trx : public signed_transaction
@@ -88,6 +109,12 @@ namespace bts { namespace blockchain {
 
          trx_num    fetch_trx_num( const uint160& trx_id );
          meta_trx   fetch_trx( const trx_num& t );
+
+         /**
+          *  @return the outputs referenced by the inputs
+          *  @throw if any input cannot be found.
+          */
+         std::vector<meta_trx_input> fetch_inputs( const std::vector<trx_input>& inputs );
 
          uint32_t   fetch_block_num( const fc::sha224& block_id );
          block      fetch_block( uint32_t block_num );

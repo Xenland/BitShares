@@ -64,23 +64,6 @@ namespace bts { namespace blockchain {
      }
 
     /**
-     *  Validates that trx could be included in a future block, that
-     *  all inputs are unspent, that it is valid for the current time,
-     *  and that all inputs have proper signatures and input data.
-     *
-     *  @return any trx fees that would be paid if this trx were included
-     *          in the next block.
-     *
-     *  @throw exception if trx can not be applied to the current chain state.
-     */
-    trx_eval blockchain_db::evaluate_signed_transaction( const signed_transaction& trx )       
-    {
-       trx_eval e;
-       e.fees = asset( 0, asset::bts );
-       return e;
-    }
-
-    /**
      *  @pre trx must pass evaluate_signed_transaction() without exception
      *  @pre block_num must be a valid block 
      *
@@ -102,6 +85,10 @@ namespace bts { namespace blockchain {
           ("trx",trx) );
     }
 
+    trx_num    blockchain_db::fetch_trx_num( const uint160& trx_id )
+    {
+       return my->trx_id2num.fetch(trx_id);
+    }
     meta_trx    blockchain_db::fetch_trx( const trx_num& trx_id )
     {
        return my->meta_trxs.fetch( trx_id );
@@ -130,6 +117,72 @@ namespace bts { namespace blockchain {
     asset              blockchain_db::calculate_dividends( const asset& a, uint32_t from_num, uint32_t to_num )
     {
        return asset();
+    }
+
+
+    std::vector<meta_trx_input> blockchain_db::fetch_inputs( const std::vector<trx_input>& inputs )
+    {
+       try
+       {
+          std::vector<meta_trx_input> rtn;
+          rtn.reserve( inputs.size() );
+          for( uint32_t i = 0; i < inputs.size(); ++i )
+          {
+            try {
+             trx_num tn   = fetch_trx_num( inputs[i].output_ref.trx_hash );
+             meta_trx trx = fetch_trx( tn );
+             
+             if( inputs[i].output_ref.output_idx >= trx.meta_outputs.size() )
+             {
+                FC_THROW_EXCEPTION( exception, "Input ${i} references invalid output from transaction ${t}",
+                                    ("i",inputs[i])("o", trx) );
+             }
+             if( inputs[i].output_ref.output_idx >= trx.outputs.size() )
+             {
+                FC_THROW_EXCEPTION( exception, "Input ${i} references invalid output from transaction ${t}",
+                                    ("i",inputs[i])("o", trx) );
+             }
+
+             meta_trx_input metin;
+             metin.source       = tn;
+             metin.output_num   = inputs[i].output_ref.output_idx;
+             metin.output       = trx.outputs[metin.output_num];
+             metin.meta_output  = trx.meta_outputs[metin.output_num];
+             rtn.push_back( metin );
+
+            } FC_RETHROW_EXCEPTIONS( warn, "error fetching input [${i}] ${in}", ("i",i)("in", inputs[i]) );
+          }
+          return rtn;
+       } FC_RETHROW_EXCEPTIONS( warn, "error fetching transaction inputs", ("inputs", inputs) );
+    }
+
+    /**
+     *  Validates that trx could be included in a future block, that
+     *  all inputs are unspent, that it is valid for the current time,
+     *  and that all inputs have proper signatures and input data.
+     *
+     *  @return any trx fees that would be paid if this trx were included
+     *          in the next block.
+     *
+     *  @throw exception if trx can not be applied to the current chain state.
+     */
+    trx_eval blockchain_db::evaluate_signed_transaction( const signed_transaction& trx )       
+    {
+       try {
+           trx_eval e;
+           e.fees = asset( 0, asset::bts );
+
+           std::vector<meta_trx_input> minputs = fetch_inputs( trx.inputs ); 
+
+           FC_ASSERT( minputs.size() == trx.inputs.size() );  // just double checking
+
+           for( uint32_t i = 0; i < trx.inputs.size(); ++i )
+           {
+           //   if( minputs[i].
+           }
+
+           return e;
+       } FC_RETHROW_EXCEPTIONS( warn, "error evaluating transaction ${t}", ("t", trx) );
     }
 
 
