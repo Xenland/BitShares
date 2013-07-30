@@ -146,4 +146,5 @@ namespace bts { namespace blockchain {
 FC_REFLECT( bts::blockchain::trx_eval, (fees) )
 FC_REFLECT( bts::blockchain::trx_num, (block_num)(trx_idx) );
 FC_REFLECT( bts::blockchain::meta_trx_output, (trx_id)(input_num) )
+FC_REFLECT( bts::blockchain::meta_trx_input, (source)(output_num)(output)(meta_output) )
 FC_REFLECT_DERIVED( bts::blockchain::meta_trx, (bts::blockchain::signed_transaction), (meta_outputs) );

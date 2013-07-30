@@ -49,6 +49,7 @@ namespace bts { namespace blockchain {
       fc::uint128_t amount;
       type          unit;
   };
+  typedef fc::enum_type<uint8_t,asset::type> asset_type;
   
   /**
    *  A price is the result of dividing 2 asset classes and has
@@ -65,10 +66,10 @@ namespace bts { namespace blockchain {
 
       fc::uint128_t ratio; // 64.64
 
-      uint16_t asset_pair()const { return (uint16_t(quote_unit)<<8) | base_unit; }
+      uint16_t asset_pair()const { return (uint16_t(uint8_t(quote_unit))<<8) | uint8_t(base_unit); }
 
-      asset::type base_unit;
-      asset::type quote_unit;
+      asset_type base_unit;
+      asset_type quote_unit;
   };
 
   inline bool operator == ( const asset& l, const asset& r ) { return l.amount == r.amount; }
@@ -107,7 +108,6 @@ namespace bts { namespace blockchain {
   asset operator * ( const asset& a, const price& p );
 
 
-  typedef fc::enum_type<uint8_t,asset::type> asset_type;
 
 } } // bts::blockchain
 
@@ -123,4 +123,5 @@ namespace fc
 FC_REFLECT_ENUM( bts::blockchain::asset::type, 
   (bts) (btc) (gld) (slv) (usd) (cny) (gbp) (eur) (jpy) (chf) (aud) (cad) (sek) (hkd) (wti) (iii)
 )
+FC_REFLECT( bts::blockchain::price, (ratio)(quote_unit)(base_unit) );
 

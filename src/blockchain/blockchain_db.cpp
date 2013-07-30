@@ -1,9 +1,11 @@
 #include <bts/config.hpp>
 #include <bts/blockchain/blockchain_db.hpp>
+#include <bts/blockchain/asset.hpp>
 #include <leveldb/db.h>
 #include <bts/db/level_map.hpp>
 #include <fc/io/enum_type.hpp>
 #include <fc/reflect/variant.hpp>
+#include <fc/io/raw.hpp>
 
 #include <fc/filesystem.hpp>
 
@@ -169,17 +171,57 @@ namespace bts { namespace blockchain {
     trx_eval blockchain_db::evaluate_signed_transaction( const signed_transaction& trx )       
     {
        try {
-           trx_eval e;
-           e.fees = asset( 0, asset::bts );
+
+           uint64_t input_summary[asset::count];
+           uint64_t output_summary[asset::count];
+           memset( (char*)input_summary, 0, sizeof(input_summary) );
+           memset( (char*)output_summary, 0, sizeof(output_summary) );
 
            std::vector<meta_trx_input> minputs = fetch_inputs( trx.inputs ); 
 
            FC_ASSERT( minputs.size() == trx.inputs.size() );  // just double checking
 
+           // total the inputs by asset type & validate they are unspent
            for( uint32_t i = 0; i < trx.inputs.size(); ++i )
            {
-           //   if( minputs[i].
+              if( minputs[i].meta_output.is_spent() )
+              {
+                 FC_THROW_EXCEPTION( exception, 
+                    "input [${iidx}] = ${i} references output ${o} which was already spent here ${s}",
+                    ("iid",i)("i",trx.inputs[i])("o",minputs[i]) );
+              }
+              FC_ASSERT( minputs[i].output.unit <= asset::count ); // THIS CHECK SHOULD ALWAYS BE OK, CONSIDER REMOVING or assert
+              output_summary[(asset::type)minputs[i].output.unit] += minputs[i].output.amount;
            }
+
+           // total the outputs by asset type
+           for( uint32_t i = 0; i < trx.outputs.size(); ++i )
+           {
+              FC_ASSERT( trx.outputs[i].unit <= asset::count );
+              output_summary[(asset::type)trx.outputs[i].unit] += trx.outputs[i].amount;
+
+              
+              if( trx.outputs[i].claim_func == claim_by_long )
+              {
+                  auto cbl = trx.outputs[i].as<claim_by_long_output>();
+
+              }
+           }
+           
+           for( uint32_t i = 1; i < asset::count; ++i )
+           {
+              
+              // this is only true for transfers... bitcoin style... 
+              if( input_summary[i] != output_summary[i] )
+              {
+                 FC_THROW_EXCEPTION( exception, "Input of ${in} ${unit} is not equal to Output of ${out} ${unit}",
+                                     ("in", input_summary[i])("out",output_summary[i])("unit", (asset::type)i) );
+              }
+           }
+
+           FC_ASSERT( input_summary[asset::bts] >= output_summary[asset::bts] );
+           trx_eval e;
+           e.fees = asset( input_summary[asset::bts] - output_summary[asset::bts], asset::bts );
 
            return e;
        } FC_RETHROW_EXCEPTIONS( warn, "error evaluating transaction ${t}", ("t", trx) );
