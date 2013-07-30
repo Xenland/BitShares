@@ -76,7 +76,7 @@ namespace bts { namespace blockchain {
     trx_eval blockchain_db::evaluate_signed_transaction( const signed_transaction& trx )       
     {
        trx_eval e;
-
+       e.fees = asset( 0, asset::bts );
        return e;
     }
 
@@ -132,41 +132,42 @@ namespace bts { namespace blockchain {
        return asset();
     }
 
-    // 1 BTC = 100,000,000 satoshi 
-    // 21,000,000  * 100,000,000
-    // 2,100,000,000,000,000 
-    // 1,000,000,000,000.000 == BitShare Supply 
-    uint64_t calculate_mining_reward( uint32_t blk_num )
-    {
-        if( blk_num > BLOCKS_WITH_REWARD ) return 0;
-        return (INITIAL_REWARD - (uint64_t(blk_num) * (REWARD_DELTA_PER_BLOCK)));
-    }
+
+
 
     void validate_initial_issuance( const fc::array<asset_issuance, asset::type::count>& isu )
     {
-       for( uint32_t i = 1; i < asset::type::count; ++i )
+       for( uint32_t i = 0; i < asset::type::count; ++i )
        {
          FC_ASSERT( isu.at(i).backing == 0 );
          FC_ASSERT( isu.at(i).issued  == 0 );
        }
        FC_ASSERT( isu.data[0].backing == 0 );
-       FC_ASSERT( isu.data[0].issued  == calculate_mining_reward(0) );
+       FC_ASSERT( isu.data[0].issued  == 0 );
     }
 
     void validate_mining_reward( const full_block& new_blk, const block& prev_blk )
     {
        uint64_t reward = new_blk.state.issuance.data[0].issued - prev_blk.state.issuance.data[0].issued;
-       FC_ASSERT( reward == calculate_mining_reward( new_blk.block_num ) );
+       if( new_blk.block_num == 0 )
+       {
+         FC_ASSERT( reward == 0 );
+       }
+       else
+       {
+         FC_ASSERT( reward == calculate_mining_reward( new_blk.block_num ) );
+       }
     }
 
     
     /**
      *  Attempts to append block b to the block chain with the given trxs.
      */
-    void blockchain_db::push_block( const full_block& b, const std::vector<signed_transaction>& trxs )
+    void blockchain_db::push_block( const trx_block& b )
     {
+      try {
        FC_ASSERT( b.version == 0  );
-       FC_ASSERT( trxs.size() > 0 );
+       FC_ASSERT( b.trxs.size() > 0 );
        block prev_blk;
 
        fc::sha224 last_blk_id;
@@ -187,11 +188,12 @@ namespace bts { namespace blockchain {
        validate_mining_reward( b, prev_blk );
 
 
-       asset total_fees;
-       for( auto itr = trxs.begin(); itr != trxs.end(); ++itr )
+       asset total_fees(0,asset::bts);
+       for( auto itr = b.trxs.begin(); itr != b.trxs.end(); ++itr )
        {
            total_fees += evaluate_signed_transaction( *itr ).fees;
        }
+      } FC_RETHROW_EXCEPTIONS( warn, "unable to push block", ("b", b) );
     }
 
     /**

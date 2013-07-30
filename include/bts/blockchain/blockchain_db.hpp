@@ -101,7 +101,7 @@ namespace bts { namespace blockchain {
          /**
           *  Attempts to append block b to the block chain with the given trxs.
           */
-         void push_block( const full_block& b, const std::vector<signed_transaction>& trxs );
+         void push_block( const trx_block& b );
 
          /**
           *  Removes the top block from the stack and marks all spent outputs as 

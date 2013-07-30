@@ -1,4 +1,5 @@
 #include <bts/blockchain/transaction.hpp>
+#include <fc/reflect/variant.hpp>
 #include <fc/io/raw.hpp>
 
 namespace bts { namespace blockchain {
@@ -35,3 +36,24 @@ namespace bts { namespace blockchain {
 
 
 } }
+namespace fc {
+   void to_variant( const bts::blockchain::trx_output& var,  variant& vo )
+   {
+      fc::mutable_variant_object obj;
+      obj["amount"] = var.amount; //std::string(bts::blockchain::asset( var.amount, var.unit ));
+      obj["unit"] = var.unit; //std::string(bts::blockchain::asset( var.amount, var.unit ));
+      obj["claim_func"] = var.claim_func;
+      switch( var.claim_func )
+      {
+         case bts::blockchain::claim_by_signature:
+            obj["claim_data"] = fc::raw::unpack<bts::blockchain::claim_by_signature_output>(var.claim_data);
+            break;
+      };
+      vo = std::move(obj);
+   }
+
+   void from_variant( const variant& var,  bts::blockchain::trx_output& vo )
+   {
+      FC_ASSERT( !"TODO: implement from_variant(trx_output)" );
+   }
+};

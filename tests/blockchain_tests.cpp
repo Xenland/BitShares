@@ -20,7 +20,7 @@ using namespace bts::blockchain;
 
 BOOST_AUTO_TEST_CASE( mining_reward_rate )
 {
-  uint64_t supply = -INITIAL_REWARD/2;
+  uint64_t supply = 0;
   for( uint32_t i = 0; i < BLOCKS_WITH_REWARD; ++i )
   {
      supply += bts::blockchain::calculate_mining_reward(i);
@@ -70,6 +70,29 @@ BOOST_AUTO_TEST_CASE( fixed_math )
   {
     elog( "${e}", ("e",e.to_detail_string()) );
     throw;
+  }
+}
+
+/**
+ *  Test the process of validating the block chain given
+ *  a known initial condition and fixed transactions. 
+ */
+BOOST_AUTO_TEST_CASE( blockchain_build )
+{
+  try 
+  {
+     fc::temp_directory temp_dir;
+     bts::blockchain::blockchain_db chain;
+     chain.open( temp_dir.path() / "chain" );
+    
+     auto genesis = create_genesis_block();
+     ilog( "genesis block: \n${s}", ("s", fc::json::to_pretty_string(genesis) ) );
+     chain.push_block( genesis );
+  } 
+  catch ( const fc::exception& e )
+  {
+     elog( "${e}", ("e",e.to_detail_string()) );
+     throw;
   }
 }
 

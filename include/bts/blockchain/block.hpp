@@ -27,6 +27,7 @@ namespace bts { namespace blockchain {
       uint160             trx_mroot;   ///< merkle root of trx included in block, required for light client validation
    };
 
+   uint64_t calculate_mining_reward( uint32_t blk_num );
 
    /**
     *  This is the minimum subset of data that must be kept to
@@ -45,6 +46,7 @@ namespace bts { namespace blockchain {
     */
    struct asset_issuance 
    {
+      asset_issuance():backing(0),issued(0){}
       uint64_t  backing; /** total BitShares backing the issued currency */
       uint64_t  issued;  /** total asset issued */
    };
@@ -58,6 +60,7 @@ namespace bts { namespace blockchain {
     */
    struct block_state
    {
+      uint160 digest()const;
       /** initial condition prior to applying trx in this block */
       fc::array<asset_issuance,asset::type::count> issuance;  // 16 * 32 bytes = 512
 
@@ -82,17 +85,42 @@ namespace bts { namespace blockchain {
 
    /**
     * A block complete with the IDs of the transactions included
-    * in the block.
+    * in the block.  This is useful for communicating summaries when
+    * the other party already has all of the trxs.
     */
    struct full_block : public block 
    {
       full_block( const block& b )
       :block(b){}
       full_block(){}
+      uint160 calculate_merkle_root()const;
       std::vector<uint160>  trx_ids; 
    };
 
+   /**
+    *  A block that contains the full transactions rather than
+    *  just the IDs of the transactions.
+    */
+   struct trx_block : public block
+   {
+      operator full_block()const;
+      uint160 calculate_merkle_root()const;
+      std::vector<signed_transaction> trxs;
+   };
+   
+   trx_block create_genesis_block();
+
 } } // bts::blockchain
+
+namespace fc 
+{
+   void to_variant( const bts::blockchain::trx_output& var,  variant& vo );
+   void from_variant( const variant& var,  bts::blockchain::trx_output& vo );
+
+   typedef fc::array<bts::blockchain::asset_issuance,bts::blockchain::asset::type::count> issuance_type; 
+   void to_variant( const issuance_type& var,  variant& vo );
+   void from_variant( const variant& var,  issuance_type& vo );
+}
 
 FC_REFLECT( bts::blockchain::asset_issuance,      (backing)(issued) )
 FC_REFLECT( bts::blockchain::block_state,         (issuance)(supported_features) )
@@ -100,3 +128,5 @@ FC_REFLECT( bts::blockchain::block_header,        (version)(prev)(block_num)(tim
 FC_REFLECT_DERIVED( bts::blockchain::block_proof, (bts::blockchain::block_header), (pow)     )
 FC_REFLECT_DERIVED( bts::blockchain::block,       (bts::blockchain::block_proof),  (state)   )
 FC_REFLECT_DERIVED( bts::blockchain::full_block,  (bts::blockchain::block),        (trx_ids) )
+FC_REFLECT_DERIVED( bts::blockchain::trx_block,   (bts::blockchain::block),        (trxs) )
+

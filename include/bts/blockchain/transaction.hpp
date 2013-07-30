@@ -86,7 +86,10 @@ struct trx_output
     }
 
     trx_output():amount(0){}
-
+    // NOTE: note this class has a custom to_variant method 
+    //   that pretty prints the claim data for known types
+    //   and this method must be updated if you change these
+    //   fields.
     uint64_t                                    amount;
     asset_type                                  unit;
     claim_type                                  claim_func;
@@ -121,6 +124,10 @@ struct signed_transaction : public transaction
 
 } }  // namespace bts::blockchain
 
+namespace fc {
+   void to_variant( const bts::blockchain::trx_output& var,  variant& vo );
+   void from_variant( const variant& var,  bts::blockchain::trx_output& vo );
+};
 
 FC_REFLECT( bts::blockchain::output_reference, (trx_hash)(output_idx) )
 FC_REFLECT( bts::blockchain::trx_input, (output_ref)(input_data) )

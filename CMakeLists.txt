@@ -69,6 +69,7 @@ set( sources
      src/bitchat/bitchat_client.cpp 
 
      src/blockchain/asset.cpp
+     src/blockchain/block.cpp
      src/blockchain/transaction.cpp
      src/blockchain/blockchain_db.cpp
 
@@ -95,8 +96,8 @@ add_library( bshare ${sources} )
 #add_executable( bitshares src/main.cpp )
 #target_link_libraries( bitshares bshare fc ${BOOST_LIBRARIES})
 
-add_executable( bitchatc bitchat/main.cpp )
-target_link_libraries( bitchatc bshare fc ${BOOST_LIBRARIES} upnpc-static )
+#add_executable( bitchatc bitchat/main.cpp )
+#target_link_libraries( bitchatc bshare fc ${BOOST_LIBRARIES} upnpc-static )
 
 #add_executable( bitshared bitshared.cpp )
 #target_link_libraries( bitshared bshare fc ${BOOST_LIBRARIES} )

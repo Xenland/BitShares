@@ -40,6 +40,7 @@ namespace bts { namespace blockchain  {
    */
   trx_block create_genesis_block()
   {
+    try {
       trx_block b;
       b.version    = 0;
       b.prev       = fc::sha224();
@@ -53,12 +54,13 @@ namespace bts { namespace blockchain  {
       coinbase.valid_blocks = 0;
 
       coinbase.outputs.push_back( 
-         trx_output( claim_by_signature_output( address() ), calculate_mining_reward(0), asset::bts) );
+         trx_output( claim_by_signature_output( address("GmckPDdjQejZBP3t2gZqCqmEfi4") ), calculate_mining_reward(0), asset::bts) );
       
       b.trxs.emplace_back( std::move(coinbase) );
  //     full_block fb = b;
       b.trx_mroot   = b.calculate_merkle_root();
       return b;
+    } FC_RETHROW_EXCEPTIONS( warn, "error creating gensis block" );
   }
 
   trx_block::operator full_block()const

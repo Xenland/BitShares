@@ -42,6 +42,8 @@ struct claim_by_signature_input
 struct claim_by_signature_output
 {
    static const claim_type_enum type = claim_type_enum::claim_by_signature;
+   claim_by_signature_output( const address& a ):owner(a){}
+   claim_by_signature_output(){}
    address  owner; // checksummed hash of public key
 };
 
