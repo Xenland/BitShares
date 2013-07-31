@@ -151,7 +151,7 @@ void trx_validation_state::validate_bid( const meta_trx_input& in )
           // for the change!  Easy peesy..
           
           uint16_t split_order = find_unused_bid_output( cbb );
-          if( split_order == -1 ) // must be a full order...
+          if( split_order == output_not_found ) // must be a full order...
           {
             uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, output_bal * cbb.ask_price  );
             // TODO: mark the sig_out as used
@@ -191,5 +191,15 @@ void trx_validation_state::validate_escrow( const meta_trx_input& in )
 void trx_validation_state::validate_password( const meta_trx_input& in )
 {
 }
+
+uint16_t trx_validation_state::find_unused_bid_output( const claim_by_bid_output& b )
+{
+  return output_not_found;
+}
+uint16_t trx_validation_state::find_unused_sig_output( const address& a, const asset& bal )
+{
+  return output_not_found;
+}
+
 
 } }  // namespace bts::blockchain

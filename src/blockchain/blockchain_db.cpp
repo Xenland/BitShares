@@ -121,6 +121,27 @@ namespace bts { namespace blockchain {
     {
        return asset();
     }
+    /**
+     *  The most recent blocks do not pay dividends, except to the miner, becaues the dividends
+     *  would be lost in a chain reorg.  
+     *
+     *  @return only the dividends, not the balance
+     */
+    asset      blockchain_db::calculate_dividend_fees( const asset& b, uint32_t from_num )
+    {
+       return asset();
+    }
+
+    /**
+     *  Returns all dividends due to an output with balance b in block from_num not
+     *  including dividends from the last 100 blocks.
+     *
+     *  @return only the dividends paid, not including the initial balance
+     */
+    asset      blockchain_db::calculate_output_dividends( const asset& b, uint32_t from_num )
+    {
+       return asset();
+    }
 
 
     std::vector<meta_trx_input> blockchain_db::fetch_inputs( const std::vector<trx_input>& inputs )

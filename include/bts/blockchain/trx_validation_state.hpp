@@ -76,6 +76,7 @@ namespace bts { namespace blockchain {
            /** @throw an exception on error */
            void validate();
         private:
+           static const uint16_t output_not_found = uint16_t(-1);
            uint16_t find_unused_bid_output( const claim_by_bid_output& b );
            uint16_t find_unused_sig_output( const address& a, const asset& bal );
 
