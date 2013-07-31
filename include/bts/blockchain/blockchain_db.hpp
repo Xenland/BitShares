@@ -95,6 +95,8 @@ namespace bts { namespace blockchain {
           void open( const fc::path& dir, bool create = true );
           void close();
 
+          uint32_t head_block_num()const;
+
          /**
           *  Validates that trx could be included in a future block, that
           *  all inputs are unspent, that it is valid for the current time,
@@ -122,8 +124,26 @@ namespace bts { namespace blockchain {
 
          /**
           *  Calculate the dividends due to a given asset accumulated durrning blocks from_num to to_num
+          *
+          *  @return only the dividends, not the balance including a
           */
          asset      calculate_dividends( const asset& a, uint32_t from_num, uint32_t to_num );
+
+         /**
+          *  The most recent blocks do not pay dividends, except to the miner, becaues the dividends
+          *  would be lost in a chain reorg.  
+          *
+          *  @return only the dividends, not the balance
+          */
+         asset      calculate_dividend_fees( const asset& b, uint32_t from_num );
+
+         /**
+          *  Returns all dividends due to an output with balance b in block from_num not
+          *  including dividends from the last 100 blocks.
+          *
+          *  @return only the dividends paid, not including the initial balance
+          */
+         asset      calculate_output_dividends( const asset& b, uint32_t from_num );
          
          /**
           *  Attempts to append block b to the block chain with the given trxs.

@@ -23,7 +23,10 @@ namespace bts { namespace blockchain {
            /**
             * @param t - the transaction that is being validated
             */
-           trx_validation_state( const signed_transaction& t, std::vector<meta_trx_input>&& in );
+           trx_validation_state( const signed_transaction& t, 
+                                std::vector<meta_trx_input>&& in, 
+                                blockchain_db* d );
+
            trx_validation_state(){}
            
            /** tracks the sum of all inputs and outputs for a particular
@@ -64,9 +67,18 @@ namespace bts { namespace blockchain {
             */
            std::unordered_set<address>         required_sigs;
 
+           /** dividends earned in the past 100 blocks that are counted toward
+             * transaction fees.
+             */
+           asset                               dividend_fees;
+
+           blockchain_db*                      db;
            /** @throw an exception on error */
            void validate();
         private:
+           uint16_t find_unused_bid_output( const claim_by_bid_output& b );
+           uint16_t find_unused_sig_output( const address& a, const asset& bal );
+
            void validate_input( const meta_trx_input& );
            void validate_signature( const meta_trx_input& );
            void validate_bid( const meta_trx_input& );
@@ -87,4 +99,5 @@ FC_REFLECT( bts::blockchain::trx_validation_state,
     (used_outputs)
     (required_sigs)
     (signed_addresses)
+    (dividend_fees)
 )

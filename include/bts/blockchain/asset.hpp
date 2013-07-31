@@ -37,7 +37,7 @@ namespace bts { namespace blockchain {
 
       static const fc::uint128& one();
 
-      asset(){}
+      asset():unit(bts){}
       asset( const std::string& str );
       asset( uint64_t int_part, asset::type t );
 

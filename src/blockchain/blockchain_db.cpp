@@ -173,7 +173,7 @@ namespace bts { namespace blockchain {
     trx_eval blockchain_db::evaluate_signed_transaction( const signed_transaction& trx )       
     {
        try {
-           trx_validation_state vstate( trx, fetch_inputs( trx.inputs ) ); 
+           trx_validation_state vstate( trx, fetch_inputs( trx.inputs ), this ); 
            // TODO -> pass vstate the dividend table
            // TODO -> handle coinbase trx.
            vstate.validate();
@@ -186,7 +186,7 @@ namespace bts { namespace blockchain {
            FC_ASSERT( input_summary[asset::bts] >= output_summary[asset::bts] );
            */
            trx_eval e;
-           //e.fees = asset( input_summary[asset::bts] - output_summary[asset::bts], asset::bts );
+           e.fees = asset( 0, asset::bts );
 
            return e;
        } FC_RETHROW_EXCEPTIONS( warn, "error evaluating transaction ${t}", ("t", trx) );

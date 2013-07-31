@@ -1,9 +1,11 @@
 #include <bts/blockchain/trx_validation_state.hpp>
 #include <fc/reflect/variant.hpp>
+#include <fc/io/raw.hpp>
+
 namespace bts  { namespace blockchain { 
 
-trx_validation_state::trx_validation_state( const signed_transaction& t, std::vector<meta_trx_input>&& in )
-:trx(t),inputs(std::move(in)),balance_sheet( asset::count ),issue_sheet(asset::count)
+trx_validation_state::trx_validation_state( const signed_transaction& t, std::vector<meta_trx_input>&& in, blockchain_db* d )
+:trx(t),inputs(std::move(in)),balance_sheet( asset::count ),issue_sheet(asset::count),db(d)
 { 
   for( auto i = 0; i < asset::count; ++i )
   {
@@ -82,13 +84,95 @@ void trx_validation_state::validate_input( const meta_trx_input& in )
      }
 } // validate_input
 
-
+/**
+ *  Adds the owner to the required signature list
+ *  Adds the balance to the trx balance sheet
+ *  Adds dividends from the balance to the balance sheet
+ *  Adds fee dividends to the fee total.
+ *
+ *  TODO: this input is also valid if it is 1 year old and an output exists
+ *        paying 95% of the balance back to the owner.
+ *
+ *  TODO: what if the source is an unvested market order... it means the
+ *        proceeds of this trx are also 'unvested'.  Perhaps we will have to
+ *        propagate the vested state along with the trx, if any inputs are
+ *        sourced from an unvested trx, the new trx is also 'unvested' until
+ *        the most receint input is fully vested.
+ */
 void trx_validation_state::validate_signature( const meta_trx_input& in )
 {
+   try {
+       auto cbs = in.output.as<claim_by_signature_output>();
+       required_sigs.insert( cbs.owner );
+
+       asset output_bal( in.output.amount, in.output.unit );
+       balance_sheet[(asset::type)in.output.unit].in += output_bal;
+
+       dividend_fees  += db->calculate_dividend_fees( output_bal, in.source.block_num );
+
+       // dividends are always paid in bts
+       balance_sheet[asset::bts].in += db->calculate_output_dividends( output_bal, in.source.block_num );
+   
+   } FC_RETHROW_EXCEPTIONS( warn, "validating signature input ${i}", ("i",in) );
 }
+
+
+/**
+ *  A bid transaction is a valid input in two cases:
+ *
+ *  1) Signed by owner
+ *  2) A suitable output exists in trx that meets the requirements of the bid.
+ */
 void trx_validation_state::validate_bid( const meta_trx_input& in )
 {
+   try {
+       auto cbb = in.output.as<claim_by_bid_output>();
+       
+       asset output_bal( in.output.amount, in.output.unit );
+       balance_sheet[(asset::type)in.output.unit].in += output_bal;
+       dividend_fees                                 += db->calculate_dividend_fees( output_bal, in.source.block_num );
+
+
+       // if the pay address has signed the trx, then that means this is a cancel request
+       if( signed_addresses.find( cbb.pay_address ) != signed_addresses.end() )
+       {
+          // canceled orders can reclaim their dividends (assuming the order has been open long enough)
+          balance_sheet[asset::bts].in += db->calculate_output_dividends( output_bal, in.source.block_num );
+       }
+       else // someone else accepted the offer based upon the terms of the bid.
+       {
+          // accepted bids pay their dividends to the miner, if there are any to speak of
+          dividend_fees  += db->calculate_output_dividends( output_bal, in.source.block_num );
+
+          // find an claim_by_sig output paying ask_price to pay_address
+          // there may be multiple outputs meeting this description... 
+          // TODO... sort this out... some orders may be split and thus result in
+          // two outputs being generated... look for the split order first, then look
+          // for the change!  Easy peesy..
+          
+          uint16_t split_order = find_unused_bid_output( cbb );
+          if( split_order == -1 ) // must be a full order...
+          {
+            uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, output_bal * cbb.ask_price  );
+            // TODO: mark the sig_out as used
+
+          }
+          else // look for change, must be a partial order
+          {
+            // TODO: mark the split_order as used... 
+
+            // get balance of partial order, validate that it is greater than min_order 
+            // subtract partial order from output_bal and insure the remaining order is greater than min_order
+            // look for an output making payment of the balance to the pay address
+            asset bal = output_bal; // TODO - split_order.bal
+            uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, bal * cbb.ask_price );
+          }
+       }
+   } FC_RETHROW_EXCEPTIONS( warn, "validating bid input ${i}", ("i",in) );
 }
+
+
+
 void trx_validation_state::validate_long( const meta_trx_input& in )
 {
 }

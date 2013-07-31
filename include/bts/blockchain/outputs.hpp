@@ -59,7 +59,8 @@ struct claim_by_bid_output
 {
    static const claim_type_enum type = claim_type_enum::claim_by_bid;
    address                           pay_address; // where to send ask_unit (or cancel sig)
-   price                             ask_price;     // price base per unit
+   price                             ask_price;   // price base per unit
+   uint64_t                          min_order;   // minimum accepted order, in output.unit   
 };
 
 /**
