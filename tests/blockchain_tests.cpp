@@ -24,6 +24,7 @@ BOOST_AUTO_TEST_CASE( mining_reward_rate )
   for( uint32_t i = 0; i < BLOCKS_WITH_REWARD; ++i )
   {
      supply += bts::blockchain::calculate_mining_reward(i);
+     if( i == 0 ) supply /= 2; // dividends from gensis block do not count toward supply
   }
   ilog( "INITIAL_REWARD ${i}", ("i",INITIAL_REWARD) );
   ilog( "BLOCKS_WITH_REWARD ${i}", ("i",BLOCKS_WITH_REWARD) );
@@ -88,6 +89,9 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      auto genesis = create_genesis_block();
      ilog( "genesis block: \n${s}", ("s", fc::json::to_pretty_string(genesis) ) );
      chain.push_block( genesis );
+
+     // build next block... 
+
   } 
   catch ( const fc::exception& e )
   {

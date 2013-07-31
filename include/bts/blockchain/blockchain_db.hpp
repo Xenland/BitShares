@@ -17,7 +17,14 @@ namespace bts { namespace blockchain {
      */
     struct trx_eval
     {
-       asset              fees; // any fees that would be generated
+       asset  fees; // any fees that would be generated
+       asset  coinbase; // how many new bitshares are created by a trx.
+       trx_eval& operator += ( const trx_eval& e )
+       {
+         fees += e.fees;
+         coinbase += e.coinbase;
+         return *this;
+       }
     };
 
     struct trx_num
@@ -79,7 +86,6 @@ namespace bts { namespace blockchain {
        std::vector<meta_trx_output> meta_outputs; // tracks where the output was spent
     };
 
-    uint64_t calculate_mining_reward( uint32_t blk_num );
 
     /**
      *  This database only stores valid blocks and applied transactions,
@@ -163,7 +169,7 @@ namespace bts { namespace blockchain {
 
 }  } // bts::blockchain
 
-FC_REFLECT( bts::blockchain::trx_eval, (fees) )
+FC_REFLECT( bts::blockchain::trx_eval, (fees)(coinbase) )
 FC_REFLECT( bts::blockchain::trx_num, (block_num)(trx_idx) );
 FC_REFLECT( bts::blockchain::meta_trx_output, (trx_id)(input_num) )
 FC_REFLECT( bts::blockchain::meta_trx_input, (source)(output_num)(output)(meta_output) )

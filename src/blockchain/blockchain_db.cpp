@@ -9,6 +9,7 @@
 #include <fc/io/raw.hpp>
 
 #include <fc/filesystem.hpp>
+#include <fc/log/logger.hpp>
 
 
 
@@ -20,12 +21,17 @@ namespace bts { namespace blockchain {
       class blockchain_db_impl
       {
          public:
+            blockchain_db_impl()
+            :head_block_num(-1){}
+
             //std::unique_ptr<ldb::DB> blk_id2num;  // maps blocks to unique IDs
             bts::db::level_map<fc::sha224,uint32_t>             blk_id2num;
             bts::db::level_map<uint160,trx_num>                 trx_id2num;
             bts::db::level_map<trx_num,meta_trx>                meta_trxs;
             bts::db::level_map<uint32_t,block>                  blocks;
             bts::db::level_map<uint32_t,std::vector<uint160> >  block_trxs; 
+
+            uint32_t                                            head_block_num;
             // Dividend Table needs to be memory mapped
       };
     }
@@ -41,20 +47,24 @@ namespace bts { namespace blockchain {
 
      void blockchain_db::open( const fc::path& dir, bool create )
      {
-        if( !fc::exists( dir ) )
-        {
-             if( !create )
-             {
-                FC_THROW_EXCEPTION( file_not_found_exception, 
-                    "Unable to open name database ${dir}", ("dir",dir) );
-             }
-             fc::create_directories( dir );
-        }
-        my->blk_id2num.open( dir / "blk_id2num", create );
-        my->trx_id2num.open( dir / "trx_id2num", create );
-        my->meta_trxs.open(  dir / "meta_trxs",  create );
-        my->blocks.open(     dir / "blocks",     create );
-        my->block_trxs.open( dir / "block_trxs", create );
+       try {
+         if( !fc::exists( dir ) )
+         {
+              if( !create )
+              {
+                 FC_THROW_EXCEPTION( file_not_found_exception, 
+                     "Unable to open name database ${dir}", ("dir",dir) );
+              }
+              fc::create_directories( dir );
+         }
+         my->blk_id2num.open( dir / "blk_id2num", create );
+         my->trx_id2num.open( dir / "trx_id2num", create );
+         my->meta_trxs.open(  dir / "meta_trxs",  create );
+         my->blocks.open(     dir / "blocks",     create );
+         my->block_trxs.open( dir / "block_trxs", create );
+         
+         my->blocks.last( my->head_block_num );
+       } FC_RETHROW_EXCEPTIONS( warn, "error loading blockchain database ${dir}", ("dir",dir)("create",create) );
      }
 
      void blockchain_db::close()
@@ -65,6 +75,11 @@ namespace bts { namespace blockchain {
         my->block_trxs.close();
         my->meta_trxs.close();
      }
+
+    uint32_t blockchain_db::head_block_num()const
+    {
+       return my->head_block_num;
+    }
 
     /**
      *  @pre trx must pass evaluate_signed_transaction() without exception
@@ -195,19 +210,18 @@ namespace bts { namespace blockchain {
     {
        try {
            trx_validation_state vstate( trx, fetch_inputs( trx.inputs ), this ); 
-           // TODO -> pass vstate the dividend table
-           // TODO -> handle coinbase trx.
            vstate.validate();
 
-           // TODO: return fees... 
-
-            /*
-           std::unordered_set<uint8_t> matched_outputs;
-
-           FC_ASSERT( input_summary[asset::bts] >= output_summary[asset::bts] );
-           */
            trx_eval e;
-           e.fees = asset( 0, asset::bts );
+           if( vstate.balance_sheet[asset::bts].out > vstate.balance_sheet[asset::bts].in )
+           {
+              e.coinbase =  vstate.balance_sheet[asset::bts].out - vstate.balance_sheet[asset::bts].in;
+           }
+           else
+           {
+              e.fees = vstate.balance_sheet[asset::bts].in - vstate.balance_sheet[asset::bts].out;
+              e.fees += vstate.dividend_fees;
+           }
 
            return e;
        } FC_RETHROW_EXCEPTIONS( warn, "error evaluating transaction ${t}", ("t", trx) );
@@ -234,7 +248,12 @@ namespace bts { namespace blockchain {
        }
        else
        {
-         FC_ASSERT( reward == calculate_mining_reward( new_blk.block_num ) );
+         /** the block state contains the initial conndition for the new block, or the
+          *  post condition of the prior block.  We want to make sure that the new block
+          *  records the proper increase in BTS from the mining reward of the prior block,
+          *  and thus the need to subtract 1 from the new_blk.block_num
+          */
+         FC_ASSERT( reward == calculate_mining_reward( new_blk.block_num - 1 ) );
        }
     }
 
@@ -266,11 +285,20 @@ namespace bts { namespace blockchain {
 
        validate_mining_reward( b, prev_blk );
 
-
-       asset total_fees(0,asset::bts);
+       trx_eval total_eval;
        for( auto itr = b.trxs.begin(); itr != b.trxs.end(); ++itr )
        {
-           total_fees += evaluate_signed_transaction( *itr ).fees;
+           total_eval += evaluate_signed_transaction( *itr );
+       }
+       ilog( "summary: ${totals}", ("totals",total_eval) );
+
+       auto new_bts      = calculate_mining_reward(b.block_num);
+       auto new_div      = new_bts / 2;
+       auto new_coinbase = new_div;
+       if( total_eval.coinbase != asset( new_coinbase, asset::bts) )
+       {
+          FC_THROW_EXCEPTION( exception, "block has invalid coinbase amount, expected ${e}, but created ${c}",
+                              ("e", new_coinbase)("c",total_eval.coinbase) );
        }
       } FC_RETHROW_EXCEPTIONS( warn, "unable to push block", ("b", b) );
     }

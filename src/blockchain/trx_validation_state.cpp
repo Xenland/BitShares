@@ -1,6 +1,9 @@
 #include <bts/blockchain/trx_validation_state.hpp>
+#include <bts/config.hpp>
 #include <fc/reflect/variant.hpp>
 #include <fc/io/raw.hpp>
+
+#include <fc/log/logger.hpp>
 
 namespace bts  { namespace blockchain { 
 
@@ -35,6 +38,13 @@ void trx_validation_state::validate()
        try {
          validate_input( inputs[i] ); 
        } FC_RETHROW_EXCEPTIONS( warn, "error validating input ${i}", ("i",i) );
+     }
+
+     for( uint32_t i = 0; i < trx.outputs.size(); ++i )
+     {
+       try {
+         validate_output( trx.outputs[i] ); 
+       } FC_RETHROW_EXCEPTIONS( warn, "error validating output ${i}", ("i",i) );
      }
      
      for( uint32_t i = 1; i < balance_sheet.size(); ++i )
@@ -84,6 +94,73 @@ void trx_validation_state::validate_input( const meta_trx_input& in )
      }
 } // validate_input
 
+
+void trx_validation_state::validate_output( const trx_output& out )
+{
+     switch( out.claim_func )
+     {
+        case claim_by_signature:
+          validate_signature( out );
+          return;
+        case claim_by_bid:
+          validate_bid( out );
+          return;
+        case claim_by_long:
+          validate_long( out );
+          return;
+        case claim_by_cover:
+          validate_cover( out );
+          return;
+        case claim_by_opt_execute:
+          validate_opt( out );
+          return;
+        case claim_by_multi_sig:
+          validate_multi_sig( out );
+          return;
+        case claim_by_escrow:
+          validate_escrow( out );
+          return;
+        case claim_by_password:
+          validate_password( out );
+          return;
+        default:
+          FC_THROW_EXCEPTION( exception, "unsupported claim function ${f}", ("f", out.claim_func ) );
+     }
+} // validate_output
+
+void trx_validation_state::validate_signature( const trx_output& o )
+{
+   auto cbs = o.as<claim_by_signature_output>();
+   ilog( "${cbs}", ("cbs",cbs));
+   FC_ASSERT( cbs.owner != address() );
+   FC_ASSERT( o.unit < asset::count );
+   FC_ASSERT( o.amount < MAX_BITSHARE_SUPPLY ); // some sanity checs here
+   balance_sheet[(asset::type)o.unit].out += asset(o.amount,o.unit);
+}
+void trx_validation_state::validate_bid( const trx_output& )
+{
+}
+void trx_validation_state::validate_long( const trx_output& )
+{
+}
+void trx_validation_state::validate_cover( const trx_output& )
+{
+}
+void trx_validation_state::validate_opt( const trx_output& )
+{
+}
+void trx_validation_state::validate_multi_sig( const trx_output& )
+{
+}
+void trx_validation_state::validate_escrow( const trx_output& )
+{
+}
+void trx_validation_state::validate_password( const trx_output& )
+{
+}
+
+
+
 /**
  *  Adds the owner to the required signature list
  *  Adds the balance to the trx balance sheet
@@ -103,6 +180,7 @@ void trx_validation_state::validate_signature( const meta_trx_input& in )
 {
    try {
        auto cbs = in.output.as<claim_by_signature_output>();
+       ilog( "${cbs}", ("cbs",cbs));
        required_sigs.insert( cbs.owner );
 
        asset output_bal( in.output.amount, in.output.unit );

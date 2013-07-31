@@ -32,7 +32,7 @@ namespace bts { namespace blockchain  {
   uint64_t calculate_mining_reward( uint32_t blk_num )
   {
       if( blk_num > BLOCKS_WITH_REWARD ) return 0;
-      if( blk_num == 0 ) return INITIAL_REWARD / 2;
+//      if( blk_num == 0 ) return INITIAL_REWARD / 2;
       return (INITIAL_REWARD - (uint64_t(blk_num) * (REWARD_DELTA_PER_BLOCK)));
   }
 
@@ -55,7 +55,7 @@ namespace bts { namespace blockchain  {
       coinbase.valid_blocks = 0;
 
       coinbase.outputs.push_back( 
-         trx_output( claim_by_signature_output( address("GmckPDdjQejZBP3t2gZqCqmEfi4") ), calculate_mining_reward(0), asset::bts) );
+         trx_output( claim_by_signature_output( address("GmckPDdjQejZBP3t2gZqCqmEfi4") ), calculate_mining_reward(0)/2, asset::bts) );
       
       b.trxs.emplace_back( std::move(coinbase) );
  //     full_block fb = b;

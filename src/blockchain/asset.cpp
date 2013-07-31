@@ -39,7 +39,7 @@ namespace bts { namespace blockchain {
      std::string frac(fraction);
      s += frac.substr(1,frac.size()-2);
 
-     s += " " + unit; //std::string(fc::reflector<asset::type>::to_string( unit ));
+     s += " " + std::string(fc::reflector<asset::type>::to_string( unit ));
      return s;
   }
 

@@ -89,6 +89,16 @@ namespace bts { namespace blockchain {
            void validate_multi_sig( const meta_trx_input& );
            void validate_escrow( const meta_trx_input& );
            void validate_password( const meta_trx_input& );
+
+           void validate_output( const trx_output& );
+           void validate_signature( const trx_output& );
+           void validate_bid( const trx_output& );
+           void validate_long( const trx_output& );
+           void validate_cover( const trx_output& );
+           void validate_opt( const trx_output& );
+           void validate_multi_sig( const trx_output& );
+           void validate_escrow( const trx_output& );
+           void validate_password( const trx_output& );
     };
 
 } } // bts::blockchain

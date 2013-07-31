@@ -60,6 +60,22 @@ namespace bts { namespace db {
           } FC_RETHROW_EXCEPTIONS( warn, "error fetching key ${key}", ("key",k) );
         }
 
+        bool last( Key& k )
+        {
+          try {
+             std::unique_ptr<ldb::Iterator> it( _db->NewIterator( ldb::ReadOptions() ) );
+             FC_ASSERT( it != nullptr );
+             it->SeekToLast();
+             if( !it->Valid() )
+             {
+               return false;
+             }
+             fc::datastream<const char*> ds2( it->key().data(), it->key().size() );
+             fc::raw::unpack( ds2, k );
+             return true;
+          } FC_RETHROW_EXCEPTIONS( warn, "error reading last item from database" );
+        }
+
         bool last( Key& k, Value& v )
         {
           try {
