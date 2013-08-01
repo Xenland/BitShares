@@ -280,6 +280,22 @@ namespace bts { namespace blockchain {
         return total_eval;
       } FC_RETHROW_EXCEPTIONS( debug, "" );
     }
+
+    void validate_unique_inputs( const std::vector<signed_transaction>& trxs )
+    {
+       std::unordered_set<output_reference> ref_outs;
+       for( auto itr = trxs.begin(); itr != trxs.end(); ++itr )
+       {
+          for( auto in = itr->inputs.begin(); in != itr->inputs.end(); ++in )
+          {
+             if( !ref_outs.insert( in->output_ref ).second )
+             {
+                FC_THROW_EXCEPTION( exception, "duplicate input detected",
+                                            ("in", *in )("trx",*itr)  );
+             }
+          }
+       }
+    }
     
     /**
      *  Attempts to append block b to the block chain with the given trxs.
@@ -293,14 +309,12 @@ namespace bts { namespace blockchain {
         FC_ASSERT( b.prev      == my->head_block_id      );
 
         validate_issuance( b, my->head_block /*aka new prev*/ );
+        validate_unique_inputs( b.trxs );
 
         // evaluate all trx and sum the results
         trx_eval total_eval = evaluate_signed_transactions( b.trxs );
         
-        // TODO: factor this loop out into separate method, it is needed
-        // in multiple places and would make this method more readable
-        
-        auto new_bts      = calculate_mining_reward(b.block_num);
+        uint64_t new_bts    = calculate_mining_reward(b.block_num);
         
         // TODO: calculate fees and add them into the coinbase / dividend calculation
 
@@ -319,6 +333,10 @@ namespace bts { namespace blockchain {
 
         // TODO: actually push the block!
         // TODO: update my->head_block_num
+
+        my->head_block = b;
+        my->head_block_id = b.id();
+
         
       } FC_RETHROW_EXCEPTIONS( warn, "unable to push block", ("b", b) );
     }

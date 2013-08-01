@@ -114,6 +114,16 @@ namespace bts { namespace blockchain  {
      return small_hash( enc.result() );
   }
 
+  fc::sha224 block_proof::id()const
+  {
+     fc::sha512::encoder enc;
+     fc::raw::pack( enc, *this );
+
+     fc::sha224::encoder enc224;
+     fc::raw::pack( enc224, enc.result() );
+     return enc224.result();
+  }
+
   /**
    *  Calculate the proof of work hash from the merkle root + nonce
    */

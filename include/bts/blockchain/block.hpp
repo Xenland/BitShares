@@ -40,6 +40,11 @@ namespace bts { namespace blockchain {
     */
    struct block_proof : public block_header
    {
+      /**
+       *  Used to identify the previous block in block_header::prev
+       */
+      fc::sha224   id()const;
+
       mini_pow     proof_of_work()const;
       proof        pow; ///< contains the merkle branch + nonce
    };
