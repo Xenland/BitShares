@@ -66,7 +66,20 @@ namespace bts { namespace blockchain {
     */
    struct block_state
    {
+      block_state():dividend_percent(0){}
       uint160 digest()const;
+      /**
+       *  Dividends are expressed as a percentage of the money supply which
+       *  is always less than 0.  In this case it is represented as a
+       *  64 bit fixed point 0.64 fraction.
+       *
+       *  Dividends do not compound, but grow with a 'simple interest'
+       *  formula which means that the total return can be calculated by
+       *  summing the dividend_percent for each block that the balance
+       *  was held.
+       */
+      uint64_t dividend_percent;
+
       /** initial condition prior to applying trx in this block */
       fc::array<asset_issuance,asset::type::count> issuance;  // 16 * 32 bytes = 512
 
@@ -129,7 +142,7 @@ namespace fc
 }
 
 FC_REFLECT( bts::blockchain::asset_issuance,      (backing)(issued) )
-FC_REFLECT( bts::blockchain::block_state,         (issuance)(supported_features) )
+FC_REFLECT( bts::blockchain::block_state,         (dividend_percent)(issuance)(supported_features) )
 FC_REFLECT( bts::blockchain::block_header,        (version)(prev)(block_num)(timestamp)(state_hash)(trx_mroot) )
 FC_REFLECT_DERIVED( bts::blockchain::block_proof, (bts::blockchain::block_header), (pow)     )
 FC_REFLECT_DERIVED( bts::blockchain::block,       (bts::blockchain::block_proof),  (state)   )

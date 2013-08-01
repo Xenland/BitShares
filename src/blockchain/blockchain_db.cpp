@@ -22,7 +22,7 @@ namespace bts { namespace blockchain {
       {
          public:
             blockchain_db_impl()
-            :head_block_num(-1){}
+            :head_block_num(-1),current_bitshare_supply(0){}
 
             //std::unique_ptr<ldb::DB> blk_id2num;  // maps blocks to unique IDs
             bts::db::level_map<fc::sha224,uint32_t>             blk_id2num;
@@ -32,6 +32,7 @@ namespace bts { namespace blockchain {
             bts::db::level_map<uint32_t,std::vector<uint160> >  block_trxs; 
 
             uint32_t                                            head_block_num;
+            uint64_t                                            current_bitshare_supply;
             // Dividend Table needs to be memory mapped
       };
     }
@@ -63,7 +64,13 @@ namespace bts { namespace blockchain {
          my->blocks.open(     dir / "blocks",     create );
          my->block_trxs.open( dir / "block_trxs", create );
          
-         my->blocks.last( my->head_block_num );
+         block blk;
+         // read the last block from the DB
+         my->blocks.last( my->head_block_num, blk );
+
+         my->current_bitshare_supply  = blk.state.issuance.data[asset::bts].issued;
+         my->current_bitshare_supply += calculate_mining_reward( my->head_block_num ) / 2;
+
        } FC_RETHROW_EXCEPTIONS( warn, "error loading blockchain database ${dir}", ("dir",dir)("create",create) );
      }
 
@@ -268,6 +275,8 @@ namespace bts { namespace blockchain {
         FC_ASSERT( b.trxs.size() > 0 );
         block prev_blk;
         
+        // TODO: no need to lookup last block num... we can
+        // pull it from cache...
         fc::sha224 last_blk_id;
         uint32_t   last_blk_num = 0;
         if( my->blk_id2num.last( last_blk_id, last_blk_num ) )
@@ -285,6 +294,8 @@ namespace bts { namespace blockchain {
         
         validate_mining_reward( b, prev_blk );
         
+        // TODO: factor this loop out into separate method, it is needed
+        // in multiple places and would make this method more readable
         trx_eval total_eval;
         for( auto itr = b.trxs.begin(); itr != b.trxs.end(); ++itr )
         {
@@ -293,13 +304,25 @@ namespace bts { namespace blockchain {
         ilog( "summary: ${totals}", ("totals",total_eval) );
         
         auto new_bts      = calculate_mining_reward(b.block_num);
+        
+        // TODO: calculate fees and add them into the coinbase / dividend calculation
+
         auto new_div      = new_bts / 2;
-        auto new_coinbase = new_div;
+        auto new_coinbase = new_bts - new_div; /* capture any rounding errors from div 2 */
+
+        // TODO: verify that the dividends came out in the b.state.dividend_percent
+
         if( total_eval.coinbase != asset( new_coinbase, asset::bts) )
         {
            FC_THROW_EXCEPTION( exception, "block has invalid coinbase amount, expected ${e}, but created ${c}",
                                ("e", new_coinbase)("c",total_eval.coinbase) );
         }
+
+        my->current_bitshare_supply += new_bts;
+
+        // TODO: actually push the block!
+        // TODO: update my->head_block_num
+        
       } FC_RETHROW_EXCEPTIONS( warn, "unable to push block", ("b", b) );
     }
 
@@ -319,6 +342,11 @@ namespace bts { namespace blockchain {
     bool operator < ( const trx_stat& a, const trx_stat& b )
     {
       return a.eval.fees.amount < b.eval.fees.amount;
+    }
+
+    uint64_t blockchain_db::current_bitshare_supply()
+    {
+       return my->current_bitshare_supply; // cache this every time we push a block
     }
 
     /**
@@ -403,10 +431,16 @@ namespace bts { namespace blockchain {
          asset dividends(0,asset::bts);
          
          // TODO: where do I put the dividends?
-         //dividend.amount = (total_fees.amount - miner_fees.amount) / current_bitshare_supply();
-
+         uint64_t cur_bts_supply = current_bitshare_supply();
+         if( cur_bts_supply != 0 ) // don't divide by 0
+         {
+            dividends.amount = (total_fees.amount - miner_fees.amount) / cur_bts_supply;
+            FC_ASSERT( dividends.amount < fc::uint128(1,0) );
+         }
 
          trx_block new_blk;
+         new_blk.timestamp = fc::time_point::now();
+         new_blk.state.dividend_percent = dividends.amount.low_bits();
          new_blk.trxs.reserve( 1 + stats.size() - conflicts ); 
 
          // create the coin base trx
@@ -424,9 +458,13 @@ namespace bts { namespace blockchain {
          // add all other transactions to the block
          for( size_t i = 0; i < stats.size(); ++i )
          {
+           if( stats[i].trx_idx != uint16_t(-1) )
+           {
+             new_blk.trxs.push_back( trxs[ stats[i].trx_idx] );
+           }
          }
-        
          return new_blk;
+
       } FC_RETHROW_EXCEPTIONS( warn, "error generating new block" );
     }
 

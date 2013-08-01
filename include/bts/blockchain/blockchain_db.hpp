@@ -152,6 +152,7 @@ namespace bts { namespace blockchain {
           *  @return only the dividends paid, not including the initial balance
           */
          asset      calculate_output_dividends( const asset& b, uint32_t from_num );
+         uint64_t   current_bitshare_supply();
          
          /**
           *  Attempts to append block b to the block chain with the given trxs.
