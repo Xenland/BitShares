@@ -23,3 +23,11 @@
 #define MIN_NAME_DIFFICULTY           (24)                // number if leeding 0 bits in double sha512 required to register a name
 #define PEER_HOST_CACHE_QUERY_LIMIT   (1000)              // number of ip/ports that we will cache
 #define MAX_CHANNELS_PER_CONNECTION   (32)
+
+
+/**
+ *  How much space can be consumed by the trx portion of a block.  This is calculated to
+ *  leave room for the block header, proof, and state as well as some room for merged mining
+ *  merkle root and future growth without having a full block ever exceed 1MB
+ */
+#define MAX_BLOCK_TRXS_SIZE           (1024*1024 - 2*sizeof( bts::blockchain::block )  )

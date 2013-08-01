@@ -115,6 +115,8 @@ namespace bts { namespace blockchain {
           */
          trx_eval   evaluate_signed_transaction( const signed_transaction& trx );       
 
+         trx_block  generate_next_block( const address& coinbase_addr, const std::vector<signed_transaction>& trx );
+
          trx_num    fetch_trx_num( const uint160& trx_id );
          meta_trx   fetch_trx( const trx_num& t );
 

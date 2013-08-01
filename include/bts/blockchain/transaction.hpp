@@ -128,6 +128,22 @@ namespace fc {
    void from_variant( const variant& var,  bts::blockchain::trx_output& vo );
 };
 
+namespace std {
+  /**
+   *  This is implemented to facilitate generation of unique
+   *  sets of inputs.
+   */
+  template<>
+  struct hash<bts::blockchain::output_reference>
+  {
+     size_t operator()( const bts::blockchain::output_reference& e )const
+     {
+        return fc::city_hash64( (char*)&e, sizeof(e) );
+     }
+  };
+
+} // std
+
 FC_REFLECT( bts::blockchain::output_reference, (trx_hash)(output_idx) )
 FC_REFLECT( bts::blockchain::trx_input, (output_ref)(input_data) )
 FC_REFLECT( bts::blockchain::trx_output, (amount)(unit)(claim_func)(claim_data) )

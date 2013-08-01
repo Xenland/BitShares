@@ -11,7 +11,7 @@
 #include <fc/filesystem.hpp>
 #include <fc/log/logger.hpp>
 
-
+#include <algorithm>
 
 namespace bts { namespace blockchain {
     namespace ldb = leveldb;
@@ -264,42 +264,42 @@ namespace bts { namespace blockchain {
     void blockchain_db::push_block( const trx_block& b )
     {
       try {
-       FC_ASSERT( b.version == 0  );
-       FC_ASSERT( b.trxs.size() > 0 );
-       block prev_blk;
-
-       fc::sha224 last_blk_id;
-       uint32_t   last_blk_num = 0;
-       if( my->blk_id2num.last( last_blk_id, last_blk_num ) )
-       {
-         FC_ASSERT( b.block_num == last_blk_num + 1 );
-         prev_blk = my->blocks.fetch( last_blk_num );
-         FC_ASSERT( prev_blk.block_num == last_blk_num );
-       }
-       else
-       {
-         FC_ASSERT( b.block_num == 0 );
-         FC_ASSERT( b.prev      == fc::sha224() );
-         validate_initial_issuance( b.state.issuance );
-       }
-
-       validate_mining_reward( b, prev_blk );
-
-       trx_eval total_eval;
-       for( auto itr = b.trxs.begin(); itr != b.trxs.end(); ++itr )
-       {
-           total_eval += evaluate_signed_transaction( *itr );
-       }
-       ilog( "summary: ${totals}", ("totals",total_eval) );
-
-       auto new_bts      = calculate_mining_reward(b.block_num);
-       auto new_div      = new_bts / 2;
-       auto new_coinbase = new_div;
-       if( total_eval.coinbase != asset( new_coinbase, asset::bts) )
-       {
-          FC_THROW_EXCEPTION( exception, "block has invalid coinbase amount, expected ${e}, but created ${c}",
-                              ("e", new_coinbase)("c",total_eval.coinbase) );
-       }
+        FC_ASSERT( b.version == 0  );
+        FC_ASSERT( b.trxs.size() > 0 );
+        block prev_blk;
+        
+        fc::sha224 last_blk_id;
+        uint32_t   last_blk_num = 0;
+        if( my->blk_id2num.last( last_blk_id, last_blk_num ) )
+        {
+          FC_ASSERT( b.block_num == last_blk_num + 1 );
+          prev_blk = my->blocks.fetch( last_blk_num );
+          FC_ASSERT( prev_blk.block_num == last_blk_num );
+        }
+        else
+        {
+          FC_ASSERT( b.block_num == 0 );
+          FC_ASSERT( b.prev      == fc::sha224() );
+          validate_initial_issuance( b.state.issuance );
+        }
+        
+        validate_mining_reward( b, prev_blk );
+        
+        trx_eval total_eval;
+        for( auto itr = b.trxs.begin(); itr != b.trxs.end(); ++itr )
+        {
+            total_eval += evaluate_signed_transaction( *itr );
+        }
+        ilog( "summary: ${totals}", ("totals",total_eval) );
+        
+        auto new_bts      = calculate_mining_reward(b.block_num);
+        auto new_div      = new_bts / 2;
+        auto new_coinbase = new_div;
+        if( total_eval.coinbase != asset( new_coinbase, asset::bts) )
+        {
+           FC_THROW_EXCEPTION( exception, "block has invalid coinbase amount, expected ${e}, but created ${c}",
+                               ("e", new_coinbase)("c",total_eval.coinbase) );
+        }
       } FC_RETHROW_EXCEPTIONS( warn, "unable to push block", ("b", b) );
     }
 
@@ -309,6 +309,125 @@ namespace bts { namespace blockchain {
      */
     void blockchain_db::pop_block( full_block& b, std::vector<signed_transaction>& trxs )
     {
+    }
+
+    struct trx_stat
+    {
+       uint16_t trx_idx;
+       trx_eval eval;
+    };
+    bool operator < ( const trx_stat& a, const trx_stat& b )
+    {
+      return a.eval.fees.amount < b.eval.fees.amount;
+    }
+
+    /**
+     *  First step to creating a new block is to take all canidate transactions and 
+     *  sort them by fees and filter out transactions that are not valid.  Then
+     *  filter out incompatible transactions (those that share the same inputs).
+     *
+     *  
+     *
+     */
+    trx_block  blockchain_db::generate_next_block( const address& coinbase_addr, 
+                                                   const std::vector<signed_transaction>& trxs )
+    {
+      try {
+         FC_ASSERT( coinbase_addr != address() );
+         std::vector<trx_stat>  stats;
+         stats.reserve(trxs.size());
+         
+         for( uint32_t i = 0; i < trxs.size(); ++i )
+         {
+            try 
+            {
+                trx_stat s;
+                s.eval = evaluate_signed_transaction( trxs[i] );
+
+                if( s.eval.coinbase.amount != 0 )
+                {
+                  ilog( "ignoring transaction ${trx} because it creates coins", 
+                        ("trx",trxs[i]) );
+                }
+                s.trx_idx = i;
+                
+                stats.push_back( s );
+            } 
+            catch ( const fc::exception& e )
+            {
+               ilog( "unable to use trx ${t}", ("t", trxs[i] ) );
+            }
+         }
+
+         // order the trx by fees
+         std::sort( stats.begin(), stats.end() ); 
+
+         fc::datastream<size_t>  block_size;
+         uint32_t conflicts = 0;
+
+         asset total_fees;
+         // make sure inputs are unique
+         std::unordered_set<output_reference> consumed_outputs;
+         for( size_t i = 0; stats.size(); ++i )
+         {
+            const signed_transaction& trx = trxs[stats[i].trx_idx]; 
+            for( size_t in = 0; in < trx.inputs.size(); ++in )
+            {
+               if( !consumed_outputs.insert( trx.inputs[i].output_ref ).second )
+               {
+                    stats[i].trx_idx = uint16_t(-1); // mark it to be skipped, input conflict
+                    ++conflicts;
+                    break; //in = trx.inputs.size(); // exit inner loop
+               }
+            }
+            if( stats[i].trx_idx != uint16_t(-1) )
+            {
+               fc::raw::pack( block_size, trx );
+               if( block_size.tellp() > MAX_BLOCK_TRXS_SIZE )
+               {
+                  stats.resize(i); // this trx put us over the top, we can stop processing
+                                   // the other trxs.
+               }
+            }
+            total_fees += stats[i].eval.fees;
+         }
+
+         // at this point we have a list of trxs to include in the block that is sorted by
+         // fee and has a set of unique inputs that have all been validated against the
+         // current state of the blockchain_db, calculate the total fees paid, half of which
+         // are paid as dividends, the rest to coinbase
+         
+         total_fees += asset(calculate_mining_reward( my->head_block_num + 1 ), asset::bts);
+
+         asset miner_fees( (total_fees.amount / 2).high_bits(), asset::bts );
+         asset dividends(0,asset::bts);
+         
+         // TODO: where do I put the dividends?
+         //dividend.amount = (total_fees.amount - miner_fees.amount) / current_bitshare_supply();
+
+
+         trx_block new_blk;
+         new_blk.trxs.reserve( 1 + stats.size() - conflicts ); 
+
+         // create the coin base trx
+         signed_transaction coinbase;
+         coinbase.version = 0;
+         coinbase.valid_after = 0;
+         coinbase.valid_blocks = 0;
+
+         coinbase.outputs.push_back( 
+              trx_output( claim_by_signature_output( coinbase_addr ), 
+                          miner_fees.amount.high_bits(), asset::bts) );
+
+         new_blk.trxs.push_back( coinbase ); 
+
+         // add all other transactions to the block
+         for( size_t i = 0; i < stats.size(); ++i )
+         {
+         }
+        
+         return new_blk;
+      } FC_RETHROW_EXCEPTIONS( warn, "error generating new block" );
     }
 
 }  } // bts::blockchain
