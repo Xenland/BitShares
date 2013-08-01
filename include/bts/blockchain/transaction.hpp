@@ -18,6 +18,8 @@ namespace bts { namespace blockchain {
 struct output_reference
 {
   output_reference():output_idx(0){}
+  output_reference( const uint160& trx, uint8_t idx )
+  :trx_hash(trx),output_idx(idx){}
   uint160  trx_hash;   // the hash of a transaction.
   uint8_t  output_idx; // the output index in the transaction trx_hash
   
@@ -41,6 +43,10 @@ struct output_reference
 struct trx_input
 {
     trx_input(){}
+    trx_input( const output_reference& src )
+    :output_ref(src)
+    { }
+
     template<typename InputType>
     trx_input( const InputType& t, const output_reference& src )
     :output_ref(src)

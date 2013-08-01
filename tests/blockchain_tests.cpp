@@ -85,7 +85,11 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      fc::ecc::private_key k1 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( "block1", 6 ) );
      bts::address a1 = k1.get_public_key();
      fc::ecc::private_key k2 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( "block2", 6 ) );
-     bts::address a2 = k1.get_public_key();
+     bts::address a2 = k2.get_public_key();
+     fc::ecc::private_key k3 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( "block3", 6 ) );
+     bts::address a3 = k3.get_public_key();
+     fc::ecc::private_key k4 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( "addre4", 6 ) );
+     bts::address a4 = k4.get_public_key();
      
      fc::temp_directory temp_dir;
      bts::blockchain::blockchain_db chain;
@@ -104,6 +108,20 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string(block2) ) );
      chain.push_block( block2 );
 
+     std::vector<signed_transaction> new_trx;
+     new_trx.resize(1);
+
+     new_trx[0].inputs.push_back( 
+        trx_input( output_reference( block1.trxs[0].id(), 0 ) ) );
+
+     new_trx[0].outputs.push_back( 
+        trx_output( claim_by_signature_output( address( a4 ) ), 1000000, asset::bts ) );
+
+     new_trx[0].sign( k1 );
+
+     auto block3 = chain.generate_next_block( a3, new_trx );
+     ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string(block3) ) );
+     chain.push_block( block3 );
   } 
   catch ( const fc::exception& e )
   {

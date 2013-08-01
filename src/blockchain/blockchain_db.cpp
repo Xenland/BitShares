@@ -220,8 +220,8 @@ namespace bts { namespace blockchain {
              
              if( inputs[i].output_ref.output_idx >= trx.meta_outputs.size() )
              {
-                FC_THROW_EXCEPTION( exception, "Input ${i} references invalid output from transaction ${t}",
-                                    ("i",inputs[i])("o", trx) );
+                FC_THROW_EXCEPTION( exception, "Input ${i} references invalid output from transaction ${trx}",
+                                    ("i",inputs[i])("trx", trx) );
              }
              if( inputs[i].output_ref.output_idx >= trx.outputs.size() )
              {
@@ -453,7 +453,7 @@ namespace bts { namespace blockchain {
 
                 if( s.eval.coinbase.amount != 0 )
                 {
-                  ilog( "ignoring transaction ${trx} because it creates coins", 
+                  wlog( "ignoring transaction ${trx} because it creates coins", 
                         ("trx",trxs[i]) );
                   continue;
                 }
@@ -462,7 +462,7 @@ namespace bts { namespace blockchain {
             } 
             catch ( const fc::exception& e )
             {
-               ilog( "unable to use trx ${t}", ("t", trxs[i] ) );
+               wlog( "unable to use trx ${t}\n ${e}", ("t", trxs[i] )("e",e.to_detail_string()) );
             }
          }
 
@@ -480,7 +480,7 @@ namespace bts { namespace blockchain {
          // validate unique inputs because we can safely skip trx that
          // have conflict.
          std::unordered_set<output_reference> consumed_outputs;
-         for( size_t i = 0; stats.size(); ++i )
+         for( size_t i = 0; i < stats.size(); ++i )
          {
             const signed_transaction& trx = trxs[stats[i].trx_idx]; 
             for( size_t in = 0; in < trx.inputs.size(); ++in )
@@ -499,8 +499,16 @@ namespace bts { namespace blockchain {
                {
                   stats.resize(i); // this trx put us over the top, we can stop processing
                                    // the other trxs.
+                  break;
                }
             }
+            ilog( "about to print" );
+            ilog( "total fees ${tf}", ("tf",total_fees) );
+            FC_ASSERT( i < stats.size() );
+            ilog( "total fees ${tf} += ${fees}", 
+                  ("tf", total_fees)
+                  ("fees",stats[i].eval.fees) );
+            ilog( "... what happened... " );
             total_fees += stats[i].eval.fees;
          }
 

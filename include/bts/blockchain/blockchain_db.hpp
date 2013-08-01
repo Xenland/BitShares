@@ -72,6 +72,9 @@ namespace bts { namespace blockchain {
      */
     struct meta_trx_input
     {
+       meta_trx_input()
+       :output_num(-1){}
+
        trx_num           source;
        uint8_t           output_num;
        trx_output        output;
@@ -82,7 +85,8 @@ namespace bts { namespace blockchain {
     {
        meta_trx(){}
        meta_trx( const signed_transaction& t )
-       :signed_transaction(t){}
+       :signed_transaction(t), meta_outputs(t.outputs.size()){}
+
        std::vector<meta_trx_output> meta_outputs; // tracks where the output was spent
     };
 

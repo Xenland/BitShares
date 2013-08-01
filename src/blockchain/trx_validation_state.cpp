@@ -56,6 +56,21 @@ void trx_validation_state::validate()
                            
         }
      }
+
+     std::unordered_set<address> sigs =  trx.get_signed_addresses();
+     std::vector<address> missing;
+     for( auto itr  = required_sigs.begin(); itr != required_sigs.end(); ++itr )
+     {
+        if( sigs.find( *itr ) == sigs.end() )
+        {
+           missing.push_back( *itr );
+        }
+     }
+     if( missing.size() )
+     {
+        FC_THROW_EXCEPTION( exception, "missing signatures for ${addresses}", ("addresses", missing) );
+     }
+
   } FC_RETHROW_EXCEPTIONS( warn, "error validating transaction", ("state", *this)  );
 
 } // validate 
