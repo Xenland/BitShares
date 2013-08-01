@@ -38,13 +38,31 @@ namespace bts { namespace blockchain {
             fc::sha224                                          head_block_id;
             // Dividend Table needs to be memory mapped
 
+            void mark_spent( const output_reference& o, const trx_num& intrx, uint16_t in )
+            {
+               auto tid    = trx_id2num.fetch( o.trx_hash );
+               meta_trx   mtrx   = meta_trxs.fetch( tid );
+               FC_ASSERT( mtrx.meta_outputs.size() > o.output_idx );
+
+               mtrx.meta_outputs[o.output_idx].trx_id    = intrx;
+               mtrx.meta_outputs[o.output_idx].input_num = in;
+
+               meta_trxs.store( tid, mtrx );
+            }
+            
             /**
              *   Stores a transaction and updates the spent status of all 
              *   outputs doing one last check to make sure they are unspent.
              */
             void store( const signed_transaction& t, const trx_num& tn )
             {
-               
+               trx_id2num.store( t.id(), tn ); 
+               meta_trxs.store( tn, meta_trx(t) );
+
+               for( uint16_t i = 0; i < t.inputs.size(); ++i )
+               {
+                  mark_spent( t.inputs[i].output_ref, tn, i ); 
+               }
             }
 
             void store( const trx_block& b )
@@ -53,6 +71,8 @@ namespace bts { namespace blockchain {
                 {
                    store( b.trxs[t], trx_num( b.block_num, t) );
                 }
+                head_block    = b;
+                head_block_id = b.id();
             }
       };
     }
@@ -372,12 +392,7 @@ namespace bts { namespace blockchain {
 
         my->current_bitshare_supply += new_bts;
 
-        // TODO: actually push the block!
-        // TODO: update my->head_block_num
-
-        my->head_block    = b;
-        my->head_block_id = b.id();
-
+        my->store( b );
         
       } FC_RETHROW_EXCEPTIONS( warn, "unable to push block", ("b", b) );
     }
