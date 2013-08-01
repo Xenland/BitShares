@@ -37,6 +37,23 @@ namespace bts { namespace blockchain {
             trx_block                                           head_block;
             fc::sha224                                          head_block_id;
             // Dividend Table needs to be memory mapped
+
+            /**
+             *   Stores a transaction and updates the spent status of all 
+             *   outputs doing one last check to make sure they are unspent.
+             */
+            void store( const signed_transaction& t, const trx_num& tn )
+            {
+               
+            }
+
+            void store( const trx_block& b )
+            {
+                for( uint16_t t = 0; t < b.trxs.size(); ++t )
+                {
+                   store( b.trxs[t], trx_num( b.block_num, t) );
+                }
+            }
       };
     }
 
@@ -219,6 +236,15 @@ namespace bts { namespace blockchain {
     trx_eval blockchain_db::evaluate_signed_transaction( const signed_transaction& trx )       
     {
        try {
+           if( trx.valid_after != 0 )
+           {
+             FC_ASSERT( head_block_num() > trx.valid_after.value );
+             if( trx.valid_blocks != 0 )
+             {
+                FC_ASSERT( head_block_num() < trx.valid_after.value + trx.valid_blocks.value );
+             }
+           }
+
            trx_validation_state vstate( trx, fetch_inputs( trx.inputs ), this ); 
            vstate.validate();
 
