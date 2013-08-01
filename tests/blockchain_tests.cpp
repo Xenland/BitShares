@@ -82,6 +82,11 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
 {
   try 
   {
+     fc::ecc::private_key k1 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( "block1", 6 ) );
+     bts::address a1 = k1.get_public_key();
+     fc::ecc::private_key k2 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( "block2", 6 ) );
+     bts::address a2 = k1.get_public_key();
+     
      fc::temp_directory temp_dir;
      bts::blockchain::blockchain_db chain;
      chain.open( temp_dir.path() / "chain" );
@@ -91,6 +96,13 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      chain.push_block( genesis );
 
      // build next block... 
+     auto block1 = chain.generate_next_block( a1, std::vector<signed_transaction>() );
+     ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string(block1) ) );
+     chain.push_block( block1 );
+
+     auto block2 = chain.generate_next_block( a2, std::vector<signed_transaction>() );
+     ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string(block2) ) );
+     chain.push_block( block2 );
 
   } 
   catch ( const fc::exception& e )

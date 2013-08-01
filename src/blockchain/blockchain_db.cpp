@@ -287,6 +287,7 @@ namespace bts { namespace blockchain {
     void validate_issuance( const block& b, const block& prev )
     {
       try {
+       FC_ASSERT( b.state.issuance.data[0].backing == 0 );
        if( b.block_num == 0 )
        {
            for( uint32_t i = 0; i < asset::type::count; ++i )
@@ -294,8 +295,15 @@ namespace bts { namespace blockchain {
              FC_ASSERT( b.state.issuance.at(i).backing == 0 );
              FC_ASSERT( b.state.issuance.at(i).issued  == 0 );
            }
-           FC_ASSERT( b.state.issuance.data[0].backing == 0 );
-           FC_ASSERT( b.state.issuance.data[0].issued  == 0 );
+       }
+       else if( b.block_num == 1 )
+       {
+           for( uint32_t i = 1; i < asset::type::count; ++i )
+           {
+             FC_ASSERT( b.state.issuance.at(i).backing == 0 );
+             FC_ASSERT( b.state.issuance.at(i).issued  == 0 );
+           }
+           FC_ASSERT( b.state.issuance.data[asset::bts].issued  == calculate_mining_reward(0)/2 );
        }
        else // TODO: validate new issuance from prior block..
        {
@@ -403,6 +411,7 @@ namespace bts { namespace blockchain {
      */
     void blockchain_db::pop_block( full_block& b, std::vector<signed_transaction>& trxs )
     {
+       FC_ASSERT( !"TODO: implement pop_block" );
     }
 
     struct trx_stat
@@ -425,8 +434,6 @@ namespace bts { namespace blockchain {
      *  sort them by fees and filter out transactions that are not valid.  Then
      *  filter out incompatible transactions (those that share the same inputs).
      *
-     *  
-     *
      */
     trx_block  blockchain_db::generate_next_block( const address& coinbase_addr, 
                                                    const std::vector<signed_transaction>& trxs )
@@ -436,6 +443,7 @@ namespace bts { namespace blockchain {
          std::vector<trx_stat>  stats;
          stats.reserve(trxs.size());
          
+         // filter out all trx that generate coins from nothing
          for( uint32_t i = 0; i < trxs.size(); ++i )
          {
             try 
@@ -447,9 +455,9 @@ namespace bts { namespace blockchain {
                 {
                   ilog( "ignoring transaction ${trx} because it creates coins", 
                         ("trx",trxs[i]) );
+                  continue;
                 }
                 s.trx_idx = i;
-                
                 stats.push_back( s );
             } 
             catch ( const fc::exception& e )
@@ -461,6 +469,8 @@ namespace bts { namespace blockchain {
          // order the trx by fees
          std::sort( stats.begin(), stats.end() ); 
 
+
+         // calculate the block size as we go
          fc::datastream<size_t>  block_size;
          uint32_t conflicts = 0;
 
@@ -502,19 +512,9 @@ namespace bts { namespace blockchain {
          total_fees += asset(calculate_mining_reward( head_block_num() + 1 ), asset::bts);
 
          asset miner_fees( (total_fees.amount / 2).high_bits(), asset::bts );
-         asset dividends(0,asset::bts);
-         
-         // TODO: where do I put the dividends?
-         uint64_t cur_bts_supply = current_bitshare_supply();
-         if( cur_bts_supply != 0 ) // don't divide by 0
-         {
-            dividends.amount = (total_fees.amount - miner_fees.amount) / cur_bts_supply;
-            FC_ASSERT( dividends.amount < fc::uint128(1,0) );
-         }
+         asset dividends = total_fees - miner_fees;
 
          trx_block new_blk;
-         new_blk.timestamp = fc::time_point::now();
-         new_blk.state.dividend_percent = dividends.amount.low_bits();
          new_blk.trxs.reserve( 1 + stats.size() - conflicts ); 
 
          // create the coin base trx
@@ -537,6 +537,29 @@ namespace bts { namespace blockchain {
              new_blk.trxs.push_back( trxs[ stats[i].trx_idx] );
            }
          }
+         new_blk.timestamp              = fc::time_point::now();
+         new_blk.block_num              = head_block_num() + 1;
+         new_blk.prev                   = my->head_block_id;
+
+         if( head_block_num() == 0 )
+         {
+            new_blk.state.issuance.data[asset::bts].issued = 
+               calculate_mining_reward(head_block_num()) / 2;
+         }
+         else
+         {
+            new_blk.state.issuance.data[asset::bts].issued = 
+               my->head_block.state.issuance.data[asset::bts].issued + 
+               calculate_mining_reward(head_block_num());
+         }
+
+         new_blk.state.dividend_percent = calculate_dividend_percent( dividends, 
+                                                          my->current_bitshare_supply );
+         new_blk.state_hash             = new_blk.state.digest();
+         new_blk.trx_mroot = new_blk.calculate_merkle_root();
+
+         new_blk.pow.branch_path.mid_states.resize(1);
+         new_blk.pow.branch_path.mid_states[0] = new_blk.digest();
          return new_blk;
 
       } FC_RETHROW_EXCEPTIONS( warn, "error generating new block" );
