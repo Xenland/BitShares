@@ -10,14 +10,16 @@
 namespace bts { namespace blockchain {
 
   asset::asset( const std::string& s )
+  :unit( bts )
   {
     // TODO:  string to asset
+    FC_ASSERT( !"Not Implemented" );
   }
 
   asset::asset( uint64_t int_p, asset::type t )
+  :unit(t)
   {
      amount = fc::uint128( int_p, 0 );
-     unit = t;
   }
 
   asset::operator std::string()const

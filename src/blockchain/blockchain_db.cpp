@@ -22,7 +22,7 @@ namespace bts { namespace blockchain {
       {
          public:
             blockchain_db_impl()
-            :head_block_num(-1),current_bitshare_supply(0){}
+            :current_bitshare_supply(0),head_block_num(-1){}
 
             //std::unique_ptr<ldb::DB> blk_id2num;  // maps blocks to unique IDs
             bts::db::level_map<fc::sha224,uint32_t>             blk_id2num;
@@ -31,8 +31,12 @@ namespace bts { namespace blockchain {
             bts::db::level_map<uint32_t,block>                  blocks;
             bts::db::level_map<uint32_t,std::vector<uint160> >  block_trxs; 
 
-            uint32_t                                            head_block_num;
             uint64_t                                            current_bitshare_supply;
+
+            /** cache this information because it is required in many calculations  */
+            uint32_t                                            head_block_num;
+            trx_block                                           head_block;
+            fc::sha224                                          head_block_id;
             // Dividend Table needs to be memory mapped
       };
     }
@@ -235,35 +239,47 @@ namespace bts { namespace blockchain {
     }
 
 
-    void validate_initial_issuance( const fc::array<asset_issuance, asset::type::count>& isu )
+    void validate_issuance( const block& b, const block& prev )
     {
-       for( uint32_t i = 0; i < asset::type::count; ++i )
+      try {
+       if( b.block_num == 0 )
        {
-         FC_ASSERT( isu.at(i).backing == 0 );
-         FC_ASSERT( isu.at(i).issued  == 0 );
+           for( uint32_t i = 0; i < asset::type::count; ++i )
+           {
+             FC_ASSERT( b.state.issuance.at(i).backing == 0 );
+             FC_ASSERT( b.state.issuance.at(i).issued  == 0 );
+           }
+           FC_ASSERT( b.state.issuance.data[0].backing == 0 );
+           FC_ASSERT( b.state.issuance.data[0].issued  == 0 );
        }
-       FC_ASSERT( isu.data[0].backing == 0 );
-       FC_ASSERT( isu.data[0].issued  == 0 );
+       else // TODO: validate new issuance from prior block..
+       {
+           /** the block state contains the initial conndition for the new block, or the
+            *  post condition of the prior block.  We want to make sure that the new block
+            *  records the proper increase in BTS from the mining reward of the prior block,
+            *  and thus the need to subtract 1 from the new_blk.block_num
+            */
+           uint64_t reward = b.state.issuance.data[0].issued - prev.state.issuance.data[0].issued;
+           FC_ASSERT( reward == calculate_mining_reward( b.block_num - 1 ) );
+
+           // TODO we also need a summary of all issuance changes from the last block to make sure
+           // they are reflected in this blocks balance
+       }
+      } FC_RETHROW_EXCEPTIONS( debug, "", ("b",b)("prev",prev) )
     }
 
-    void validate_mining_reward( const full_block& new_blk, const block& prev_blk )
+    trx_eval blockchain_db::evaluate_signed_transactions( const std::vector<signed_transaction>& trxs )
     {
-       uint64_t reward = new_blk.state.issuance.data[0].issued - prev_blk.state.issuance.data[0].issued;
-       if( new_blk.block_num == 0 )
-       {
-         FC_ASSERT( reward == 0 );
-       }
-       else
-       {
-         /** the block state contains the initial conndition for the new block, or the
-          *  post condition of the prior block.  We want to make sure that the new block
-          *  records the proper increase in BTS from the mining reward of the prior block,
-          *  and thus the need to subtract 1 from the new_blk.block_num
-          */
-         FC_ASSERT( reward == calculate_mining_reward( new_blk.block_num - 1 ) );
-       }
+      try {
+        trx_eval total_eval;
+        for( auto itr = trxs.begin(); itr != trxs.end(); ++itr )
+        {
+            total_eval += evaluate_signed_transaction( *itr );
+        }
+        ilog( "summary: ${totals}", ("totals",total_eval) );
+        return total_eval;
+      } FC_RETHROW_EXCEPTIONS( debug, "" );
     }
-
     
     /**
      *  Attempts to append block b to the block chain with the given trxs.
@@ -273,35 +289,16 @@ namespace bts { namespace blockchain {
       try {
         FC_ASSERT( b.version == 0  );
         FC_ASSERT( b.trxs.size() > 0 );
-        block prev_blk;
-        
-        // TODO: no need to lookup last block num... we can
-        // pull it from cache...
-        fc::sha224 last_blk_id;
-        uint32_t   last_blk_num = 0;
-        if( my->blk_id2num.last( last_blk_id, last_blk_num ) )
-        {
-          FC_ASSERT( b.block_num == last_blk_num + 1 );
-          prev_blk = my->blocks.fetch( last_blk_num );
-          FC_ASSERT( prev_blk.block_num == last_blk_num );
-        }
-        else
-        {
-          FC_ASSERT( b.block_num == 0 );
-          FC_ASSERT( b.prev      == fc::sha224() );
-          validate_initial_issuance( b.state.issuance );
-        }
-        
-        validate_mining_reward( b, prev_blk );
+        FC_ASSERT( b.block_num == my->head_block_num + 1 );
+        FC_ASSERT( b.prev      == my->head_block_id      );
+
+        validate_issuance( b, my->head_block /*aka new prev*/ );
+
+        // evaluate all trx and sum the results
+        trx_eval total_eval = evaluate_signed_transactions( b.trxs );
         
         // TODO: factor this loop out into separate method, it is needed
         // in multiple places and would make this method more readable
-        trx_eval total_eval;
-        for( auto itr = b.trxs.begin(); itr != b.trxs.end(); ++itr )
-        {
-            total_eval += evaluate_signed_transaction( *itr );
-        }
-        ilog( "summary: ${totals}", ("totals",total_eval) );
         
         auto new_bts      = calculate_mining_reward(b.block_num);
         

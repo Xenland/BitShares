@@ -114,6 +114,7 @@ namespace bts { namespace blockchain {
           *  @throw exception if trx can not be applied to the current chain state.
           */
          trx_eval   evaluate_signed_transaction( const signed_transaction& trx );       
+         trx_eval   evaluate_signed_transactions( const std::vector<signed_transaction>& trxs );
 
          trx_block  generate_next_block( const address& coinbase_addr, const std::vector<signed_transaction>& trx );
 
