@@ -17,7 +17,7 @@ namespace bts { namespace blockchain {
    struct block_header
    {
       block_header()
-      :version(0),block_num(0){}
+      :version(0),block_num(-1){}
 
       /** digest used in proof of work calculation as 
        * the base of the proof merkle branch 

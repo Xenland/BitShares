@@ -22,7 +22,7 @@ namespace bts { namespace blockchain {
       {
          public:
             blockchain_db_impl()
-            :current_bitshare_supply(0),head_block_num(-1){}
+            :current_bitshare_supply(0){}
 
             //std::unique_ptr<ldb::DB> blk_id2num;  // maps blocks to unique IDs
             bts::db::level_map<fc::sha224,uint32_t>             blk_id2num;
@@ -34,7 +34,6 @@ namespace bts { namespace blockchain {
             uint64_t                                            current_bitshare_supply;
 
             /** cache this information because it is required in many calculations  */
-            uint32_t                                            head_block_num;
             trx_block                                           head_block;
             fc::sha224                                          head_block_id;
             // Dividend Table needs to be memory mapped
@@ -70,10 +69,10 @@ namespace bts { namespace blockchain {
          
          block blk;
          // read the last block from the DB
-         my->blocks.last( my->head_block_num, blk );
+         my->blocks.last( my->head_block.block_num, blk );
 
          my->current_bitshare_supply  = blk.state.issuance.data[asset::bts].issued;
-         my->current_bitshare_supply += calculate_mining_reward( my->head_block_num ) / 2;
+         my->current_bitshare_supply += calculate_mining_reward( my->head_block.block_num ) / 2;
 
        } FC_RETHROW_EXCEPTIONS( warn, "error loading blockchain database ${dir}", ("dir",dir)("create",create) );
      }
@@ -89,7 +88,7 @@ namespace bts { namespace blockchain {
 
     uint32_t blockchain_db::head_block_num()const
     {
-       return my->head_block_num;
+       return my->head_block.block_num;
     }
 
     /**
@@ -296,6 +295,12 @@ namespace bts { namespace blockchain {
           }
        }
     }
+    uint64_t calculate_dividend_percent( const asset& divs, uint64_t supply )
+    {
+        if( supply != 0 )
+           return (divs / asset( supply, asset::bts)).ratio.low_bits();
+        return 0;
+    }
     
     /**
      *  Attempts to append block b to the block chain with the given trxs.
@@ -303,10 +308,14 @@ namespace bts { namespace blockchain {
     void blockchain_db::push_block( const trx_block& b )
     {
       try {
-        FC_ASSERT( b.version == 0  );
-        FC_ASSERT( b.trxs.size() > 0 );
-        FC_ASSERT( b.block_num == my->head_block_num + 1 );
-        FC_ASSERT( b.prev      == my->head_block_id      );
+        FC_ASSERT( b.version                           == 0                         );
+        FC_ASSERT( b.trxs.size()                       > 0                          );
+        FC_ASSERT( b.block_num                         == head_block_num() + 1      );
+        FC_ASSERT( b.prev                              == my->head_block_id         );
+        FC_ASSERT( b.state_hash                        == b.state.digest()          );
+        FC_ASSERT( b.pow.branch_path.mid_states.size() >= 0                         );
+        FC_ASSERT( b.pow.branch_path.mid_states[0]     == b.digest()                );
+        FC_ASSERT( b.trx_mroot                         == b.calculate_merkle_root() );
 
         validate_issuance( b, my->head_block /*aka new prev*/ );
         validate_unique_inputs( b.trxs );
@@ -314,19 +323,25 @@ namespace bts { namespace blockchain {
         // evaluate all trx and sum the results
         trx_eval total_eval = evaluate_signed_transactions( b.trxs );
         
+        // half of this + half of fees should go into coinbase
+        // what is left should go into dividends
         uint64_t new_bts    = calculate_mining_reward(b.block_num);
-        
-        // TODO: calculate fees and add them into the coinbase / dividend calculation
 
-        auto new_div      = new_bts / 2;
-        auto new_coinbase = new_bts - new_div; /* capture any rounding errors from div 2 */
+        asset total_fees = asset( new_bts, asset::bts) += total_eval.fees;
+        asset miner_fees((total_fees.amount / 2).high_bits(), asset::bts );
+        asset dividends = total_fees - miner_fees;
 
-        // TODO: verify that the dividends came out in the b.state.dividend_percent
+        // verify the dividends in the b.state.dividend_percent
+        uint64_t supply = current_bitshare_supply();
+        uint64_t div_percent = calculate_dividend_percent( dividends, supply );
 
-        if( total_eval.coinbase != asset( new_coinbase, asset::bts) )
+        FC_ASSERT( b.state.dividend_percent == div_percent );
+
+        if( total_eval.coinbase != miner_fees )
         {
-           FC_THROW_EXCEPTION( exception, "block has invalid coinbase amount, expected ${e}, but created ${c}",
-                               ("e", new_coinbase)("c",total_eval.coinbase) );
+           FC_THROW_EXCEPTION( exception, 
+                    "block has invalid coinbase amount, expected ${e}, but created ${c}",
+                    ("e", miner_fees)("c",total_eval.coinbase) );
         }
 
         my->current_bitshare_supply += new_bts;
@@ -334,7 +349,7 @@ namespace bts { namespace blockchain {
         // TODO: actually push the block!
         // TODO: update my->head_block_num
 
-        my->head_block = b;
+        my->head_block    = b;
         my->head_block_id = b.id();
 
         
@@ -409,7 +424,10 @@ namespace bts { namespace blockchain {
          uint32_t conflicts = 0;
 
          asset total_fees;
-         // make sure inputs are unique
+
+         // make sure inputs are unique, unfortunately we cannot use
+         // validate unique inputs because we can safely skip trx that
+         // have conflict.
          std::unordered_set<output_reference> consumed_outputs;
          for( size_t i = 0; stats.size(); ++i )
          {
@@ -440,7 +458,7 @@ namespace bts { namespace blockchain {
          // current state of the blockchain_db, calculate the total fees paid, half of which
          // are paid as dividends, the rest to coinbase
          
-         total_fees += asset(calculate_mining_reward( my->head_block_num + 1 ), asset::bts);
+         total_fees += asset(calculate_mining_reward( head_block_num() + 1 ), asset::bts);
 
          asset miner_fees( (total_fees.amount / 2).high_bits(), asset::bts );
          asset dividends(0,asset::bts);
