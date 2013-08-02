@@ -113,19 +113,25 @@ namespace bts { namespace blockchain {
                // incase there was any corruption.
                
                fc::uint128 delta( 0, div_per );
-               uint32_t year_old = 0;
+               int32_t year_old = 0;
                if( bnum > BLOCKS_PER_YEAR ) 
                {
                   year_old = bnum - BLOCKS_PER_YEAR;
                }
                detail::asset_dividend_accumulator& ada = dividend_acc_table->accumulators.at( unit );
                ada.at( bnum % DIVIDEND_HISTORY ) = 0;
-               for( uint32_t i = bnum; i >= year_old; --i ) 
+               for( int32_t i = bnum; i >= year_old; --i ) 
                {
                   uint32_t idx = i % DIVIDEND_HISTORY;
                   ada.at(idx) += delta;
+                  ilog( "div ${i}] ${per}", ("i",i)("per", asset(ada.at(idx), asset::bts) ) );
                }
             }
+            fc::uint128 get_dividends( asset::type u, uint32_t blk_num )
+            {
+               return dividend_acc_table->accumulators.at( u ).at( blk_num % DIVIDEND_HISTORY );
+            }
+
       };
     }
 
@@ -241,7 +247,9 @@ namespace bts { namespace blockchain {
      */
     asset              blockchain_db::calculate_dividends( const asset& a, uint32_t from_num, uint32_t to_num )
     {
-       return asset();
+       fc::uint128 from = my->get_dividends( a.unit, from_num );
+       fc::uint128 to   = my->get_dividends( a.unit, to_num   );
+       return a * (from-to);
     }
     /**
      *  The most recent blocks do not pay dividends, except to the miner, becaues the dividends
@@ -262,7 +270,7 @@ namespace bts { namespace blockchain {
      */
     asset      blockchain_db::calculate_output_dividends( const asset& b, uint32_t from_num )
     {
-       return asset();
+       return calculate_dividends( b, from_num, head_block_num() );
     }
 
 
@@ -463,6 +471,7 @@ namespace bts { namespace blockchain {
                     "block has invalid coinbase amount, expected ${e}, but created ${c}",
                     ("e", miner_fees)("c",total_eval.coinbase) );
         }
+        my->accumulate_dividends_table( b.block_num, b.state.dividend_percent, asset::bts );
 
         my->current_bitshare_supply += new_bts;
 

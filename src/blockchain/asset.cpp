@@ -68,6 +68,13 @@ namespace bts { namespace blockchain {
      return *this;
   }
 
+  asset  asset::operator *  ( const fc::uint128_t& fix6464 )const
+  {
+      fc::bigint bi(amount);
+      bi *= fix6464;
+      bi >>= 64;
+      return asset( fc::uint128(bi), unit );
+  }
   asset& asset::operator -= ( const asset& o )
   {
      FC_ASSERT( unit == o.unit );

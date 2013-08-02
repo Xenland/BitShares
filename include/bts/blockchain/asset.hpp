@@ -40,9 +40,12 @@ namespace bts { namespace blockchain {
       asset():unit(bts){}
       asset( const std::string& str );
       asset( uint64_t int_part, asset::type t );
+      asset( fc::uint128 amnt, asset::type t )
+      :amount(amnt),unit(t){}
 
       asset& operator += ( const asset& o );
       asset& operator -= ( const asset& o );
+      asset  operator *  ( const fc::uint128_t& fix6464 )const;
 
       operator std::string()const;
        
