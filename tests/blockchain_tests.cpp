@@ -90,6 +90,8 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      bts::address a3 = k3.get_public_key();
      fc::ecc::private_key k4 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( "addre4", 6 ) );
      bts::address a4 = k4.get_public_key();
+     fc::ecc::private_key k5 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( "addre5", 6 ) );
+     bts::address a5 = k5.get_public_key();
      
      fc::temp_directory temp_dir;
      bts::blockchain::blockchain_db chain;
@@ -115,9 +117,18 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
         trx_input( output_reference( block1.trxs[0].id(), 0 ) ) );
 
      new_trx[0].outputs.push_back( 
-        trx_output( claim_by_signature_output( address( a4 ) ), 1000000, asset::bts ) );
+        trx_output( claim_by_signature_output( address( a4 ) ), 100000000, asset::bts ) );
+     new_trx[0].outputs.push_back( 
+        trx_output( claim_by_signature_output( address( a5 ) ), 314000000, asset::bts ) );
 
      new_trx[0].sign( k1 );
+     new_trx.push_back( new_trx[0] ); // try it twice!
+     new_trx[1].outputs.resize(1);
+     new_trx[1].sigs.clear();
+     new_trx[1].sign( k1 );
+
+     wlog( "trx0: ${eval}", ("eval", chain.evaluate_signed_transaction( new_trx[0] ) ) );
+     wlog( "trx1: ${eval}", ("eval", chain.evaluate_signed_transaction( new_trx[1] ) ) );
 
      auto block3 = chain.generate_next_block( a3, new_trx );
      ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string(block3) ) );

@@ -12,6 +12,17 @@
 #include <fc/log/logger.hpp>
 
 #include <algorithm>
+    struct trx_stat
+    {
+       uint16_t trx_idx;
+       bts::blockchain::trx_eval eval;
+    };
+    // sort with highest fees first
+    bool operator < ( const trx_stat& a, const trx_stat& b )
+    {
+      return a.eval.fees.amount > b.eval.fees.amount;
+    }
+    FC_REFLECT( trx_stat, (trx_idx)(eval) )
 
 namespace bts { namespace blockchain {
     namespace ldb = leveldb;
@@ -382,14 +393,20 @@ namespace bts { namespace blockchain {
         uint64_t new_bts    = calculate_mining_reward(b.block_num);
 
         asset total_fees = asset( new_bts, asset::bts) += total_eval.fees;
+        wlog( "total_fees: ${tf}", ("tf", total_fees ) );
         asset miner_fees((total_fees.amount / 2).high_bits(), asset::bts );
         asset dividends = total_fees - miner_fees;
+        wlog( "miner_fees: ${mf}", ("mf", miner_fees ) );
 
         // verify the dividends in the b.state.dividend_percent
         uint64_t supply = current_bitshare_supply();
         uint64_t div_percent = calculate_dividend_percent( dividends, supply );
 
-        FC_ASSERT( b.state.dividend_percent == div_percent );
+        FC_ASSERT( b.state.dividend_percent == div_percent, 
+                   ", ${a} != ${b}   dividends ${d}  / supply ${s}", 
+                   ("a",b.state.dividend_percent)("b",div_percent) 
+                   ("d", dividends)("s",supply) 
+                   );
 
         if( total_eval.coinbase != miner_fees )
         {
@@ -414,15 +431,6 @@ namespace bts { namespace blockchain {
        FC_ASSERT( !"TODO: implement pop_block" );
     }
 
-    struct trx_stat
-    {
-       uint16_t trx_idx;
-       trx_eval eval;
-    };
-    bool operator < ( const trx_stat& a, const trx_stat& b )
-    {
-      return a.eval.fees.amount < b.eval.fees.amount;
-    }
 
     uint64_t blockchain_db::current_bitshare_supply()
     {
@@ -433,7 +441,6 @@ namespace bts { namespace blockchain {
      *  First step to creating a new block is to take all canidate transactions and 
      *  sort them by fees and filter out transactions that are not valid.  Then
      *  filter out incompatible transactions (those that share the same inputs).
-     *
      */
     trx_block  blockchain_db::generate_next_block( const address& coinbase_addr, 
                                                    const std::vector<signed_transaction>& trxs )
@@ -468,6 +475,10 @@ namespace bts { namespace blockchain {
 
          // order the trx by fees
          std::sort( stats.begin(), stats.end() ); 
+         for( uint32_t i = 0; i < stats.size(); ++i )
+         {
+           ilog( "sort ${i} => ${n}", ("i", i)("n",stats[i]) );
+         }
 
 
          // calculate the block size as we go
@@ -485,9 +496,12 @@ namespace bts { namespace blockchain {
             const signed_transaction& trx = trxs[stats[i].trx_idx]; 
             for( size_t in = 0; in < trx.inputs.size(); ++in )
             {
-               if( !consumed_outputs.insert( trx.inputs[i].output_ref ).second )
+               ilog( "input ${in}", ("in", trx.inputs[in]) );
+
+               if( !consumed_outputs.insert( trx.inputs[in].output_ref ).second )
                {
                     stats[i].trx_idx = uint16_t(-1); // mark it to be skipped, input conflict
+                    wlog( "INPUT CONFLICT!" );
                     ++conflicts;
                     break; //in = trx.inputs.size(); // exit inner loop
                }
@@ -501,15 +515,12 @@ namespace bts { namespace blockchain {
                                    // the other trxs.
                   break;
                }
+               FC_ASSERT( i < stats.size() );
+               ilog( "total fees ${tf} += ${fees}", 
+                     ("tf", total_fees)
+                     ("fees",stats[i].eval.fees) );
+               total_fees += stats[i].eval.fees;
             }
-            ilog( "about to print" );
-            ilog( "total fees ${tf}", ("tf",total_fees) );
-            FC_ASSERT( i < stats.size() );
-            ilog( "total fees ${tf} += ${fees}", 
-                  ("tf", total_fees)
-                  ("fees",stats[i].eval.fees) );
-            ilog( "... what happened... " );
-            total_fees += stats[i].eval.fees;
          }
 
          // at this point we have a list of trxs to include in the block that is sorted by
@@ -517,10 +528,15 @@ namespace bts { namespace blockchain {
          // current state of the blockchain_db, calculate the total fees paid, half of which
          // are paid as dividends, the rest to coinbase
          
+         wlog( "mining reward: ${mr}", ("mr", calculate_mining_reward( head_block_num() + 1) ) );
          total_fees += asset(calculate_mining_reward( head_block_num() + 1 ), asset::bts);
 
          asset miner_fees( (total_fees.amount / 2).high_bits(), asset::bts );
          asset dividends = total_fees - miner_fees;
+
+         wlog( "miner fees: ${t}", ("t", miner_fees) );
+         wlog( "total div: ${t}", ("t", dividends) );
+         wlog( "total: ${t}", ("t", total_fees) );
 
          trx_block new_blk;
          new_blk.trxs.reserve( 1 + stats.size() - conflicts ); 

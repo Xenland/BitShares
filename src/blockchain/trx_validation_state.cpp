@@ -71,6 +71,12 @@ void trx_validation_state::validate()
         FC_THROW_EXCEPTION( exception, "missing signatures for ${addresses}", ("addresses", missing) );
      }
 
+     // TODO: what should we do about trxs that include extra, unnecessary signatures
+     // I cannot just compare required sigs to actual sigs because some trx such as
+     // multisig, escrow, etc may optionally include N of M signatures.  Somewhere I should
+     // count the total sigs required and then compare to actual number of sigs provided to
+     // serve as the upper limit
+
   } FC_RETHROW_EXCEPTIONS( warn, "error validating transaction", ("state", *this)  );
 
 } // validate 
