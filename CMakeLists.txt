@@ -38,6 +38,7 @@ include_directories( ${CMAKE_SOURCE_DIR}/include )
 include_directories( ${CMAKE_SOURCE_DIR}/fc/vendor/boost_1.51/include )
 include_directories( ${CMAKE_SOURCE_DIR}/vendor/SFMT-src-1.4 )
 include_directories( ${CMAKE_SOURCE_DIR}/vendor/leveldb-1.12.0/include )
+include_directories( ${CMAKE_SOURCE_DIR}/vendor/miniupnp )
 include_directories( ${Boost_INCLUDE_DIR} )
    
 #link_directories( ${Boost_LIBRARY_DIRS} )

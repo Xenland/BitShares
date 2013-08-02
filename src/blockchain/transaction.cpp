@@ -2,6 +2,8 @@
 #include <fc/reflect/variant.hpp>
 #include <fc/io/raw.hpp>
 
+#include <fc/log/logger.hpp>
+
 namespace bts { namespace blockchain {
 
    fc::sha256 transaction::digest()const
@@ -31,7 +33,9 @@ namespace bts { namespace blockchain {
 
    void                                    signed_transaction::sign( const fc::ecc::private_key& k )
    {
-      sigs.insert( k.sign_compact( digest() ) );
+    try {
+      sigs.insert( k.sign_compact( digest() ) );  
+     } FC_RETHROW_EXCEPTIONS( warn, "error signing transaction", ("trx", *this ) );
    }
 
 

@@ -1,4 +1,4 @@
-#include <miniupnpc/miniwget.h>
+//#include <miniupnpc/miniwget.h>
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
 #include <miniupnpc/upnperrors.h>

@@ -82,6 +82,8 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
 {
   try 
   {
+//    for( uint32_t i = 0; i < 1000; ++i )
+    {
      fc::ecc::private_key k1 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( "block1", 6 ) );
      bts::address a1 = k1.get_public_key();
      fc::ecc::private_key k2 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( "block2", 6 ) );
@@ -156,6 +158,7 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string(block4) ) );
      chain.push_block( block4 );
      BOOST_REQUIRE_THROW( chain.evaluate_signed_transaction(new_trx[0]), fc::exception  );
+   } // loop...
   } 
   catch ( const fc::exception& e )
   {

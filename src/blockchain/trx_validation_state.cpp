@@ -57,11 +57,14 @@ void trx_validation_state::validate()
         }
      }
 
-     std::unordered_set<address> sigs =  trx.get_signed_addresses();
+     if( !signed_addresses.size() )
+     {
+        signed_addresses =  trx.get_signed_addresses();
+     }
      std::vector<address> missing;
      for( auto itr  = required_sigs.begin(); itr != required_sigs.end(); ++itr )
      {
-        if( sigs.find( *itr ) == sigs.end() )
+        if( signed_addresses.find( *itr ) == signed_addresses.end() )
         {
            missing.push_back( *itr );
         }
