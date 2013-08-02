@@ -133,6 +133,10 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      auto block3 = chain.generate_next_block( a3, new_trx );
      ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string(block3) ) );
      chain.push_block( block3 );
+     
+     // this should throw now that the exception has been added to the block chain and the
+     // input marked as spent
+     BOOST_REQUIRE_THROW( chain.evaluate_signed_transaction(new_trx[0]), fc::exception  );
   } 
   catch ( const fc::exception& e )
   {

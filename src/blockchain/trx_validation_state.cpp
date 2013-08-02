@@ -28,8 +28,8 @@ void trx_validation_state::validate()
         if( inputs[i].meta_output.is_spent() )
         {
            FC_THROW_EXCEPTION( exception, 
-              "input [${iidx}] = ${i} references output ${o} which was already spent here ${s}",
-              ("iid",i)("i",trx.inputs[i])("o",inputs[i]) );
+              "input [${iidx}] = references output which was already spent",
+              ("iidx",i)("input",trx.inputs[i])("output",inputs[i]) );
         }
      }
      
