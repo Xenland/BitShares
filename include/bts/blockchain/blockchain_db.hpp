@@ -78,6 +78,8 @@ namespace bts { namespace blockchain {
        trx_num           source;
        uint8_t           output_num;
        trx_output        output;
+       asset             dividends;
+       asset             dividend_fees;
        meta_trx_output   meta_output;
     };
 

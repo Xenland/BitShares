@@ -7,6 +7,7 @@
 #include <fc/io/enum_type.hpp>
 #include <fc/reflect/variant.hpp>
 #include <fc/io/raw.hpp>
+#include <fc/interprocess/mmap_struct.hpp>
 
 #include <fc/filesystem.hpp>
 #include <fc/log/logger.hpp>
@@ -28,6 +29,13 @@ namespace bts { namespace blockchain {
     namespace ldb = leveldb;
     namespace detail  
     { 
+      /** a power of 2 array greater than the number of blocks per year */
+      static const uint32_t DIVIDEND_HISTORY = uint32_t(1)<<17; // 131,072 > blocks per year
+      typedef fc::array<fc::uint128,DIVIDEND_HISTORY>  asset_dividend_accumulator;
+      struct dividend_table
+      {
+         fc::array<asset_dividend_accumulator, asset::count>  accumulators;
+      };
 
       class blockchain_db_impl
       {
@@ -41,6 +49,11 @@ namespace bts { namespace blockchain {
             bts::db::level_map<trx_num,meta_trx>                meta_trxs;
             bts::db::level_map<uint32_t,block>                  blocks;
             bts::db::level_map<uint32_t,std::vector<uint160> >  block_trxs; 
+
+            /** table that accumulates all dividends that should be paid
+             * based upon coinage
+             */
+            fc::mmap_struct<dividend_table>                     dividend_acc_table;
 
             uint64_t                                            current_bitshare_supply;
 
@@ -85,6 +98,34 @@ namespace bts { namespace blockchain {
                 head_block    = b;
                 head_block_id = b.id();
             }
+
+            /**
+             *  Sets the dividend percent for bnum and the given unit to div_per
+             *  Increments everything prior to bnum back one year by div_per
+             */
+            void accumulate_dividends_table( uint32_t bnum, uint64_t div_per, asset::type unit )
+            {
+               // TODO: what happens if power is lost while we are doing this, this operation is
+               // not atomic so we must have some kind of log that allows us to rebuild this table
+               // quickly when we start the program.  If we simply log the dividends in a file that
+               // always grows like a jouralling DB then we can quickly detect and rebuild correupted
+               // accumulation tables... perhaps we would be safer to always rebuild it on startup just
+               // incase there was any corruption.
+               
+               fc::uint128 delta( 0, div_per );
+               uint32_t year_old = 0;
+               if( bnum > BLOCKS_PER_YEAR ) 
+               {
+                  year_old = bnum - BLOCKS_PER_YEAR;
+               }
+               detail::asset_dividend_accumulator& ada = dividend_acc_table->accumulators.at( unit );
+               ada.at( bnum % DIVIDEND_HISTORY ) = 0;
+               for( uint32_t i = bnum; i >= year_old; --i ) 
+               {
+                  uint32_t idx = i % DIVIDEND_HISTORY;
+                  ada.at(idx) += delta;
+               }
+            }
       };
     }
 
@@ -114,6 +155,14 @@ namespace bts { namespace blockchain {
          my->meta_trxs.open(  dir / "meta_trxs",  create );
          my->blocks.open(     dir / "blocks",     create );
          my->block_trxs.open( dir / "block_trxs", create );
+
+         if( !fc::exists( dir / "dividend_accumulator.dat" ) )
+         {
+            my->dividend_acc_table.open( dir / "dividend_accumulator.dat", true );
+            memset( &*my->dividend_acc_table, 0, sizeof(detail::dividend_table) );
+
+            wlog( "reset dividend table... perhaps the table needs to be recalculated" );
+         }
          
          block blk;
          // read the last block from the DB
