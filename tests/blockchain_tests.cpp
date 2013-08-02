@@ -92,6 +92,10 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      bts::address a4 = k4.get_public_key();
      fc::ecc::private_key k5 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( "addre5", 6 ) );
      bts::address a5 = k5.get_public_key();
+     fc::ecc::private_key k6 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( "addre6", 6 ) );
+     bts::address a6 = k6.get_public_key();
+     fc::ecc::private_key k7 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( "addre7", 6 ) );
+     bts::address a7 = k7.get_public_key();
      
      fc::temp_directory temp_dir;
      bts::blockchain::blockchain_db chain;
@@ -136,6 +140,21 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      
      // this should throw now that the exception has been added to the block chain and the
      // input marked as spent
+     BOOST_REQUIRE_THROW( chain.evaluate_signed_transaction(new_trx[0]), fc::exception  );
+
+     new_trx.clear();
+     new_trx.resize(1);
+     new_trx[0].inputs.push_back( 
+        trx_input( output_reference( block3.trxs[1].id(), 0 ) ) );
+
+     new_trx[0].outputs.push_back( 
+        trx_output( claim_by_signature_output( address( a7 ) ), 50000000, asset::bts ) );
+
+     new_trx[0].sign( k4 );
+
+     auto block4 = chain.generate_next_block( a6, new_trx );
+     ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string(block4) ) );
+     chain.push_block( block4 );
      BOOST_REQUIRE_THROW( chain.evaluate_signed_transaction(new_trx[0]), fc::exception  );
   } 
   catch ( const fc::exception& e )
