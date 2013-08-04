@@ -12,6 +12,8 @@
 #include <bts/config.hpp>
 #include <fc/io/json.hpp>
 #include <fc/io/raw.hpp>
+#include <bts/blockchain/blockchain_printer.hpp>
+#include <fstream>
 
 using namespace bts;
 using bts::blockchain::asset;
@@ -159,7 +161,23 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      chain.push_block( block4 );
      BOOST_REQUIRE_THROW( chain.evaluate_signed_transaction(new_trx[0]), fc::exception  );
 
+     
+     /*
+     ilog( "\n${block}", ("block", 
+     ilog( "\n${block}", ("block", bts::blockchain::pretty_print( block1, chain ) ) );
+     ilog( "\n${block}", ("block", bts::blockchain::pretty_print( block2, chain ) ) );
+     ilog( "\n${block}", ("block", bts::blockchain::pretty_print( block3, chain ) ) );
+     ilog( "\n${block}", ("block", bts::blockchain::pretty_print( block4, chain ) ) );
+     */
+     std::ofstream html( "chain.html" );
+     html << bts::blockchain::pretty_print( genesis, chain );
+     html << bts::blockchain::pretty_print( block1, chain );
+     html << bts::blockchain::pretty_print( block2, chain );
+     html << bts::blockchain::pretty_print( block3, chain );
+     html << bts::blockchain::pretty_print( block4, chain );
 
+    
+      /*
      for( uint32_t i = 0; i < 100; ++i )
      {
          fc::ecc::private_key k7 = fc::ecc::private_key::generate_from_seed( fc::sha256::hash( (char*)&i, 4 ) );
@@ -167,6 +185,7 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
          auto blockN = chain.generate_next_block( a7, std::vector<signed_transaction>() );
          chain.push_block( blockN );
      }
+     */
    } // loop...
   } 
   catch ( const fc::exception& e )

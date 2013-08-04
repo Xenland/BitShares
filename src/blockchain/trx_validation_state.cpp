@@ -2,14 +2,21 @@
 #include <bts/config.hpp>
 #include <fc/reflect/variant.hpp>
 #include <fc/io/raw.hpp>
+#include <limits>
 
 #include <fc/log/logger.hpp>
 
 namespace bts  { namespace blockchain { 
 
-trx_validation_state::trx_validation_state( const signed_transaction& t, std::vector<meta_trx_input>&& in, blockchain_db* d )
-:trx(t),inputs(std::move(in)),balance_sheet( asset::count ),issue_sheet(asset::count),db(d)
+trx_validation_state::trx_validation_state( const signed_transaction& t, blockchain_db* d, bool enf, uint32_t h )
+:trx(t),balance_sheet( asset::count ),issue_sheet(asset::count),db(d),enforce_unspent(enf),ref_head(h)
 { 
+  inputs  = d->fetch_inputs( t.inputs, ref_head );
+  if( ref_head == std::numeric_limits<uint32_t>::max()  )
+  {
+    ref_head = d->head_block_num();
+  }
+
   for( auto i = 0; i < asset::count; ++i )
   {
     balance_sheet[i].in.unit  = (asset::type)i;
@@ -23,14 +30,17 @@ void trx_validation_state::validate()
   {
      FC_ASSERT( trx.inputs.size() == inputs.size() );
      
-     for( uint32_t i = 0; i < inputs.size(); ++i )
+     if( enforce_unspent )
      {
-        if( inputs[i].meta_output.is_spent() )
-        {
-           FC_THROW_EXCEPTION( exception, 
-              "input [${iidx}] = references output which was already spent",
-              ("iidx",i)("input",trx.inputs[i])("output",inputs[i]) );
-        }
+       for( uint32_t i = 0; i < inputs.size(); ++i )
+       {
+          if( inputs[i].meta_output.is_spent() )
+          {
+             FC_THROW_EXCEPTION( exception, 
+                "input [${iidx}] = references output which was already spent",
+                ("iidx",i)("input",trx.inputs[i])("output",inputs[i]) );
+          }
+       }
      }
      
      for( uint32_t i = 0; i < inputs.size(); ++i )
@@ -159,7 +169,9 @@ void trx_validation_state::validate_signature( const trx_output& o )
    FC_ASSERT( cbs.owner != address() );
    FC_ASSERT( o.unit < asset::count );
    FC_ASSERT( o.amount < MAX_BITSHARE_SUPPLY ); // some sanity checs here
-   balance_sheet[(asset::type)o.unit].out += asset(o.amount,o.unit);
+   asset out(o.amount,o.unit);
+   balance_sheet[(asset::type)o.unit].out += out;
+   
 }
 void trx_validation_state::validate_bid( const trx_output& )
 {
@@ -210,10 +222,14 @@ void trx_validation_state::validate_signature( const meta_trx_input& in )
        asset output_bal( in.output.amount, in.output.unit );
        balance_sheet[(asset::type)in.output.unit].in += output_bal;
 
-       dividend_fees  += db->calculate_dividend_fees( output_bal, in.source.block_num );
+       dividend_fees  += db->calculate_dividend_fees( output_bal, in.source.block_num, ref_head );
+       auto new_div = db->calculate_output_dividends( output_bal, in.source.block_num, ref_head );
+       dividends      += new_div;
+
+       elog( "dividends ${D}   new_div ${nd}    IN: ${IN}", ("D", dividends )("IN",in)("nd",new_div) );
 
        // dividends are always paid in bts
-       balance_sheet[asset::bts].in += db->calculate_output_dividends( output_bal, in.source.block_num );
+       balance_sheet[asset::bts].in += new_div;
    
    } FC_RETHROW_EXCEPTIONS( warn, "validating signature input ${i}", ("i",in) );
 }

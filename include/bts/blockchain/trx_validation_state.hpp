@@ -22,10 +22,16 @@ namespace bts { namespace blockchain {
         public:
            /**
             * @param t - the transaction that is being validated
+            *
+            * @param head_idx - the head index to evaluate this
+            * transaction against.  This should be the prior block
+            * before the one t will be included in.
             */
            trx_validation_state( const signed_transaction& t, 
-                                std::vector<meta_trx_input>&& in, 
-                                blockchain_db* d );
+                                blockchain_db* d, 
+                                bool enforce_unspent_in = true,
+                                uint32_t  head_idx = -1
+                                );
 
            trx_validation_state(){}
            
@@ -71,8 +77,13 @@ namespace bts { namespace blockchain {
              * transaction fees.
              */
            asset                               dividend_fees;
+           asset                               dividends;
+
 
            blockchain_db*                      db;
+
+           bool                                enforce_unspent;
+           uint32_t                            ref_head;
            /** @throw an exception on error */
            void validate();
         private:
@@ -105,6 +116,8 @@ namespace bts { namespace blockchain {
 FC_REFLECT( bts::blockchain::trx_validation_state::asset_balance, (in)(out) )
 FC_REFLECT( bts::blockchain::trx_validation_state, 
     (trx)
+    (ref_head)
+    (dividends)
     (issue_sheet)
     (balance_sheet)
     (used_outputs)

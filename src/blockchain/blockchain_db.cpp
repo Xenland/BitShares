@@ -124,7 +124,7 @@ namespace bts { namespace blockchain {
                {
                   uint32_t idx = i % DIVIDEND_HISTORY;
                   ada.at(idx) += delta;
-                  ilog( "div ${i}] ${per}", ("i",i)("per", asset(ada.at(idx), asset::bts) ) );
+                 // ilog( "div ${i}] ${per}", ("i",i)("per", asset(ada.at(idx), asset::bts) ) );
                }
             }
             fc::uint128 get_dividends( asset::type u, uint32_t blk_num )
@@ -257,7 +257,7 @@ namespace bts { namespace blockchain {
      *
      *  @return only the dividends, not the balance
      */
-    asset      blockchain_db::calculate_dividend_fees( const asset& b, uint32_t from_num )
+    asset      blockchain_db::calculate_dividend_fees( const asset& b, uint32_t from_num, uint32_t ref_head )
     {
        return asset();
     }
@@ -268,16 +268,21 @@ namespace bts { namespace blockchain {
      *
      *  @return only the dividends paid, not including the initial balance
      */
-    asset      blockchain_db::calculate_output_dividends( const asset& b, uint32_t from_num )
+    asset      blockchain_db::calculate_output_dividends( const asset& b, uint32_t from_num, uint32_t ref_head )
     {
-       return calculate_dividends( b, from_num, head_block_num() );
+       return calculate_dividends( b, from_num, ref_head );
     }
 
 
-    std::vector<meta_trx_input> blockchain_db::fetch_inputs( const std::vector<trx_input>& inputs )
+    std::vector<meta_trx_input> blockchain_db::fetch_inputs( const std::vector<trx_input>& inputs, uint32_t head )
     {
        try
        {
+          if( head == uint32_t(-1) )
+          {
+            head = head_block_num();
+          }
+
           std::vector<meta_trx_input> rtn;
           rtn.reserve( inputs.size() );
           for( uint32_t i = 0; i < inputs.size(); ++i )
@@ -302,6 +307,9 @@ namespace bts { namespace blockchain {
              metin.output_num   = inputs[i].output_ref.output_idx;
              metin.output       = trx.outputs[metin.output_num];
              metin.meta_output  = trx.meta_outputs[metin.output_num];
+             metin.dividends    = calculate_dividends( 
+                                           asset(metin.output.amount,metin.output.unit), 
+                                           tn.block_num, head ); // TODO subtract div fees
              rtn.push_back( metin );
 
             } FC_RETHROW_EXCEPTIONS( warn, "error fetching input [${i}] ${in}", ("i",i)("in", inputs[i]) );
@@ -333,7 +341,7 @@ namespace bts { namespace blockchain {
              }
            }
 
-           trx_validation_state vstate( trx, fetch_inputs( trx.inputs ), this ); 
+           trx_validation_state vstate( trx, this ); 
            vstate.validate();
 
            trx_eval e;

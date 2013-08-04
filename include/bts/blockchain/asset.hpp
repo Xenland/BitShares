@@ -45,6 +45,7 @@ namespace bts { namespace blockchain {
 
       asset& operator += ( const asset& o );
       asset& operator -= ( const asset& o );
+      //friend asset  operator - ( const asset& a, const asset& b ){ return asset(a) -= b; }
       asset  operator *  ( const fc::uint128_t& fix6464 )const;
 
       operator std::string()const;

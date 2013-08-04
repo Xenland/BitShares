@@ -128,10 +128,11 @@ namespace bts { namespace blockchain {
          meta_trx   fetch_trx( const trx_num& t );
 
          /**
+          *  @param head - the block that we want to calculate dividends relative to.
           *  @return the outputs referenced by the inputs
           *  @throw if any input cannot be found.
           */
-         std::vector<meta_trx_input> fetch_inputs( const std::vector<trx_input>& inputs );
+         std::vector<meta_trx_input> fetch_inputs( const std::vector<trx_input>& inputs, uint32_t head = -1/*head_block_num*/ );
 
          uint32_t   fetch_block_num( const fc::sha224& block_id );
          block      fetch_block( uint32_t block_num );
@@ -150,7 +151,7 @@ namespace bts { namespace blockchain {
           *
           *  @return only the dividends, not the balance
           */
-         asset      calculate_dividend_fees( const asset& b, uint32_t from_num );
+         asset      calculate_dividend_fees( const asset& b, uint32_t from_num, uint32_t ref_head = -1 );
 
          /**
           *  Returns all dividends due to an output with balance b in block from_num not
@@ -158,7 +159,7 @@ namespace bts { namespace blockchain {
           *
           *  @return only the dividends paid, not including the initial balance
           */
-         asset      calculate_output_dividends( const asset& b, uint32_t from_num );
+         asset      calculate_output_dividends( const asset& b, uint32_t from_num, uint32_t ref_head = -1 );
          uint64_t   current_bitshare_supply();
          
          /**
