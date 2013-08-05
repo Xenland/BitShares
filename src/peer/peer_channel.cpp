@@ -1,12 +1,12 @@
-#include <bts/peer/peer_channel.hpp>
 #include <bts/peer/peer_messages.hpp>
+#include <bts/peer/peer_channel.hpp>
 #include <fc/log/logger.hpp>
 #include <fc/reflect/variant.hpp>
 #include <unordered_map>
 #include <algorithm>
 
 namespace bts { namespace peer {
-    using namespace bts::network;
+   using namespace bts::network;
 
    namespace detail 
    {

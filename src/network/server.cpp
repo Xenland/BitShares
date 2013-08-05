@@ -101,7 +101,8 @@ namespace bts { namespace network {
           {
              try 
              {
-                // init DH handshake
+                // init DH handshake, TODO: this could yield.. what happens if we exit here before
+                // adding s to connections list.
                 s->accept();
                 ilog( "accepted connection from ${ep}", 
                       ("ep", std::string(s->get_socket().remote_endpoint()) ) );
@@ -144,9 +145,11 @@ namespace bts { namespace network {
              } 
              catch ( fc::eof_exception& e )
              {
+                ilog( "accept loop eof" );
              }
              catch ( fc::canceled_exception& e )
              {
+                ilog( "accept loop canceled" );
              }
              catch ( fc::exception& e )
              {

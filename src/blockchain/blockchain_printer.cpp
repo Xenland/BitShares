@@ -90,15 +90,6 @@ namespace bts { namespace blockchain {
         out << "</tr>\n";
         out << "</table>\n";
 
-     /*
-      wlog( "==============================    TRX: ${t}", ("t",tn) );
-
-        out << "INPUTS\n";
-        out << "OUTPUTS\n";
-        out << "SUMMARY\n";
-      wlog( "==============================" );
-      */
-
      } 
      catch ( const fc::exception& e )
      {
@@ -106,109 +97,18 @@ namespace bts { namespace blockchain {
         throw;
      }
 
-#if 0
-     auto mtrx = db.fetch_trx( tn );   
-     out << "=====  INPUTS   ============================ trx: " 
-         << std::right << std::setw(3) << tn.trx_idx << " - " << fc::variant(mtrx.id()).as_string().substr(0,6) 
-         <<" ============================  OUTPUTS  ==== \n";
-
-     asset total_in( 0, asset::bts );
-     asset total_out( 0, asset::bts );
-     asset total_div_fee( 0, asset::bts );
-     std::vector<meta_trx_input> metain = db.fetch_inputs(mtrx.inputs);
-     uint32_t mx = std::max( mtrx.inputs.size(), mtrx.outputs.size() );
-     for( uint32_t i = 0; i < mx; ++i )
-     {
-          if( i < mtrx.inputs.size() )
-          {
-              // from
-              out << std::left << std::setw( 20 ) << 
-                  fc::variant( metain[i].output.amount ).as_string() + 
-                      " " + fc::variant(metain[i].output.unit).as_string();
-              out << std::right << std::setw(30) << 
-                   fc::format_string( "from B${block} T${trx_idx} Out# ${out}  ",
-                              fc::mutable_variant_object( "block", metain[i].source.block_num )
-                                                        ( "trx_idx", metain[i].source.trx_idx )
-                                                        ( "out", metain[i].output_num ) );
-              total_in += asset( metain[i].output.amount, metain[i].output.unit );
-          }
-          else
-          {
-              out << std::setw( 50 ) <<" ";
-          }
-          out << "| ";
-
-          if( i < mtrx.outputs.size() )
-          {
-              out << std::left << std::setw( 29 ) <<
-                    fc::variant( mtrx.outputs[i].claim_func ).as_string();
-              out << " ";
-              out << std::right << std::setw( 20 ) << 
-                  fc::variant( mtrx.outputs[i].amount ).as_string() + 
-                      " " + fc::variant(mtrx.outputs[i].unit).as_string();
-              total_out += asset( mtrx.outputs[i].amount, mtrx.outputs[i].unit );
-          }
-          out <<" \n";
-
-
-          if( i < mtrx.inputs.size() )
-          {
-              // from
-              out << std::left << std::setw( 50 ) << 
-                     fc::variant( metain[i].dividends ).as_string() +  " dividends";
-              total_in +=  metain[i].dividends;
-              total_div_fee +=  metain[i].dividend_fees;
-          }
-          else
-          {
-              out << std::setw( 50 ) <<" ";
-          }
-          out << "| ";
-          if( i < mtrx.outputs.size() )
-          {
-              out << std::left << std::setw( 29 );
-              switch( mtrx.outputs[i].claim_func )
-              {
-                  case claim_by_signature:
-                     out << std::string(mtrx.outputs[i].as<claim_by_signature_output>().owner);
-                     break;
-              }
-          }
-          out <<" \n";
-
-          if( i < mtrx.inputs.size() )
-          {
-              // from
-              out << std::left << std::setw( 50 ) << 
-                     fc::variant( metain[i].dividend_fees ).as_string() +  " div fees";
-          }
-          else
-          {
-              out << std::setw( 50 ) <<" ";
-          }
-          out << "|\n";
-     }
-     out << "-----------------------------------------------------------------------------------------------------\n";
-     out << std::setw( 10 ) << "Total In: " << std::setw(40) << std::string(total_in) << "|     Total Out: "<<std::string(total_out)<<"\n";
-     if( total_in > total_out ) 
-         out << std::setw( 10 ) << "Sum Trx Fees: " << std::setw(40) << std::string(total_in - total_out) << "\n";
-     else
-         out << std::setw( 10 ) << "Sum Trx Fees: " << std::setw(40) << "-" + std::string(total_out - total_in) << "\n";
-     out << std::setw( 10 ) << "Trx Div Fees: " << std::setw(40) << std::string(total_div_fee) << "\n";
-     if( total_in > total_out ) 
-         out << std::setw( 10 ) << "Total Trx Fees: " << std::setw(40) << std::string(total_in - total_out + total_div_fee) << "\n";
-     out << "=====================================================================================================\n";
-     #endif
   }
 
-
-  template<typename T> class ThousandsSeparator : public std::numpunct<T> {
+  /** make the numbers more readable, they can get really big */
+  template<typename T> 
+  class thousands_separator : public std::numpunct<T> 
+  {
       public:
-      ThousandsSeparator(T Separator) : m_Separator(Separator) {}
+      thousands_separator(T separator) : m_separator(separator) {}
 
       protected:
          T do_thousands_sep() const  {
-            return m_Separator;
+            return m_separator;
          }
          std::string do_grouping() const
          {
@@ -217,7 +117,7 @@ namespace bts { namespace blockchain {
 
 
       private:
-          T m_Separator;
+          T m_separator;
    };
 
 
@@ -225,12 +125,11 @@ namespace bts { namespace blockchain {
   {
      uint64_t reward = calculate_mining_reward( b.block_num);
      uint64_t fees = 2*(b.trxs[0].outputs[0].amount - reward/2);
-     uint64_t dividends = (reward + fees) / 2; //2*(b.trxs[0].outputs[0].amount - reward/2);
+     uint64_t dividends = (reward + fees) / 2;
+
      std::stringstream ss;
-     ss.imbue( std::locale( std::locale::classic(), new ThousandsSeparator<char>(',')) );
+     ss.imbue( std::locale( std::locale::classic(), new thousands_separator<char>(',')) );
      ss << std::fixed;
-//     ss << "<table border=1 width=\"100%\">\n";
-   //  ss << "<tr><td>\n";
      ss << "<table border=1 width=\"1360px\" padding=5px>\n";
      ss << "  <tr>\n";
      ss << "    <th width=\"40px\">Block # </th>\n";
@@ -267,8 +166,6 @@ namespace bts { namespace blockchain {
              }
      ss << "  </table>\n";
      ss << "<p/>\n";
-  //   ss << "</td>\n";
- //    ss << "</table><br/>";
 
      return ss.str();
   }

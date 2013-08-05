@@ -3,7 +3,8 @@
  */
 #pragma once
 #include <bts/network/server.hpp>
-#include <bts/network/connection.hpp>
+#include <bts/network/server.hpp>
+#include <bts/peer/peer_host.hpp>
 
 namespace bts { namespace peer {
 
@@ -11,12 +12,12 @@ namespace bts { namespace peer {
 
   /**
    *  Tracks a contact address and the last time it was heard about.
-   */
   struct host
   {
      fc::ip::endpoint    ep;
      fc::time_point_sec  last_com;
   };
+   */
 
   /**
    *  Manages the state of all peers including what channels they
@@ -60,6 +61,6 @@ namespace bts { namespace peer {
 
 } }
 
-#include <fc/reflect/reflect.hpp>
-FC_REFLECT( bts::peer::host,             (ep)(last_com) )
+//#include <fc/reflect/reflect.hpp>
+//FC_REFLECT( bts::peer::host,             (ep)(last_com) )
 

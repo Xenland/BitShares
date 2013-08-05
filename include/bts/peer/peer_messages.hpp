@@ -1,6 +1,8 @@
 #pragma once
 #include <bts/network/channel_id.hpp>
+#include <bts/peer/peer_host.hpp>
 #include <fc/time.hpp>
+#include <fc/network/ip.hpp>
 #include <unordered_set>
 
 namespace bts { namespace peer {

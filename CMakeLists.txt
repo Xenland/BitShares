@@ -58,6 +58,7 @@ set( sources
      src/network/upnp.cpp
 
      src/peer/peer_channel.cpp
+     src/peer/peer_messages.cpp
 
      src/bitname/name_miner.cpp
      src/bitname/name_block.cpp
@@ -88,6 +89,8 @@ set( sources
      src/proof_of_work.cpp )
 
 add_library( bshare ${sources} )
+
+add_subdirectory( bitchat )
 
 
 #add_executable( wallet_test tests/wallet_test.cpp )

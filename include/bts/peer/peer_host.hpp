@@ -1,4 +1,6 @@
+#pragma once
 #include <bts/network/channel_id.hpp>
+#include <bts/network/feature_id.hpp>
 #include <fc/network/ip.hpp>
 #include <fc/time.hpp>
 #include <fc/io/enum_type.hpp>
