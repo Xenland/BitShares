@@ -1,5 +1,6 @@
 #include <bts/network/server.hpp>
 #include <bts/peer/peer_channel.hpp>
+#include <bts/bitchat/bitchat_client.hpp>
 #include <fc/filesystem.hpp>
 #include <fc/io/json.hpp>
 #include <fc/io/fstream.hpp>
@@ -13,6 +14,17 @@ struct config
    bts::network::server::config server_config;
 };
 FC_REFLECT( config, (server_config) )
+
+class bitchat_del : public bts::bitchat::bitchat_delegate
+{
+   public:
+     virtual void received_message( const std::string& msg, 
+                                    const bts::bitchat::identity& to,
+                                    const bts::bitchat::contact& from )
+     {
+     
+     }
+};
 
 
 int main( int argc, char** argv )
@@ -36,7 +48,9 @@ int main( int argc, char** argv )
 
     bts::peer::peer_channel_ptr peer_ch = std::make_shared<bts::peer::peer_channel>(serv);
 
+    std::shared_ptr<bitchat_del> chat_del = std::make_shared<bitchat_del>();
 
+    bts::bitchat::client_ptr chat_cl = std::make_shared<bts::bitchat::client>( peer_ch, chat_del.get() );
 
     return 0;
   } 

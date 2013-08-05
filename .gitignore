@@ -28,4 +28,5 @@ tests/pow_test
 vendor/miniupnp/miniupnpc/miniupnpcstrings.h
 bitshared
 bitchatc
+bitchat/bitchat
 tests/blockchain_tests

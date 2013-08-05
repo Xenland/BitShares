@@ -8,6 +8,11 @@
 
 namespace bts { namespace bitchat {
 
+const private_message_type private_text_message::type;
+const private_message_type private_contact_request_message::type;
+const private_message_type private_contact_auth_message::type;
+const private_message_type private_status_message::type;
+
 encrypted_message::encrypted_message()
 :nonce(0),dh_check(0){}
 

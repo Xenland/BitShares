@@ -122,7 +122,8 @@ namespace bts { namespace bitchat
         private:
           std::unique_ptr<detail::client_impl> my;
     };
-
+    
+    typedef std::shared_ptr<client> client_ptr;
 } } // bts::bitchat
 
 #include <fc/reflect/reflect.hpp>
