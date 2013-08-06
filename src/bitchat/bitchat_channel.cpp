@@ -37,7 +37,6 @@ namespace bts { namespace bitchat {
 
           std::vector<mini_pow>                         new_msgs;  // messages received since last inv broadcast
 
-          bool                                          done;
           fc::future<void>                              fetch_loop_complete;
 
           /**
@@ -82,8 +81,9 @@ namespace bts { namespace bitchat {
           void fetch_loop()
           {
              try {
-                while( !done )
+                while( !fetch_loop_complete.canceled() )
                 {
+                   broadcast_inv();
                    if( unknown_msgs.size()  )
                    {
                       auto cons = peers->get_connections( chan_id );
@@ -98,8 +98,7 @@ namespace bts { namespace bitchat {
                    /* By using a random sleep we give other peers the oppotunity to find
                     * out about messages before we pick who to fetch from.
                     */
-                   fc::usleep( fc::microseconds( rand() % 500 ) );
-                   broadcast_inv();
+                   fc::usleep( fc::microseconds( (rand() % 20000) + 100) ); // note: usleep(0) sleeps forever... perhaps a bug?
                 }
              } 
              catch ( ... )
@@ -152,6 +151,7 @@ namespace bts { namespace bitchat {
                         msg.items.push_back( new_msgs[i] );
                      }
                   }
+
                   (*c)->send( network::message(msg,chan_id) );
                 }
                 new_msgs.clear();

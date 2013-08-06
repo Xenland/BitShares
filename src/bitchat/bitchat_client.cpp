@@ -195,6 +195,7 @@ namespace bts { namespace bitchat {
    
    client::~client()
    {
+      ilog( "" );
    }
 
 

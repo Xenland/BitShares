@@ -63,6 +63,7 @@ int main( int argc, char** argv )
 
     std::string line;
     fc::thread _cin("cin");
+    std::cout<<"$] ";
     while( _cin.async([&](){ return !std::getline( std::cin, line ).eof(); } ).wait() ) 
     {
        std::stringstream ss(line);
@@ -98,7 +99,10 @@ int main( int argc, char** argv )
        {
 
        }
+       std::cout<<"$] ";
     }
+
+    ilog( "shutting down" );
 
     return 0;
   } 
