@@ -178,6 +178,8 @@ namespace bts { namespace blockchain {
          std::unique_ptr<detail::blockchain_db_impl> my;          
     };
 
+    typedef std::shared_ptr<blockchain_db> blockchain_db_ptr;
+
 }  } // bts::blockchain
 
 FC_REFLECT( bts::blockchain::trx_eval, (fees)(coinbase) )

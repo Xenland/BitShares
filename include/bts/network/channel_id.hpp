@@ -10,7 +10,8 @@ namespace bts { namespace network {
      peer_proto = 1, ///< used for discovery / configuration
      chat_proto = 2, ///< used for chat messages
      name_proto = 3, ///< used for bitname messages
-     mail_proto = 4  ///< used for email messages
+     mail_proto = 4, ///< used for email messages
+     bts_proto  = 5  ///< used for bitshare messages
   };
 
   struct channel_id
@@ -79,12 +80,11 @@ FC_REFLECT_ENUM( bts::network::channel_proto,
     (chat_proto)
     (name_proto)
     (mail_proto)
+    (bts_proto)
 )
 
 FC_REFLECT( bts::network::channel_id, 
     (proto)
     (chan) 
     )
-
-
 
