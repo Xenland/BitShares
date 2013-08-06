@@ -59,6 +59,7 @@ namespace bts { namespace bitchat {
           {
               bitchat_chan_data& cdat = get_channel_data(c);
 
+              ilog( "${msg_type}", ("msg_type", (bitchat::message_type)m.msg_type ) );
               switch( (bitchat::message_type)m.msg_type )
               {
                   case inv_msg:
@@ -152,7 +153,10 @@ namespace bts { namespace bitchat {
                      }
                   }
 
-                  (*c)->send( network::message(msg,chan_id) );
+                  if( msg.items.size() )
+                  {
+                    (*c)->send( network::message(msg,chan_id) );
+                  }
                 }
                 new_msgs.clear();
               }
@@ -164,6 +168,7 @@ namespace bts { namespace bitchat {
            */
           void handle_inv( const connection_ptr& c, bitchat_chan_data& cd, const inv_message& msg )
           {
+              ilog( "inv: ${msg}", ("msg",msg) );
               for( auto itr = msg.items.begin(); itr != msg.items.end(); ++itr )
               {
                  cd.known_inv.insert( *itr );
