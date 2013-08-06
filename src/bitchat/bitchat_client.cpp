@@ -159,8 +159,8 @@ namespace bts { namespace bitchat {
                     contacts[from_str] = contact( from_str, *from );
                     key_to_contact[from_str] = from_str;
                 }
-                
-                del->received_message( m.msg, to, contacts[from_str]);
+                ilog( "from: ${from}", ("from",from_str) ); 
+                del->received_message( m.msg, to, contacts[itr->second]);
             }
             else
             {
@@ -240,14 +240,32 @@ namespace bts { namespace bitchat {
                       const contact& to, 
                       const identity& from )
    {
+      try {
+
        decrypted_message dm = decrypted_message( private_text_message( msg ) );
        dm.sign( from.key );
        encrypted_message em = dm.encrypt( to.key );
+       em.timestamp = fc::time_point::now();
 
-       // TODO: find channel and send encrypted_message
-//      ilog( "send_message ${m}", ("m",m) );
-//      my->store_inventory( m, channel_id( chat_proto)  );
-//      my->broadcast_inventory( channel_id(chat_proto) );
+       
+       FC_ASSERT( to.send_channels.size() != 0 );
+       auto itr = my->channels.find( to.send_channels.front() );
+
+       if( itr == my->channels.end() )
+       {
+          FC_THROW_EXCEPTION( exception, "unable to find channel ${c}", ("c",to.send_channels.front()) );
+       }
+
+       // TODO: calculate proof of work and perform the proof of work..
+
+       itr->second->broadcast( std::move(em) );
+
+      } FC_RETHROW_EXCEPTIONS( warn, "unable to send message '${msg}' to ${contact}", 
+                               ("msg",msg)
+                               ("contact",to.label)
+                               ("to",to)
+                               ("from",from) );
+
    }
 
    void client::request_contact( const identity& id, const std::string& msg )

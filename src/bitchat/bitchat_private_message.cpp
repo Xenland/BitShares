@@ -2,9 +2,12 @@
 #include <fc/crypto/blowfish.hpp>
 #include <fc/crypto/sha1.hpp>
 #include <fc/crypto/sha512.hpp>
+#include <fc/reflect/variant.hpp>
 #include <fc/exception/exception.hpp>
 #include <fc/thread/thread.hpp>
 #include <fc/io/raw.hpp>
+
+#include <fc/log/logger.hpp>
 
 namespace bts { namespace bitchat {
 
@@ -36,16 +39,17 @@ bool  encrypted_message::decrypt( const fc::ecc::private_key& with, decrypted_me
     {
       return false;
     }
-    
     fc::blowfish bf;
     bf.start( (unsigned char*)&bf_key, sizeof(bf_key) );
     std::vector<char> tmp(data.size());
     bf.decrypt( (unsigned char*)data.data(), (unsigned char*)tmp.data(), data.size() );
     
-    m = fc::raw::unpack<decrypted_message>(data);
+    m = fc::raw::unpack<decrypted_message>(tmp);
     if( m.from_sig )
     {
+        try {
         m.from_key = fc::ecc::public_key( *m.from_sig, m.digest() );
+        } FC_RETHROW_EXCEPTIONS( warn, "error reconstructing public key ${msg}", ("msg",m) );
     } 
     m.decrypt_key = with; 
     return true;
