@@ -167,8 +167,20 @@ namespace bts { namespace bitchat {
                 del->received_anonymous_message( m.msg, to );
             }
          }
-     };
-   }
+
+
+         void subscribe_to_channel( const channel_id& c )
+         {
+             FC_ASSERT( c.proto == network::chat_proto );
+             auto itr = channels.find( c.chan );
+             if( itr == channels.end() )
+             {
+                channels[c.chan] = std::make_shared<bitchat::channel>( peers, c, this );
+             }
+         }
+     }; // class client_impl
+
+   } // namespace detail 
    
    client::client( const bts::peer::peer_channel_ptr& p, bitchat_delegate* d )
    :my( new detail::client_impl() )
@@ -176,6 +188,9 @@ namespace bts { namespace bitchat {
        assert( d != nullptr );
        my->peers = p;
        my->del   = d;
+
+       // By default subscribe to channel 0 where everyone is subscribed.
+       my->subscribe_to_channel( channel_id( network::chat_proto, 0 ) );
    }
    
    client::~client()

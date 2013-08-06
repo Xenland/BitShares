@@ -43,6 +43,16 @@ namespace bts { namespace peer {
                    wlog("invariant not maintained" );
                 }
              }
+             std::vector<connection_ptr> get_connections()const
+             {
+                std::vector<connection_ptr> cons;
+                cons.reserve(connections.size());
+                for( auto itr = connections.begin(); itr != connections.end(); ++itr )
+                {
+                  cons.push_back( (*itr)->shared_from_this() );
+                }
+                return cons;
+             }
          private:
              std::vector<connection*> connections;
       };
@@ -184,7 +194,11 @@ namespace bts { namespace peer {
                }
            }
 
-
+           /**
+            *  Sends all channels that this peer is watching to the remote peer. This is typically
+            *  only called once on a new connection, after which incremental updates via the
+            *  peer_channel::subscribe_to_channel(...) should be used instead.
+            */
            void send_subscription_request( const connection_ptr& c )
            {
               std::vector<channel_id> chans;
@@ -292,6 +306,18 @@ namespace bts { namespace peer {
    }
 
 
+   std::vector<network::connection_ptr> peer_channel::get_connections( const network::channel_id& chan )
+   {
+      std::vector<network::connection_ptr> cons;
+
+      auto itr = my->cons_by_channel.find( chan.id() );
+      if( itr != my->cons_by_channel.end() )
+      {
+         return itr->second.get_connections(); 
+      }
+      wlog( "no connections for channel ${chan}", ("chan",chan) );
+      return cons;
+   }
 
 
 } } // bts::network
