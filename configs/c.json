@@ -1,0 +1,26 @@
+{
+  "server_config": {
+    "port": 9878,
+    "chain": "",
+    "bootstrap_endpoints": [],
+    "blacklist": []
+  },
+  "ids": [{
+      "label": "trish",
+      "key": "69a20e1989844781c43195af281db99b0b184cde3922d77f5f24faa35beaa062",
+      "broadcast": "0af4827159be57dbce42e7575d9a4abffe420f3ddc6bc92aac49653587e367c7",
+      "recv_channels": [
+        0
+      ]
+    }
+  ],
+  "contacts": [{
+      "label": "dan",
+      "key": "03ad7290bace92ee96d05cd3e2b1049c6dfe078fa603dc12aa17bad23cc125803f",
+      "recv_broadcast": null,
+      "send_channels": [
+        0
+      ]
+    }
+  ]
+}
