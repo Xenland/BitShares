@@ -79,6 +79,7 @@ namespace bts { namespace network {
         void send( const message& m );
    
         void connect( const std::string& host_port );  
+        void connect( const fc::ip::endpoint& ep );
         void close();
 
       private:

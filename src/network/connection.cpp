@@ -64,19 +64,19 @@ namespace bts { namespace network {
               }
               else
               {
-          //      wlog( "disconnected ${e}", ("e", e.to_detail_string() ) );
+                wlog( "disconnected ${e}", ("e", e.to_detail_string() ) );
               }
             }
             catch ( fc::exception& er )
             {
               if( con_del )
               {
+                elog( "disconnected ${er}", ("er", er.to_detail_string() ) );
                 con_del->on_connection_disconnected( self );
-        //        elog( "disconnected ${er}", ("er", er.to_detail_string() ) );
               }
               else
               {
-           //     elog( "disconnected ${e}", ("e", er.to_detail_string() ) );
+                elog( "disconnected ${e}", ("e", er.to_detail_string() ) );
               }
               FC_RETHROW_EXCEPTION( er, warn, "disconnected ${e}", ("e", er.to_detail_string() ) );
             }
@@ -147,6 +147,17 @@ namespace bts { namespace network {
          }
      } FC_RETHROW_EXCEPTIONS( warn, "exception thrown while closing socket" );
   }
+  void connection::connect( const fc::ip::endpoint& ep )
+  {
+     try {
+       // TODO: do we have to worry about multiple calls to connect?
+       my->sock = std::make_shared<stcp_socket>();
+       my->sock->connect_to(ep); 
+       my->remote_ep = remote_endpoint();
+       ilog( "    connected to ${ep}", ("ep", ep) );
+       my->read_loop_complete = fc::async( [=](){ my->read_loop(); } );
+     } FC_RETHROW_EXCEPTIONS( warn, "error connecting to ${ep}", ("ep",ep) );
+  }
 
   void connection::connect( const std::string& host_port )
   {
@@ -157,11 +168,14 @@ namespace bts { namespace network {
       {
          try 
          {
+            connect( *itr );
+            /*
             my->sock = std::make_shared<stcp_socket>();
             my->sock->connect_to(*itr); 
             my->remote_ep = remote_endpoint();
             ilog( "    connected to ${ep}", ("ep", *itr) );
             my->read_loop_complete = fc::async( [=](){ my->read_loop(); } );
+            */
             return;
          } 
          catch ( const fc::exception& e )
@@ -174,8 +188,10 @@ namespace bts { namespace network {
 
   void connection::send( const message& m )
   {
+    try {
       fc::scoped_lock<fc::mutex> lock(my->write_lock);
       fc::raw::pack( *my->sock, m );
+    } FC_RETHROW_EXCEPTIONS( warn, "unable to send message", ("m",m) );
   }
 
   void connection::set_channel_data( const channel_id& cid, const channel_data_ptr& d )
@@ -190,11 +206,12 @@ namespace bts { namespace network {
 
   fc::ip::endpoint connection::remote_endpoint()const 
   {
-    if( get_socket()->get_socket().is_open() )
-    {
-        return my->remote_ep = get_socket()->get_socket().remote_endpoint();
-    }
-    return my->remote_ep;
+     if( get_socket()->get_socket().is_open() )
+     {
+         return my->remote_ep = get_socket()->get_socket().remote_endpoint();
+     }
+     // TODO: document why we are not throwing an exception if there is no remote endpoint?
+     return my->remote_ep;
   }
 
 

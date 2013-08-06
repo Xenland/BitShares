@@ -244,6 +244,7 @@ namespace bts { namespace peer {
    :my( new detail::peer_channel_impl() )
    {
       my->netw = s;
+      s->set_delegate( my.get() );
    }
 
    peer_channel::~peer_channel()

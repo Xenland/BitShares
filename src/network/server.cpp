@@ -85,6 +85,8 @@ namespace bts { namespace network {
             try {
               ilog( "cleaning up connection after disconnect ${e}", ("e", c.remote_endpoint()) );
               auto cptr = c.shared_from_this();
+              FC_ASSERT( ser_del != nullptr );
+              FC_ASSERT( cptr );
               ser_del->on_disconnected( cptr );
               connections.erase( c.remote_endpoint() );
             } FC_RETHROW_EXCEPTIONS( warn, "error thrown handling disconnect" );
@@ -109,6 +111,7 @@ namespace bts { namespace network {
                 
                 auto con = std::make_shared<connection>(s,this);
                 connections[con->remote_endpoint()] = con;
+                ser_del->on_connected( con );
              } 
              catch ( const fc::canceled_exception& e )
              {
@@ -192,11 +195,13 @@ namespace bts { namespace network {
 
   void server::configure( const server::config& c )
   {
+    try {
       my->cfg = c;
 
       ilog( "listening for stcp connections on port ${p}", ("p",c.port) );
       my->tcp_serv.listen( c.port );
       my->accept_loop_complete = fc::async( [=](){ my->accept_loop(); } ); 
+    } FC_RETHROW_EXCEPTIONS( warn, "error configuring server", ("config", c) );
   }
 
 
@@ -215,14 +220,37 @@ namespace bts { namespace network {
   {
       for( auto itr = my->connections.begin(); itr != my->connections.end(); ++itr )
       {
-        itr->second->send(m);
+        try {
+           itr->second->send(m);
+        } 
+        catch ( const fc::exception& e ) 
+        {
+           // TODO: propagate this exception back via the delegate or some other means... don't just fail
+           wlog( "exception thrown while broadcasting ${e}", ("e", e.to_detail_string() ) );
+        }
       }
+  }
+
+  connection_ptr server::connect_to( const fc::ip::endpoint& ep )
+  {
+     try
+     {
+       ilog( "connect to ${ep}", ("ep",ep) );
+       FC_ASSERT( my->ser_del != nullptr );
+       connection_ptr con = std::make_shared<connection>( my.get() );
+       con->connect(ep);
+       my->connections[con->remote_endpoint()] = con;
+       my->ser_del->on_connected( con );
+       return con;
+     } FC_RETHROW_EXCEPTIONS( warn, "unable to connect to ${ep}", ("ep",ep) );
   }
 
 
    void server::close()
    {
+     try {
        my->close();
+     } FC_RETHROW_EXCEPTIONS( warn, "error closing server socket" );
    }
 
 

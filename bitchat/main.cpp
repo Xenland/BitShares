@@ -8,6 +8,10 @@
 #include <fc/exception/exception.hpp>
 #include <fc/log/logger.hpp>
 #include <fc/io/stdio.hpp>
+#include <fc/thread/thread.hpp>
+
+#include <iostream>
+#include <sstream>
 
 struct config
 {
@@ -31,9 +35,9 @@ int main( int argc, char** argv )
 {
   try
   {
-    if( argc != 2 )
+    if( argc < 2 )
     {
-       fc::cerr<<"Usage "<<argv[0]<<" CONFIG\n"; 
+       fc::cerr<<"Usage "<<argv[0]<<" CONFIG  [BOOTSTRAP_HOST]\n"; 
        return -1;
     }
     if( !fc::exists( argv[1] ) )
@@ -51,6 +55,50 @@ int main( int argc, char** argv )
     std::shared_ptr<bitchat_del> chat_del = std::make_shared<bitchat_del>();
 
     bts::bitchat::client_ptr chat_cl = std::make_shared<bts::bitchat::client>( peer_ch, chat_del.get() );
+
+    if( argc >= 3 )
+    {
+      serv->connect_to( fc::ip::endpoint::from_string( argv[2] ) );
+    }
+
+    std::string line;
+    fc::thread _cin("cin");
+    while( _cin.async([&](){ return !std::getline( std::cin, line ).eof(); } ).wait() ) 
+    {
+       std::stringstream ss(line);
+       std::string cmd;
+       ss >> cmd;
+
+       if( cmd == "q" || cmd == "quit" )
+       {
+          break;
+       }
+       else if( cmd == "h" || cmd == "help" )
+       {
+          std::cout<<"q,quit                   -  exit bitchat\n";
+          std::cout<<"h,help                   -  print this help message\n";
+          std::cout<<"c,contact  CONTACT KEY     -  add a new contact / key pair\n";
+          std::cout<<"n,new_id   IDENTITY        -  create a new identity \n";
+          std::cout<<"i,ident    IDENTITY        -  switch identities \n";
+          std::cout<<"s,send     CONTACT MESSAGE -  send message to \n";
+       }
+       else if( cmd == "c" || cmd == "contact" )
+       {
+          
+       }
+       else if( cmd == "n" || cmd == "new_id" )
+       {
+
+       }
+       else if( cmd == "i" || cmd == "ident" )
+       {
+
+       }
+       else if( cmd == "s" || cmd == "send" )
+       {
+
+       }
+    }
 
     return 0;
   } 

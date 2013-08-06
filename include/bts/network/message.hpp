@@ -135,4 +135,5 @@ namespace fc
    } // namespace raw
 } // namespace fc
 
-
+FC_REFLECT( bts::network::message_header, (proto)(chan_num)(msg_type) )
+FC_REFLECT_DERIVED( bts::network::message, (bts::network::message_header), (data) )
