@@ -28,6 +28,7 @@ namespace bts { namespace peer {
              void add_connection( connection* c )
              {
                 connections.push_back(c);
+
              }
              void remove_connection( connection* c )
              {
@@ -109,7 +110,10 @@ namespace bts { namespace peer {
            virtual void on_connected( const connection_ptr& c )
            {
                c->set_channel_data( channel_id( peer_proto ), std::make_shared<peer_data>() );
+               ilog( "on connected..." );
+               send_subscription_request( c );
            }
+
            
            virtual void on_disconnected( const connection_ptr& c )
            {
@@ -179,9 +183,23 @@ namespace bts { namespace peer {
                   netw->broadcast( message( known_hosts_msg( new_hosts ) , channel_id( peer_proto) ) );
                }
            }
+
+
+           void send_subscription_request( const connection_ptr& c )
+           {
+              std::vector<channel_id> chans;
+              chans.reserve( subscribed_channels.size() );
+              for( auto itr = subscribed_channels.begin(); itr != subscribed_channels.end(); ++itr )
+              {
+                chans.push_back( channel_id(*itr) );
+              }
+
+              c->send( message( subscribe_msg( std::move(chans) ), channel_id( peer_proto, 0 ) ) ); 
+           }
            
            void handle_subscribe( const connection_ptr& c, const subscribe_msg& s )
            {
+               ilog( "${ep}: ${msg}", ("ep", c->remote_endpoint()) ("msg",s) );
                peer_data& pd = c->get_channel_data( channel_id(peer_proto) )->as<peer_data>(); 
                if( s.channels.size() > MAX_CHANNELS_PER_CONNECTION )
                {
@@ -233,18 +251,17 @@ namespace bts { namespace peer {
            {
               wlog( "${reprot}", ("reprot",m) );
            }
-      };
+      }; // peer_channel_impl
 
 
-
-
-   }
+   } // namespace detail
 
    peer_channel::peer_channel( const server_ptr& s )
    :my( new detail::peer_channel_impl() )
    {
       my->netw = s;
       s->set_delegate( my.get() );
+      subscribe_to_channel( channel_id( peer_proto, 0 ), my );
    }
 
    peer_channel::~peer_channel()
@@ -256,6 +273,7 @@ namespace bts { namespace peer {
    {
       // let the network know to forward messages to c
       my->netw->subscribe_to_channel( chan, c );
+      my->subscribed_channels.insert( chan.id() );
 
       // let other peers know that we are now subscribed to chan
       subscribe_msg s;

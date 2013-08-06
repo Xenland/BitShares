@@ -61,9 +61,9 @@ namespace bts { namespace network {
         void close();
 
         /**
-         *  broadcasts the new channel subscription to all connected nodes. If less than
-         *  the minimum number of connections exist to this channel, new connections are
-         *  opened.
+         *  Registers a callback for handling messages received on the given channel. This
+         *  method should normally only be called from peer_channel and everyone else should
+         *  subscribe through channels via peer_channel::subscribe_to_channel
          */
         void subscribe_to_channel( const channel_id& chan, const channel_ptr& c );
         void unsubscribe_from_channel( const channel_id& chan );

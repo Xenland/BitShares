@@ -43,6 +43,10 @@ namespace bts { namespace peer {
   struct subscribe_msg
   {
      static const message_code type = message_code::subscribe;
+     subscribe_msg(){}
+     subscribe_msg( std::vector<network::channel_id> chans )
+     :channels( std::move(chans) ){}
+
      std::vector<network::channel_id> channels;
   };
 
