@@ -1,5 +1,10 @@
 project( bitshares )
-cmake_minimum_required( VERSION 2.8.0 )
+cmake_minimum_required( VERSION 2.8.11 )
+
+set( CMAKE_INCLUDE_CURRENT_DIR ON)
+set( CMAKE_AUTOMOC ON )
+
+find_package( Qt5Widgets )
 
 set( CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/fc/CMakeModules;${CMAKE_MODULE_PATH}" )
 FIND_PACKAGE( OpenSSL )
@@ -48,6 +53,7 @@ add_subdirectory( vendor/leveldb-1.12.0 )
 add_subdirectory( vendor/miniupnp/miniupnpc )
 #add_subdirectory( vendor/libzerocoin )
 set( BOOST_LIBRARIES ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_CHRONO_LIBRARY} ${ALL_OPENSSL_LIBRARIES})
+
 
 
 set( sources 
