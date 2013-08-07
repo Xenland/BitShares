@@ -99,6 +99,7 @@ set( sources
 add_library( bshare ${sources} )
 
 add_subdirectory( bitchat )
+add_subdirectory( src/gui )
 
 
 #add_executable( wallet_test tests/wallet_test.cpp )
