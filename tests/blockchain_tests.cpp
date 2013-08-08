@@ -6,12 +6,12 @@
 #include <fc/log/logger.hpp>
 #include <fc/reflect/variant.hpp>
 #include <bts/mini_pow.hpp>
-#include <bts/dds/mmap_array.hpp>
 #include <bts/blockchain/asset.hpp>
 #include <bts/blockchain/blockchain_db.hpp>
 #include <bts/config.hpp>
 #include <fc/io/json.hpp>
 #include <fc/io/raw.hpp>
+#include <fc/filesystem.hpp>
 #include <bts/blockchain/blockchain_printer.hpp>
 #include <fstream>
 
@@ -216,4 +216,50 @@ BOOST_AUTO_TEST_CASE( bts_address )
     elog( "${e}", ("e",e.to_detail_string()) );
     throw;
   }
+}
+BOOST_AUTO_TEST_CASE( wallet_test )
+{
+/* TODO: this test is slow...
+   bts::wallet w;
+   w.set_seed( fc::sha256::hash( "helloworld", 10 ) );
+
+   bts::wallet w2;
+   w2.set_master_public_key( w.get_master_public_key() );
+
+   for( uint32_t i = 0; i < 10; ++i )
+   {
+      BOOST_CHECK(  bts::address(w.get_public_key(i))                   == w2.get_public_key(i) );
+      BOOST_CHECK(  bts::address(w.get_private_key(i).get_public_key()) == w2.get_public_key(i) );
+   }
+   */
+}
+
+BOOST_AUTO_TEST_CASE( mini_pow_test )
+{
+  std::string hello_world( "hello world");
+  auto p = bts::mini_pow_hash( hello_world.c_str(), hello_world.size() );
+  ilog("p: ${p}", ("p",p));
+  auto p2 = bts::mini_pow_hash( hello_world.c_str(), hello_world.size() );
+  ilog("p2: ${p}", ("p",p2));
+  BOOST_CHECK( p == p2 );
+  ilog("");
+
+  uint32_t tmp[8];
+  memset( (char*)tmp, 0, sizeof(tmp) );
+  ilog("");
+
+  uint8_t* first = (uint8_t*)&p;
+  uint8_t min = 255;
+  while( *first > 225 )
+  {
+      tmp[0]++;
+      p = bts::mini_pow_hash( (char*)tmp, sizeof(tmp) );
+
+      if( *first < min ) 
+      {
+         ilog( "found ${h}", ("h",p) );
+         min = *first;
+      }
+  }
+
 }
