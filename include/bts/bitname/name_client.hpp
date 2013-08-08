@@ -84,6 +84,8 @@ namespace bts { namespace bitname {
        std::unique_ptr<detail::client_impl> my;
   };
 
+  typedef std::shared_ptr<client> client_ptr;
+
 } } // bts::bitname
 
 FC_REFLECT( bts::bitname::name_record,

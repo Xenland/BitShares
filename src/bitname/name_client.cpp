@@ -18,6 +18,7 @@ namespace bts { namespace bitname {
   {
     my->chan = c;
   }
+  client::~client(){}
 
   name_record client::lookup_name( const std::string& name )
   {
