@@ -167,7 +167,7 @@ namespace bts { namespace bitname {
    */
   name_header name_channel::lookup_name( const std::string& name )
   {
-    return name_header();
+    FC_ASSERT( !"Not Implemented" );
   }
 
 } } // bts::bitname

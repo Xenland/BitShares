@@ -71,6 +71,7 @@ set( sources
      src/bitname/name_db.cpp
      src/bitname/name_channel.cpp
      src/bitname/name_hash.cpp
+     src/bitname/name_client.cpp
 
      src/bitchat/bitchat_private_message.cpp
      src/bitchat/bitchat_messages.cpp

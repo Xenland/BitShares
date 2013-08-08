@@ -57,6 +57,6 @@ namespace bts { namespace bitname {
         std::shared_ptr<detail::name_channel_impl> my;
   };
 
-
+  typedef std::shared_ptr<name_channel> name_channel_ptr;
 
  } } // bts::bitname
