@@ -3,6 +3,7 @@
 #include <bts/bitname/name_channel.hpp>
 #include <bts/bitname/name_client.hpp>
 #include <bts/bitchat/bitchat_client.hpp>
+#include <bts/rpc/rpc_server.hpp>
 #include <fc/filesystem.hpp>
 #include <fc/io/json.hpp>
 #include <fc/io/fstream.hpp>
@@ -17,11 +18,12 @@
 
 struct config
 {
-   bts::network::server::config server_config;
+   bts::network::server::config        server_config;
+   bts::rpc::server::config            rpc_config;
    std::vector<bts::bitchat::identity> ids;
    std::vector<bts::bitchat::contact>  contacts;
 };
-FC_REFLECT( config, (server_config)(ids)(contacts) )
+FC_REFLECT( config, (server_config)(rpc_config)(ids)(contacts) )
 
 class bitchat_del : public bts::bitchat::bitchat_delegate
 {
@@ -61,6 +63,11 @@ int main( int argc, char** argv )
 
     bts::bitchat::client_ptr chat_cl = std::make_shared<bts::bitchat::client>( peer_ch, chat_del.get() );
     bts::bitname::client_ptr name_cl = std::make_shared<bts::bitname::client>( name_ch );
+
+
+    bts::rpc::server_ptr rpc_serv = std::make_shared<bts::rpc::server>();
+    rpc_serv->set_bitname_client( name_cl );
+    rpc_serv->configure( cfg.rpc_config );
 
     if( argc >= 3 )
     {

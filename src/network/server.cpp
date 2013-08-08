@@ -38,6 +38,7 @@ namespace bts { namespace network {
                   tcp_serv.close();
                   if( accept_loop_complete.valid() )
                   {
+                      accept_loop_complete.cancel();
                       accept_loop_complete.wait();
                   }
               } 
@@ -134,16 +135,17 @@ namespace bts { namespace network {
           {
              try
              {
-                stcp_socket_ptr sock = std::make_shared<stcp_socket>();
-                while( tcp_serv.accept( sock->get_socket() ) )
+                while( !accept_loop_complete.canceled() )
                 {
+                   stcp_socket_ptr sock = std::make_shared<stcp_socket>();
+                   tcp_serv.accept( sock->get_socket() );
+
                    // do the acceptance process async
                    fc::async( [=](){ accept_connection( sock ); } );
 
                    // limit the rate at which we accept connections to prevent
                    // DOS attacks.
                    fc::usleep( fc::microseconds( 1000*10 ) );
-                   sock = std::make_shared<stcp_socket>();
                 }
              } 
              catch ( fc::eof_exception& e )

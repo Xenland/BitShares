@@ -5,6 +5,11 @@
     "bootstrap_endpoints": [],
     "blacklist": []
   },
+  "rpc_config" : {
+    "port" : 6789,
+    "user" : "rpc_user",
+    "pass" : "rpc_pass"
+  },
   "ids": [{
       "label": "dan",
       "key": "c7714b9021d9ec9078a58012e164f163a5228721164c68059dff61ad566a3b0b",
