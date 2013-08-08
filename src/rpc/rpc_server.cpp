@@ -18,6 +18,9 @@ namespace bts { namespace rpc {
 
          fc::future<void>    _accept_loop_complete;
 
+         /** the set of connections that have successfully logged in */
+         std::unordered_set<fc::rpc::json_connection*> _login_set;
+
 
          void accept_loop()
          {
@@ -42,18 +45,63 @@ namespace bts { namespace rpc {
 
          void register_methods( const fc::rpc::json_connection_ptr& con )
          {
+            // don't capture the shared ptr, it would create a circular reference
+            fc::rpc::json_connection* capture_con = con.get(); 
+            con->add_method( "login", [=]( const fc::variants& params ) -> fc::variant 
+            {
+                FC_ASSERT( params.size() == 2 );
+                FC_ASSERT( params[0].as_string() == _config.user )
+                FC_ASSERT( params[1].as_string() == _config.pass )
+                _login_set.insert( capture_con );
+                return fc::variant( true );
+            });
             if( _bitnamec ) 
             {
                register_bitname_methods( con );
             }
          }
 
+         void check_login( fc::rpc::json_connection* con )
+         {
+            if( _login_set.find( con ) == _login_set.end() )
+            {
+               FC_THROW_EXCEPTION( exception, "not logged in" ); 
+            }
+         }
+
          void register_bitname_methods( const fc::rpc::json_connection_ptr& con )
          {
-            con->add_method( "lookup_name", [=]( const fc::variants& v ) -> fc::variant 
+            // don't capture the shared ptr, it would create a circular reference
+            fc::rpc::json_connection* capture_con = con.get(); 
+            con->add_method( "lookup_name", [=]( const fc::variants& params ) -> fc::variant 
             {
-                FC_ASSERT( v.size() == 1 );
-                return fc::variant( _bitnamec->lookup_name( v[0].as_string() ) );
+                FC_ASSERT( params.size() == 1 );
+                check_login( capture_con );
+                return fc::variant( _bitnamec->lookup_name( params[0].as_string() ) );
+            });
+            con->add_method( "reverse_name_lookup", [=]( const fc::variants& params ) -> fc::variant 
+            {
+                FC_ASSERT( params.size() == 1 );
+                check_login( capture_con );
+                return fc::variant( _bitnamec->reverse_name_lookup( params[0].as<fc::ecc::public_key>() ) );
+            });
+            con->add_method( "verify_signature", [=]( const fc::variants& params ) -> fc::variant 
+            {
+                FC_ASSERT( params.size() == 2 );
+                check_login( capture_con );
+                return fc::variant( _bitnamec->verify_signature( params[0].as<fc::sha256>(), params[1].as_string() ) );
+            });
+            con->add_method( "sign", [=]( const fc::variants& params ) -> fc::variant 
+            {
+                FC_ASSERT( params.size() == 2 );
+                check_login( capture_con );
+                return fc::variant( _bitnamec->sign( params[0].as<fc::sha256>(), params[1].as_string() ) );
+            });
+            con->add_method( "register_name", [=]( const fc::variants& params ) -> fc::variant 
+            {
+                FC_ASSERT( params.size() == 2 );
+                check_login( capture_con );
+                return fc::variant( _bitnamec->sign( params[0].as_string(), params[1].as<fc::ecc::public_key>() ) );
             });
          }
     };
@@ -74,6 +122,7 @@ namespace bts { namespace rpc {
             my->_accept_loop_complete.wait();
          }
      } 
+     catch ( const fc::canceled_exception& e ){}
      catch ( const fc::exception& e )
      {
         wlog( "unhandled exception thrown in destructor.\n${e}", ("e", e.to_detail_string() ) );
@@ -83,7 +132,9 @@ namespace bts { namespace rpc {
   void server::configure( const server::config& cfg )
   {
      try {
+       FC_ASSERT( cfg.port != 0 );
        my->_config = cfg;
+       ilog( "listening for rpc connections on port ${port}", ("port",cfg.port) );
        my->_tcp_serv.listen( cfg.port );
      // TODO shutdown server if already configured prior to restarting it
      
