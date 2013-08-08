@@ -86,6 +86,8 @@ set( sources
      src/blockchain/blockchain_channel.cpp
      src/blockchain/blockchain_printer.cpp
 
+     src/rpc/rpc_server.cpp
+
      src/db.cpp
      src/small_hash.cpp
      src/mini_pow.cpp 
