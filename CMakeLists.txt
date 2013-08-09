@@ -36,7 +36,7 @@ ENDIF(WIN32)
 
 
 set(Boost_USE_STATIC_LIBS ON)
-FIND_PACKAGE(Boost 1.51 COMPONENTS thread date_time system filesystem program_options signals serialization chrono unit_test_framework context ) 
+FIND_PACKAGE(Boost 1.51 COMPONENTS thread date_time system filesystem program_options signals serialization chrono unit_test_framework context coroutine) 
 
 include_directories( ${CMAKE_SOURCE_DIR}/fc/include )
 include_directories( ${CMAKE_SOURCE_DIR}/include )
@@ -52,7 +52,7 @@ add_subdirectory( fc )
 add_subdirectory( vendor/leveldb-1.12.0 )
 add_subdirectory( vendor/miniupnp/miniupnpc )
 #add_subdirectory( vendor/libzerocoin )
-set( BOOST_LIBRARIES ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_CHRONO_LIBRARY} ${ALL_OPENSSL_LIBRARIES})
+set( BOOST_LIBRARIES ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_CHRONO_LIBRARY} ${ALL_OPENSSL_LIBRARIES} ${Boost_COROUTINE_LIBRARY} ${Boost_CONTEXT_LIBRARY} )
 
 
 
