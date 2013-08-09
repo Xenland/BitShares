@@ -56,10 +56,10 @@ namespace bts { namespace blockchain {
       static const message_type type = get_trxs_msg;
       get_trxs_message(){}
 
-      get_trxs_message(const fc::sha224& one)
+      get_trxs_message(const uint160& one)
       :items(1,one){}
 
-      std::vector<fc::sha224> items;
+      std::vector<uint160> items;
   };
 
   struct get_full_block_message

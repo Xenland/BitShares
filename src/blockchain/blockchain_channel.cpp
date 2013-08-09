@@ -42,6 +42,7 @@ namespace bts { namespace blockchain {
 
       
           std::unordered_set<uint160>                      _trxs_pending_fetch;
+          std::unordered_set<fc::sha224>                   _blocks_pending_fetch;
 
           chan_data& get_channel_data( const connection_ptr& c )
           {
@@ -150,7 +151,16 @@ namespace bts { namespace blockchain {
 
           void handle_block_inv( const connection_ptr& c, chan_data& cdat, block_inv_message msg )
           { try {
-
+              for( auto itr = msg.items.begin(); itr != msg.items.end(); ++itr )
+              {
+                 if( !cdat.known_block_inv.insert( *itr ).second )
+                 {
+                    wlog( "received inventory item more than once from the same connection\n",
+                              ("item", *itr) );
+                    // TODO: why is this connection sending things multiple times... punish it
+                 }
+                 _blocks_pending_fetch.insert( *itr );
+              }
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
           void handle_get_block_inv( const connection_ptr& c, chan_data& cdat, get_block_inv_message msg )
@@ -160,7 +170,26 @@ namespace bts { namespace blockchain {
 
           void handle_get_trxs( const connection_ptr& c, chan_data& cdat, get_trxs_message msg )
           { try {
-
+              trxs_message reply;
+              FC_ASSERT( msg.items.size() < 2000 ); // TODO define constant in config.hpp
+              reply.trxs.reserve( msg.items.size() );
+              
+              for( auto itr = msg.items.begin(); itr != msg.items.end(); ++itr )
+              {
+                  auto pending_itr = _pending_trx.find( *itr );
+                  if( pending_itr == _pending_trx.end() )
+                  {
+                     // must be an attempt to fetch from the DB... DB queries are far
+                     // more expensive, and therefore must be rationed and potentialy
+                     // require a proof of work paying us to fetch them
+                     elog( "not handled yet" );
+                  }
+                  else
+                  {
+                     reply.trxs.push_back( pending_itr->second );
+                  }
+              }
+              c->send( network::message( reply, _chan_id ) );
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
           void handle_get_full_block( const connection_ptr& c, chan_data& cdat, get_full_block_message msg )
