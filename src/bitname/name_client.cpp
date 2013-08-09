@@ -57,4 +57,9 @@ namespace bts { namespace bitname {
     FC_ASSERT( !"Not Implemented" );
   }
 
+  fc::ecc::compact_signature client::sign( const fc::sha256& digest, const std::string& name )
+  {
+    FC_ASSERT( !"Not Implemented" );
+  }
+
 } } // bts::bitname

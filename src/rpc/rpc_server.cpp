@@ -89,7 +89,7 @@ namespace bts { namespace rpc {
             {
                 FC_ASSERT( params.size() == 2 );
                 check_login( capture_con );
-                return fc::variant( _bitnamec->verify_signature( params[0].as<fc::sha256>(), params[1].as_string() ) );
+                return fc::variant( _bitnamec->verify_signature( params[0].as<fc::sha256>(), params[1].as<fc::ecc::compact_signature>() ) );
             });
             con->add_method( "sign", [=]( const fc::variants& params ) -> fc::variant 
             {
@@ -101,7 +101,7 @@ namespace bts { namespace rpc {
             {
                 FC_ASSERT( params.size() == 2 );
                 check_login( capture_con );
-                return fc::variant( _bitnamec->sign( params[0].as_string(), params[1].as<fc::ecc::public_key>() ) );
+                return fc::variant( _bitnamec->register_name( params[0].as_string(), params[1].as<fc::ecc::public_key>() ) );
             });
          }
     };
