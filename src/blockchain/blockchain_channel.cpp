@@ -23,7 +23,21 @@ namespace bts { namespace blockchain {
           // TODO: add a timestamp so we can time it out properly....
           // Any connection that pushes data we didn't request is 
           // punished...
-          std::unordered_set<uint160> requested_msgs; 
+          std::unordered_set<uint160>    requested_trxs; 
+
+          // only one request at a time, null hash means nothing pending
+          fc::sha224                     requested_full_block; 
+          fc::sha224                     requested_trx_block; 
+     };
+
+     /**
+      *  Tracks the trx indexes that we have not yet downloaded.
+      */
+     struct block_download_state
+     {
+        std::unordered_map<uint160,uint16_t>  missing_trx_idx;
+        full_block                            full_blk;
+        std::vector<signed_transaction>       trxs;
      };
 
      class channel_impl  : public bts::network::channel
@@ -36,13 +50,29 @@ namespace bts { namespace blockchain {
           /** validated transactions that are sent out with get inv msgs */
           std::unordered_map<uint160,signed_transaction>   _pending_trx;
 
+          // full blocks that are awaiting verification, these should not be forwarded
+          std::unordered_map<fc::sha224,full_block>        _pending_full_blocks;
+
+          // full blocks with their trxs as they are downloaded, these should not be forwarded
+          std::unordered_map<fc::sha224,trx_block>         _pending_trx_blocks;
+
           network::channel_id                              _chan_id; 
           blockchain_db_ptr                                _db;
           channel_delegate*                                _del;
 
+          block_download_state                             _block_download;
       
+          /**
+           * When in the course of processing transactions we come across an invalid trx, store
+           * it here so we can quickly discard these trx or blocks that contain them.  This should
+           * be cleared every time a block is successfully added.
+           */
+          std::unordered_set<uint160>                      _recently_invalid_trx;
+
           std::unordered_set<uint160>                      _trxs_pending_fetch;
           std::unordered_set<fc::sha224>                   _blocks_pending_fetch;
+
+          std::vector<signed_transaction>                  _verify_queue;
 
           chan_data& get_channel_data( const connection_ptr& c )
           {
@@ -194,6 +224,9 @@ namespace bts { namespace blockchain {
 
           void handle_get_full_block( const connection_ptr& c, chan_data& cdat, get_full_block_message msg )
           { try {
+            // this request must hit the DB... cost in proof of work is proportional to age to prevent
+            // cache thrashing attacks and allowing us to keep newer blocks in the cache 
+            // penalize connections that request too many full blocks...
 
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
@@ -204,17 +237,51 @@ namespace bts { namespace blockchain {
 
           void handle_trxs( const connection_ptr& c, chan_data& cdat, trxs_message msg )
           { try {
+              for( auto itr = msg.trxs.begin(); itr != msg.trxs.end(); ++itr )
+              {
+                 auto item_id = itr->id();
+                 if( cdat.requested_trxs.find( item_id ) == cdat.requested_trxs.end() )
+                 {
+                    FC_THROW_EXCEPTION( exception, "unsolicited transaction ${trx_id}", 
+                                                    ("trx_id", item_id)("trx", *itr) );
+                 }
+                 _verify_queue.push_back( *itr ); 
 
+                 // is this trx part of a block download
+                 auto trx_idx_itr =  _block_download.missing_trx_idx.find( item_id );
+                 if( trx_idx_itr != _block_download.missing_trx_idx.end() )
+                 {
+                    _block_download.trxs[trx_idx_itr->second] = *itr;
+                    _block_download.missing_trx_idx.erase(trx_idx_itr);
+                    if( _block_download.missing_trx_idx.size() == 0 )
+                    {
+                       // TODO: attempt to push full block!
+                    }
+                 }
+              }
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
           void handle_full_block( const connection_ptr& c, chan_data& cdat, full_block_message msg )
           { try {
+              fc::sha224 block_id = msg.block_data.id();
+              if( cdat.requested_full_block != block_id )
+              {
+                  FC_THROW_EXCEPTION( exception, "unsolicited full block ${block_id}", 
+                                      ("block_id", block_id)("block", msg.block_data) );
+              }
+              // attempt to create a trx_block by looking up missing transactions
 
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
           void handle_trx_block( const connection_ptr& c, chan_data& cdat, trx_block_message msg )
           { try {
-
+              fc::sha224 block_id = msg.block_data.id();
+              if( cdat.requested_trx_block != block_id )
+              {
+                  FC_THROW_EXCEPTION( exception, "unsolicited trx block ${block_id}", 
+                                                ("block_id", block_id)("block", msg.block_data) );
+              }
+              // attempt to push it onto the block db... if successful broadcast a block inv
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
      };
 
