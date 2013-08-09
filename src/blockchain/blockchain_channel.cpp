@@ -5,6 +5,8 @@
 #include <fc/reflect/variant.hpp>
 #include <fc/log/logger.hpp>
 
+#include <map>
+
 namespace bts { namespace blockchain {
 
   using namespace network;
@@ -14,7 +16,7 @@ namespace bts { namespace blockchain {
      class chan_data : public network::channel_data
      {
         public:
-          std::unordered_set<uint160> known_trx_inv;
+          std::unordered_set<uint160>     known_trx_inv;
           std::unordered_set<fc::sha224>  known_block_inv;
 
           // fetches for which we have not yet received a reply...
@@ -28,10 +30,18 @@ namespace bts { namespace blockchain {
      {
         public:
           bts::peer::peer_channel_ptr                      _peers;
+          /* used to quickly filter out / prioritize trxs */
+          std::map<fc::time_point, uint160>                _trx_time_index;
+
+          /** validated transactions that are sent out with get inv msgs */
           std::unordered_map<uint160,signed_transaction>   _pending_trx;
+
           network::channel_id                              _chan_id; 
           blockchain_db_ptr                                _db;
           channel_delegate*                                _del;
+
+      
+          std::unordered_set<uint160>                      _trxs_pending_fetch;
 
           chan_data& get_channel_data( const connection_ptr& c )
           {
@@ -112,13 +122,30 @@ namespace bts { namespace blockchain {
            */
           void handle_trx_inv( const connection_ptr& c, chan_data& cdat, trx_inv_message msg )
           { try {
-
-
+              for( auto itr = msg.items.begin(); itr != msg.items.end(); ++itr )
+              {
+                 if( !cdat.known_trx_inv.insert( *itr ).second )
+                 {
+                    wlog( "received inventory item more than once from the same connection\n",
+                              ("item", *itr) );
+                    // TODO: why is this connection sending things multiple times... punish it
+                 }
+                 _trxs_pending_fetch.insert( *itr );
+              }
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
           void handle_get_trx_inv( const connection_ptr& c, chan_data& cdat, get_trx_inv_message msg )
           { try {
-
+             // TODO: only allow this request once every couple of minutes to prevent flood attacks
+             
+             // TODO: make sure these inventory items are sorted by fees
+             trx_inv_message reply;
+             reply.items.reserve( 2000 ); // TODO define constant in config.hpp
+             for( auto itr = _pending_trx.begin(); reply.items.size() < 2000 && itr != _pending_trx.end(); ++itr )
+             {
+                reply.items.push_back( itr->first );
+             }
+             c->send( network::message( reply, _chan_id ) );
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
           void handle_block_inv( const connection_ptr& c, chan_data& cdat, block_inv_message msg )
