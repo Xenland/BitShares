@@ -75,6 +75,7 @@ set( sources
      src/blockchain/blockchain_db.cpp
      src/blockchain/blockchain_channel.cpp
      src/blockchain/blockchain_printer.cpp
+     src/blockchain/blockchain_messages.cpp
 
      src/rpc/rpc_server.cpp
 
