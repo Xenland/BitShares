@@ -8,5 +8,8 @@ const message_type get_trx_inv_message::type;
 const message_type get_trxs_message::type;
 const message_type get_full_block_message::type;
 const message_type get_trx_block_message::type;
+const message_type trxs_message::type;
+const message_type full_block_message::type;
+const message_type trx_block_message::type;
 
 } } // bts::bitchat

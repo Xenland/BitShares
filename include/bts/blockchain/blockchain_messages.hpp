@@ -12,6 +12,9 @@ namespace bts { namespace blockchain {
       get_trxs_msg        = 5,
       get_full_block_msg  = 6,
       get_trx_block_msg   = 7,
+      trxs_msg            = 8,
+      full_block_msg      = 9,
+      trx_block_msg       = 10,
       message_type_count     /// used to verify message type range
   };
 
@@ -79,6 +82,39 @@ namespace bts { namespace blockchain {
       fc::sha224 block_id;
   };
 
+  struct trxs_message
+  {
+     static const message_type type = trxs_msg;
+
+     trxs_message(){}
+     trxs_message(const signed_transaction& trx)
+     :trxs(1,trx){}
+
+     std::vector<signed_transaction> trxs;
+  };
+
+  struct full_block_message
+  {
+     static const message_type type = full_block_msg;
+
+     full_block_message(){}
+     full_block_message(const full_block& blk)
+     :block_data(blk){}
+
+     full_block block_data;
+  };
+
+  struct trx_block_message
+  {
+     static const message_type type = trx_block_msg;
+
+     trx_block_message(){}
+     trx_block_message(const trx_block& blk)
+     :block_data(blk){}
+
+     trx_block block_data;
+  };
+
 
 } } // bts::blockchain
 FC_REFLECT_ENUM( bts::blockchain::message_type,
@@ -89,6 +125,9 @@ FC_REFLECT_ENUM( bts::blockchain::message_type,
   (get_trxs_msg)
   (get_full_block_msg)
   (get_trx_block_msg)
+  (trxs_msg)
+  (full_block_msg)
+  (trx_block_msg)
 )
 
 FC_REFLECT( bts::blockchain::trx_inv_message, (items) )
@@ -98,4 +137,7 @@ FC_REFLECT( bts::blockchain::get_block_inv_message, (known) )
 FC_REFLECT( bts::blockchain::get_trxs_message, (items) )
 FC_REFLECT( bts::blockchain::get_full_block_message, (block_id) )
 FC_REFLECT( bts::blockchain::get_trx_block_message, (block_id) )
+FC_REFLECT( bts::blockchain::trxs_message, (trxs) )
+FC_REFLECT( bts::blockchain::full_block_message, (block_data) )
+FC_REFLECT( bts::blockchain::trx_block_message, (block_data) )
 
