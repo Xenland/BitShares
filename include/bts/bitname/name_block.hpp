@@ -19,13 +19,13 @@ namespace bts { namespace bitname {
     struct name_trx 
     {
        name_trx()
-       :nonce(0),utc_sec(0){}
+       :nonce(0){}
 
        /** helper method */
        mini_pow id( const mini_pow& prev )const;
 
        uint32_t                                 nonce;     ///< 4 increment to find proof of work
-       uint32_t                                 utc_sec;   ///< 8 utc seconds
+       fc::time_point_sec                       utc_sec;   ///< 8 utc seconds
        mini_pow                                 mroot;     ///< 12 mroot of all trx
        /**
         *  Options for storing the name:
@@ -38,9 +38,9 @@ namespace bts { namespace bitname {
         *        - in theory this expands to more data sets / foreign characters and arbitrary length names
         *        - eliminates dynamic memory allocation
         */
-       uint64_t                                 name_hash; ///< 22 hash the name to 64 bits rather than store 32+ bits...
-       uint8_t                                  renewal;   ///< 30 how many times has this name been renewed.
-       fc::optional<fc::ecc::public_key>        key;       ///< 31 key to assign to name, 33 bytes
+       uint64_t                                 name_hash;  ///< 22 hash the name to 64 bits rather than store 32+ bits...
+       uint8_t                                  renewal;    ///< 30 how many times has this name been renewed.
+       fc::optional<fc::ecc::public_key>        key;        ///< 31 key to assign to name, 33 bytes
        fc::optional<fc::ecc::compact_signature> cancel_sig; ///< provided instead of key if renewal is 255
     }; 
 

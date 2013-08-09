@@ -24,6 +24,10 @@
 #define PEER_HOST_CACHE_QUERY_LIMIT   (1000)              // number of ip/ports that we will cache
 #define MAX_CHANNELS_PER_CONNECTION   (32)
 
+// blockchain channel config
+#define TRX_INV_QUERY_LIMIT           (2000) // number of trx that may be sent as part of inventory or request msg
+#define BLOCK_INV_QUERY_LIMIT         (2000) // number of trx that may be sent as part of inventory or request msg
+
 
 /**
  *  How much space can be consumed by the trx portion of a block.  This is calculated to

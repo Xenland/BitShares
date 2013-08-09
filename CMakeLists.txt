@@ -1,5 +1,10 @@
 project( bitshares )
-cmake_minimum_required( VERSION 2.8.0 )
+cmake_minimum_required( VERSION 2.8.11 )
+
+set( CMAKE_INCLUDE_CURRENT_DIR ON)
+set( CMAKE_AUTOMOC ON )
+
+find_package( Qt5Widgets )
 
 set( CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/fc/CMakeModules;${CMAKE_MODULE_PATH}" )
 FIND_PACKAGE( OpenSSL )
@@ -22,6 +27,7 @@ IF( WIN32 )
   ADD_DEFINITIONS( -D_CRT_SECURE_NO_WARNINGS )
   #ADD_DEFINITIONS( -DBOOST_ALL_NO_LIB -DBOOST_THREAD_BUILD_LIB)
   ADD_DEFINITIONS( -DWIN32)
+  ADD_DEFINITIONS( -D_WIN32_WINNT=0x0501 )
   # Activate C++ exception handling
   IF (NOT CMAKE_CXX_FLAGS MATCHES "/EHsc")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")    
@@ -33,15 +39,14 @@ IF( WIN32 )
   set( LIB_EAY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/vendor/openssl/out32dll/libeay32.lib" )
   set( SSL_EAY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/vendor/openssl/out32dll/ssleay32.lib" )
   include_directories( "${CMAKE_CURRENT_SOURCE_DIR}/vendor/openssl/include" )
-  
 ELSE(WIN32)
   MESSAGE(status "Compiling on UNIX")
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wno-unused-local-typedefs -fmax-errors=3 " ) 
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-local-typedefs -fmax-errors=3 " )
   SET(Boost_USE_STATIC_LIBS ON)
-  FIND_PACKAGE(Boost 1.51 COMPONENTS thread date_time system filesystem program_options signals serialization chrono unit_test_framework context ) 
-  include_directories( ${CMAKE_SOURCE_DIR}/fc/vendor/boost_1.51/include )
+  FIND_PACKAGE(Boost 1.53 REQUIRED COMPONENTS thread date_time system filesystem program_options signals serialization chrono unit_test_framework context coroutine) 
 ENDIF(WIN32)
+
 
 
 include_directories( ${CMAKE_SOURCE_DIR}/fc/include )
@@ -57,7 +62,8 @@ add_subdirectory( fc )
 add_subdirectory( vendor/leveldb )
 add_subdirectory( vendor/miniupnp/miniupnpc )
 #add_subdirectory( vendor/libzerocoin )
-set( BOOST_LIBRARIES ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_CHRONO_LIBRARY} ${ALL_OPENSSL_LIBRARIES})
+set( BOOST_LIBRARIES ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_CHRONO_LIBRARY} ${ALL_OPENSSL_LIBRARIES} ${Boost_COROUTINE_LIBRARY} ${Boost_CONTEXT_LIBRARY} )
+
 
 
 set( sources 
@@ -75,6 +81,7 @@ set( sources
      src/bitname/name_db.cpp
      src/bitname/name_channel.cpp
      src/bitname/name_hash.cpp
+     src/bitname/name_client.cpp
 
      src/bitchat/bitchat_private_message.cpp
      src/bitchat/bitchat_messages.cpp
@@ -88,6 +95,9 @@ set( sources
      src/blockchain/blockchain_db.cpp
      src/blockchain/blockchain_channel.cpp
      src/blockchain/blockchain_printer.cpp
+     src/blockchain/blockchain_messages.cpp
+
+     src/rpc/rpc_server.cpp
 
      src/db.cpp
      src/small_hash.cpp
@@ -103,6 +113,7 @@ set( sources
 add_library( bshare ${sources} )
 
 add_subdirectory( bitchat )
+add_subdirectory( src/gui )
 
 
 #add_executable( wallet_test tests/wallet_test.cpp )

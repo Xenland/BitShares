@@ -45,7 +45,7 @@ namespace bts { namespace bitname {
             uint32_t* nonce = (uint32_t*)buf.data();
             uint32_t* ts    = nonce + 1;
             *nonce = thread_num;
-            *ts    = fc::time_point::now().time_since_epoch().count() / 1000000;
+            *ts    = fc::time_point_sec(fc::time_point::now()).sec_since_epoch();
 
             while( ver >= _block_ver )
             {
@@ -58,7 +58,7 @@ namespace bts { namespace bitname {
                     {
                        ++_block_ver; // signal other threads to stop
                        b.nonce   = *nonce;
-                       b.utc_sec = *ts;
+                       b.utc_sec = fc::time_point_sec(*ts);
                        _callback_thread.async( [=](){ _del->found_name_block( b ); } );
                     }
                     if( ver < _block_ver ) return;

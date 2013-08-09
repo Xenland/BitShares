@@ -75,7 +75,9 @@ namespace bts { namespace bitchat {
                      handle_priv_msg( c, cdat, m.as<encrypted_message>()  );
                      break;
                   default:
-                     wlog( "unknown bitchat message type ${t}", ("t",m.msg_type) );
+                     // TODO: figure out how to document this / punish the connection that sent us this 
+                     // message.
+                     wlog( "unknown bitchat message type ${t}", ("t",uint64_t(m.msg_type)) );
               }
           }
 

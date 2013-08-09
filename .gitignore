@@ -30,3 +30,5 @@ bitshared
 bitchatc
 bitchat/bitchat
 tests/blockchain_tests
+*automoc.cpp
+src/gui/sexc
