@@ -165,20 +165,26 @@ namespace bts { namespace blockchain {
               }
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
+          /**
+           *
+           */
           void handle_get_trx_inv( const connection_ptr& c, chan_data& cdat, get_trx_inv_message msg )
           { try {
              // TODO: only allow this request once every couple of minutes to prevent flood attacks
              
              // TODO: make sure these inventory items are sorted by fees
              trx_inv_message reply;
-             reply.items.reserve( 2000 ); // TODO define constant in config.hpp
-             for( auto itr = _pending_trx.begin(); reply.items.size() < 2000 && itr != _pending_trx.end(); ++itr )
+             reply.items.reserve( TRX_INV_QUERY_LIMIT ); 
+             for( auto itr = _pending_trx.begin(); reply.items.size() < TRX_INV_QUERY_LIMIT && itr != _pending_trx.end(); ++itr )
              {
                 reply.items.push_back( itr->first );
              }
              c->send( network::message( reply, _chan_id ) );
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
+          /**
+           *
+           */
           void handle_block_inv( const connection_ptr& c, chan_data& cdat, block_inv_message msg )
           { try {
               for( auto itr = msg.items.begin(); itr != msg.items.end(); ++itr )
@@ -193,6 +199,9 @@ namespace bts { namespace blockchain {
               }
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
+          /**
+           *
+           */
           void handle_get_block_inv( const connection_ptr& c, chan_data& cdat, get_block_inv_message msg )
           { try {
 
@@ -201,7 +210,7 @@ namespace bts { namespace blockchain {
           void handle_get_trxs( const connection_ptr& c, chan_data& cdat, get_trxs_message msg )
           { try {
               trxs_message reply;
-              FC_ASSERT( msg.items.size() < 2000 ); // TODO define constant in config.hpp
+              FC_ASSERT( msg.items.size() < TRX_INV_QUERY_LIMIT );
               reply.trxs.reserve( msg.items.size() );
               
               for( auto itr = msg.items.begin(); itr != msg.items.end(); ++itr )
@@ -209,10 +218,10 @@ namespace bts { namespace blockchain {
                   auto pending_itr = _pending_trx.find( *itr );
                   if( pending_itr == _pending_trx.end() )
                   {
-                     // must be an attempt to fetch from the DB... DB queries are far
-                     // more expensive, and therefore must be rationed and potentialy
+                     // TODO DB queries are far more expensive, and therefore must be rationed and potentialy
                      // require a proof of work paying us to fetch them
-                     elog( "not handled yet" );
+                     auto tx_num = _db->fetch_trx_num( *itr );
+                     reply.trxs.push_back( _db->fetch_trx(tx_num) );
                   }
                   else
                   {
@@ -222,19 +231,35 @@ namespace bts { namespace blockchain {
               c->send( network::message( reply, _chan_id ) );
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
+          /**
+           *
+           */
           void handle_get_full_block( const connection_ptr& c, chan_data& cdat, get_full_block_message msg )
           { try {
-            // this request must hit the DB... cost in proof of work is proportional to age to prevent
-            // cache thrashing attacks and allowing us to keep newer blocks in the cache 
-            // penalize connections that request too many full blocks...
+              // TODO: throttle attempts to query blocks by a single connection
+              // this request must hit the DB... cost in proof of work is proportional to age to prevent
+              // cache thrashing attacks and allowing us to keep newer blocks in the cache 
+              // penalize connections that request too many full blocks...
+              uint32_t blk_num = _db->fetch_block_num( msg.block_id );
+              full_block blk   = _db->fetch_full_block( blk_num );
+              c->send( network::message(full_block_message( blk ), _chan_id ) );
 
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
+          /**
+           *
+           */
           void handle_get_trx_block( const connection_ptr& c, chan_data& cdat, get_trx_block_message msg )
           { try {
-
+              // TODO: throttle attempts to query blocks by a single connection
+              uint32_t blk_num = _db->fetch_block_num( msg.block_id );
+              trx_block blk    = _db->fetch_trx_block( blk_num );
+              c->send( network::message(trx_block_message( blk ), _chan_id ) );
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
+          /**
+           *
+           */
           void handle_trxs( const connection_ptr& c, chan_data& cdat, trxs_message msg )
           { try {
               for( auto itr = msg.trxs.begin(); itr != msg.trxs.end(); ++itr )
@@ -261,6 +286,9 @@ namespace bts { namespace blockchain {
               }
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
+          /**
+           *
+           */
           void handle_full_block( const connection_ptr& c, chan_data& cdat, full_block_message msg )
           { try {
               fc::sha224 block_id = msg.block_data.id();
@@ -273,6 +301,9 @@ namespace bts { namespace blockchain {
 
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } // provide stack trace for errors
 
+          /**
+           *
+           */
           void handle_trx_block( const connection_ptr& c, chan_data& cdat, trx_block_message msg )
           { try {
               fc::sha224 block_id = msg.block_data.id();

@@ -136,7 +136,8 @@ namespace bts { namespace blockchain {
 
          uint32_t   fetch_block_num( const fc::sha224& block_id );
          block      fetch_block( uint32_t block_num );
-         full_block fetch_block_trxs( uint32_t block_num );
+         full_block fetch_full_block( uint32_t block_num );
+         trx_block  fetch_trx_block( uint32_t block_num );
 
          /**
           *  Calculate the dividends due to a given asset accumulated durrning blocks from_num to to_num

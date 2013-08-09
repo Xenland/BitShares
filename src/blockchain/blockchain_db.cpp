@@ -235,10 +235,17 @@ namespace bts { namespace blockchain {
        return my->blocks.fetch(block_num);
     }
 
-    full_block  blockchain_db::fetch_block_trxs( uint32_t block_num )
+    full_block  blockchain_db::fetch_full_block( uint32_t block_num )
     {
        full_block fb = my->blocks.fetch(block_num);
        fb.trx_ids = my->block_trxs.fetch( block_num );
+       return fb;
+    }
+    trx_block  blockchain_db::fetch_trx_block( uint32_t block_num )
+    {
+       trx_block fb = my->blocks.fetch(block_num);
+       // TODO: fetch each trx and add it to the trx block
+       //fb.trx_ids = my->block_trxs.fetch( block_num );
        return fb;
     }
 
