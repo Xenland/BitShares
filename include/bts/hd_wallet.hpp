@@ -28,6 +28,7 @@ namespace bts {
   class extended_private_key
   {
      public:
+        extended_private_key( const fc::sha512& seed );
         extended_private_key( const fc::sha256& key, const fc::sha256& chain_code );
         extended_private_key();
 
@@ -83,10 +84,10 @@ namespace bts {
          *  This method will take several minutes to run and is designed to
          *  make rainbow tables difficult to calculate.
          */
-        static fc::sha256     stretch_seed( const fc::sha256& seed );
+        static fc::sha512     stretch_seed( const fc::sha512& seed );
 
-        void                  set_seed( const fc::sha256& stretched_seed );
-        fc::sha256            get_seed()const;
+        void                  set_seed( const fc::sha512& stretched_seed );
+        fc::sha512            get_seed()const;
 
         extended_private_key  get_private_account( uint32_t i );
         extended_public_key   get_public_account( uint32_t i );
