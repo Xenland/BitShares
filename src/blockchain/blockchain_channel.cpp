@@ -26,8 +26,8 @@ namespace bts { namespace blockchain {
           // TODO: add a timestamp so we can time it out properly....
           // Any connection that pushes data we didn't request is 
           // punished...
-          std::unordered_set<uint160>    requested_trxs; 
-          std::unordered_set<fcsha224>   requested_blocks; 
+          std::unordered_set<uint160>      requested_trxs; 
+          std::unordered_set<fc::sha224>   requested_blocks; 
 
           // only one request at a time, null hash means nothing pending
           fc::sha224                     requested_full_block; 
