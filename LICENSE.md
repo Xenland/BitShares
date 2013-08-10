@@ -18,9 +18,9 @@ met:
          specific prior written permission.
    4. Any and all patents held by the user or distributor of this software are
          licensed free of charge to any and all individuals or organizations 
-         with the following exception:
+         who have also agreed to this condition.
 
-         *  Patents may be enforced or licensed at a fee to any indivudal or
+         Note: Patents may be enforced or licensed at a fee to any indivudal or
          organization that is currently collecting patent/copyright royalties, 
          or attempting to collect royalties or deny others use of their IP.
 
