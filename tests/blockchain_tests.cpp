@@ -13,12 +13,41 @@
 #include <fc/io/raw.hpp>
 #include <fc/filesystem.hpp>
 #include <bts/blockchain/blockchain_printer.hpp>
+#include <bts/hd_wallet.hpp>
 #include <fstream>
 
 using namespace bts;
 using bts::blockchain::asset;
 using bts::blockchain::price;
 using namespace bts::blockchain;
+
+BOOST_AUTO_TEST_CASE( hd_wallet_test )
+{
+  try {
+    auto priv  = fc::ecc::private_key::generate().get_secret();
+    auto chain = fc::sha256::hash(  "world", 5 );
+   
+    extended_private_key epk( priv, chain );
+    extended_private_key c1 = epk.child( 1, true );
+   
+    extended_public_key  epubk( epk.get_public_key(), chain );
+    extended_public_key  pub_c1 = epubk.child( 1 );
+   
+    ilog( "ext_priv_key: ${epk}", ("epk",epk) );
+    ilog( "ext_pub_key: ${epubk}", ("epubk",epubk) );
+
+    ilog( "priv_child: ${c1}", ("c1",c1) );
+    ilog( "priv_child.pub: ${c1}", ("c1",c1.get_public_key()) );
+    ilog( "pub_child:      ${pub_c1}", ("pub_c1",pub_c1) );
+
+    BOOST_REQUIRE( c1.get_public_key() == pub_c1.pub_key );
+  }
+  catch ( const fc::exception& e )
+  {
+    elog( "${e}", ("e",e.to_detail_string()) );
+    throw;
+  }
+}
 
 BOOST_AUTO_TEST_CASE( mining_reward_rate )
 {

@@ -85,6 +85,7 @@ set( sources
      src/merkle_tree.cpp
      src/address.cpp
      src/wallet.cpp
+     src/hd_wallet.cpp
      src/bitmessage.cpp
 
      vendor/SFMT-src-1.4/SFMT.c
