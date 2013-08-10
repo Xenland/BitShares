@@ -6,6 +6,8 @@
 #include <fc/exception/exception.hpp>
 #include <fc/thread/thread.hpp>
 
+#include <fc/log/logger.hpp>
+
 namespace bts {
 
   extended_public_key::extended_public_key()
@@ -97,6 +99,7 @@ namespace bts {
     return fc::ecc::private_key::regenerate( priv_key ).get_public_key();
   }
 
+  hd_wallet::hd_wallet(){}
 
   /**
    *  This method will take several minutes to run and is designed to
@@ -142,7 +145,9 @@ namespace bts {
 
   extended_public_key   hd_wallet::get_public_trx( uint32_t account, uint32_t trx )
   {
-    return get_public_account( account ).child( trx );
+    auto r = get_public_account( account ).child( trx );
+//    ilog( "ext pub trx: ${account}/${trx} => ${epk}", ("account",account)("trx",trx)("epk",r) );
+    return r;
   }
 
   fc::ecc::public_key   hd_wallet::get_public_trx_address( uint32_t account, uint32_t trx, uint32_t addr )
@@ -152,12 +157,14 @@ namespace bts {
 
   extended_private_key  hd_wallet::get_private_trx( uint32_t account, uint32_t trx )
   {
-    return get_private_account( account ).child( trx );
+    auto r =  get_private_account( account ).child( trx, true/*pub deriv*/ );
+ //   ilog( "ext priv trx: ${account}/${trx} => ${epk}", ("account",account)("trx",trx)("epk",r) );
+    return r;
   }
 
   fc::ecc::private_key  hd_wallet::get_private_trx_address( uint32_t account, uint32_t trx, uint32_t addr )
   {
-    return get_private_trx( account, trx ).child(addr);
+    return get_private_trx( account, trx ).child(addr, true /*pub deriv*/);
   }
 
   

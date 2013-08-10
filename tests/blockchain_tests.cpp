@@ -41,6 +41,18 @@ BOOST_AUTO_TEST_CASE( hd_wallet_test )
     ilog( "pub_child:      ${pub_c1}", ("pub_c1",pub_c1) );
 
     BOOST_REQUIRE( c1.get_public_key() == pub_c1.pub_key );
+
+    hd_wallet wal;
+    wal.set_seed( fc::sha512::hash( "hello", 5 ) );
+    BOOST_REQUIRE( wal.get_private_account( 1 ).get_public_key() ==
+                   wal.get_public_account( 1 ).pub_key );
+
+    BOOST_REQUIRE( wal.get_private_trx( 1, 2 ).get_public_key() ==
+                   wal.get_public_trx( 1, 2 ).pub_key );
+
+    BOOST_REQUIRE( wal.get_private_trx_address( 1, 3, 4 ).get_public_key() ==
+                   wal.get_public_trx_address( 1, 3, 4 ) );
+
   }
   catch ( const fc::exception& e )
   {
