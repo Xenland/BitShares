@@ -24,7 +24,7 @@ met:
          organization that is currently collecting patent/copyright royalties, 
          or attempting to collect royalties or deny others use of their IP.
 
-   5. An exemption to condition 4 is available by contacting Invictus Innovations, Inc
+   5. An exemption to condition 4 may be available by contacting Invictus Innovations, Inc
          and purchasing a separate license. 
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
