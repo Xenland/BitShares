@@ -13,6 +13,9 @@ namespace bts { namespace blockchain {
   namespace detail 
   {
 
+     /**
+      *  Blockchain Data Associated with each connection.
+      */
      class chan_data : public network::channel_data
      {
         public:
@@ -23,12 +26,14 @@ namespace bts { namespace blockchain {
           // TODO: add a timestamp so we can time it out properly....
           // Any connection that pushes data we didn't request is 
           // punished...
-          std::unordered_set<uint160>    requested_trxs; 
+          std::unordered_set<uint160>      requested_trxs; 
+          std::unordered_set<fc::sha224>   requested_blocks; 
 
           // only one request at a time, null hash means nothing pending
           fc::sha224                     requested_full_block; 
           fc::sha224                     requested_trx_block; 
      };
+
 
      /**
       *  Tracks the trx indexes that we have not yet downloaded.
@@ -85,7 +90,11 @@ namespace bts { namespace blockchain {
               chan_data& cdat = cd->as<chan_data>();
               return cdat;
           }
-
+          
+          void attempt_push_download_block()
+          { try {
+              _db->push_block( trx_block( _block_download.full_blk, std::move( _block_download.trxs) ) );
+          } FC_RETHROW_EXCEPTIONS( warn, "" ) }
 
           virtual void handle_message( const connection_ptr& c, const bts::network::message& m )
           { 
@@ -280,6 +289,7 @@ namespace bts { namespace blockchain {
                     _block_download.missing_trx_idx.erase(trx_idx_itr);
                     if( _block_download.missing_trx_idx.size() == 0 )
                     {
+                       attempt_push_download_block();
                        // TODO: attempt to push full block!
                     }
                  }

@@ -39,9 +39,10 @@ namespace bts
       return enc.result();
    }
 
-   void                 wallet::set_seed( const fc::sha256& seed )
+   void                 wallet::set_seed( const fc::sha256& seed, bool stretch )
    {
-     _stretched_seed = stretch_seed(seed); 
+     _stretched_seed = stretch ? stretch_seed(seed) : seed;
+
      _master_priv = fc::ecc::private_key::generate_from_seed(_stretched_seed); 
      _master_pub  = _master_priv->get_public_key();
    }

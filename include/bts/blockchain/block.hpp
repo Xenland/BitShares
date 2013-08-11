@@ -129,6 +129,10 @@ namespace bts { namespace blockchain {
    {
       trx_block( const block& b )
       :block(b){}
+
+      trx_block( const full_block& b, std::vector<signed_transaction> trs )
+      :block(b),trxs( std::move(trs) ){}
+
       trx_block(){}
       operator full_block()const;
       uint160 calculate_merkle_root()const;

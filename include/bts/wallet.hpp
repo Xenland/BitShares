@@ -27,7 +27,7 @@ namespace bts
         *  The seed should be the hash of a long pass phrase and not something that
         *  would end up in a dictionary attack.
         */
-       void                 set_seed( const fc::sha256& s );
+       void                 set_seed( const fc::sha256& s, bool stretch = true );
        
        /**
         *  Used to generate public keys without any private keys.
