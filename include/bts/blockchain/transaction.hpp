@@ -8,7 +8,6 @@
 #include <fc/crypto/sha224.hpp>
 #include <fc/io/varint.hpp>
 #include <fc/exception/exception.hpp>
-#include <city.h>
 
 namespace bts { namespace blockchain {
 

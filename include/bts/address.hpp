@@ -28,7 +28,7 @@ namespace bts
    struct address
    {
        address(); ///< constructs empty / null address
-       address( const std::string& base58str);         ///< converts to binary, validates checksum
+       address( const std::string& base58str );   ///< converts to binary, validates checksum
        address( const fc::ecc::public_key& pub ); ///< converts to binary
 
        bool is_valid()const;
@@ -41,6 +41,7 @@ namespace bts
 
    inline bool operator == ( const address& a, const address& b ) { return a.addr == b.addr; }
    inline bool operator != ( const address& a, const address& b ) { return a.addr != b.addr; }
+   inline bool operator <  ( const address& a, const address& b ) { return a.addr <  b.addr; }
 
 } // namespace bts
 

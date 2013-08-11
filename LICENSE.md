@@ -1,4 +1,4 @@
-Intelectual Freedom Software License - Version 1.0 - August 10, 2013
+Intellectual Freedom Software License - Version 1.0 - August 10, 2013
 --------------------------------------------------------------------
 
 Copyright (c) 2013 Invictus Innovations, Inc.
@@ -37,7 +37,7 @@ DEALINGS IN THE SOFTWARE.
 
 
 
-Intent of the Intelectual Freedom Software License
+Intent of the Intellectual Freedom Software License
 ----------------------------------------------------------------- 
 This license is intended to have all of the properties of the BSD
 license while actively working to reform patent law and foster a
