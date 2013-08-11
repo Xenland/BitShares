@@ -12,6 +12,7 @@
 #include <fc/log/logger.hpp>
 #include <fc/io/stdio.hpp>
 #include <fc/thread/thread.hpp>
+#include <bts/network/upnp.hpp>
 
 #include <iostream>
 #include <sstream>
@@ -70,11 +71,13 @@ int main( int argc, char** argv )
     rpc_serv->set_bitname_client( name_cl );
     rpc_serv->configure( cfg.rpc_config );
 
+    auto  upnpserv = std::make_shared<bts::network::upnp_service>();
+    upnpserv->map_port( cfg.server_config.port );
+
     if( argc >= 3 )
     {
       serv->connect_to( fc::ip::endpoint::from_string( argv[2] ) );
     }
-
 
     for( uint32_t i = 0; i < cfg.ids.size(); i++ )
     {
