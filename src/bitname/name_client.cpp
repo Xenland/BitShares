@@ -1,4 +1,5 @@
 #include <bts/bitname/name_client.hpp>
+#include <bts/bitname/name_channel.hpp>
 #include <fc/crypto/hex.hpp>
 
 namespace bts { namespace bitname {
@@ -13,10 +14,10 @@ namespace bts { namespace bitname {
 
   } // detail
 
-  client::client( const name_channel_ptr& c )
+  client::client( const peer::peer_channel_ptr& peer_ch )
   :my( new detail::client_impl() )
   {
-    my->chan = c;
+      my->chan = std::make_shared<bts::bitname::name_channel>(peer_ch);
   }
   client::~client(){}
 

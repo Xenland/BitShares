@@ -1,5 +1,5 @@
 #pragma once
-#include <bts/bitname/name_channel.hpp>
+#include <bts/peer/peer_channel.hpp>
 #include <fc/reflect/reflect.hpp>
 #include <fc/crypto/elliptic.hpp>
 #include <fc/optional.hpp>
@@ -68,7 +68,7 @@ namespace bts { namespace bitname {
   class client 
   {
      public:
-       client( const bts::bitname::name_channel_ptr& namechan );
+       client( const bts::peer::peer_channel_ptr& peer_chan );
        ~client();
 
        name_record                    lookup_name( const std::string& name );
