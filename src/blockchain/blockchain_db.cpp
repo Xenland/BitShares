@@ -474,13 +474,11 @@ namespace bts { namespace blockchain {
         uint64_t supply = current_bitshare_supply();
         uint64_t div_percent = calculate_dividend_percent( dividends, supply );
 
-        FC_ASSERT( b.state.dividend_percent == div_percent ); 
-#if 0 //TODO: DanN bring this back for WIN32 eventually
+        FC_ASSERT( b.state.dividend_percent == div_percent, 
                    ", ${a} != ${b}   dividends ${d}  / supply ${s}", 
                    ("a",b.state.dividend_percent)("b",div_percent) 
                    ("d", dividends)("s",supply) 
                    );
-#endif
 
         if( total_eval.coinbase != miner_fees )
         {
