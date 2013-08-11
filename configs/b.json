@@ -14,6 +14,11 @@
       ]
     }
   ],
+  "rpc_config" : {
+    "port" : 5789,
+    "user" : "rpc_user",
+    "pass" : "rpc_pass"
+  },
   "contacts": [{
       "label": "dan",
       "key": "03ad7290bace92ee96d05cd3e2b1049c6dfe078fa603dc12aa17bad23cc125803f",

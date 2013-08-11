@@ -121,7 +121,7 @@ namespace fc
       template<typename Stream>
       inline void pack( Stream& s, const bts::network::message& m )
       {
-         FC_ASSERT( m.size % 8 == 0 );
+         FC_ASSERT( m.size % 8 == 0, ", size: ${s}", ("s",m.size) );
          pack_view packed_value;
          packed_value.size = m.size;
          packed_value.proto = m.proto;
@@ -141,7 +141,6 @@ namespace fc
       inline void unpack( Stream& s, bts::network::message& m )
       {  
          pack_view packed_value;
-         s.read( (char*)&m, sizeof( bts::network::message_header ) );
          s.read( (char*)&packed_value, sizeof( packed_value ) );
          m.size = packed_value.size;
          m.proto = packed_value.proto;
