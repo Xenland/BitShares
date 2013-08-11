@@ -1,7 +1,6 @@
 project( bitshares )
 cmake_minimum_required( VERSION 2.8.11 )
 
-set( CMAKE_INCLUDE_CURRENT_DIR ON)
 set( CMAKE_AUTOMOC ON )
 
 set( CMAKE_PREFIX_PATH  ${CMAKE_PREFIX_PATH} ";${CMAKE_SOURCE_DIR}/vendor/qt.5.1/5.1.0/msvc2012/lib/cmake/Qt5Widgets" )
@@ -109,6 +108,8 @@ set( sources
 
      src/rpc/rpc_server.cpp
 
+
+     src/extended_address.cpp
      src/db.cpp
      src/small_hash.cpp
      src/mini_pow.cpp 

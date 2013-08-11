@@ -104,9 +104,9 @@ namespace bts { namespace bitchat {
                    fc::usleep( fc::microseconds( (rand() % 20000) + 100) ); // note: usleep(0) sleeps forever... perhaps a bug?
                 }
              } 
-             catch ( ... )
+             catch ( const fc::exception& e )
              {
-               wlog( "TODO: handle exceptions here???" );
+               wlog( "${e}", ("e", e.to_detail_string()) );
              }
           }
 
