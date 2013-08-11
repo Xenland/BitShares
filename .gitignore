@@ -2,15 +2,44 @@
 *.slo
 *.lo
 *.o
+*.obj
 
 # Compiled Dynamic libraries
 *.so
 *.dylib
+*.dll
 
 # Compiled Static libraries
 *.lai
 *.la
 *.a
+*.lib
+
+
+#CMake->MSVC artifacts
+*.sln
+*.vcxproj
+ALL_BUILD
+ZERO_CHECK
+
+#MSVC secondary artifacts
+*.suo
+*.vcxproj.filters
+*.vcxproj.user
+*.pdb
+*.ilk
+*.lastbuildstate
+*.sdf
+*.opensdf
+Debug
+Release
+
+# Log files
+*.tlog
+
+#DLN
+vendor/qt.5.1
+
 
 fc
 doc/html

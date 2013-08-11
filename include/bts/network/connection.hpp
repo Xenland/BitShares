@@ -9,7 +9,7 @@ namespace bts { namespace network {
    namespace detail { class connection_impl; }
 
    class connection;
-   class message;
+   struct message;
    typedef std::shared_ptr<connection> connection_ptr;
 
    /** 

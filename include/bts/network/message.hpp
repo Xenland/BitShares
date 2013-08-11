@@ -17,15 +17,18 @@ namespace bts { namespace network {
   struct message_header
   {
      channel_id channel()const { return channel_id( (channel_proto)proto, chan_num ); }
-
      uint32_t  size:24;   // number of bytes in message, max 16 MB per message
      uint8_t   proto;     // protocol of the channel
      uint16_t  chan_num;  // channel identifier, 60K channels per protocol max
      uint16_t  msg_type;  // every channel gets a 16 bit message type specifier
 
   };
-  static_assert( sizeof(message_header) == sizeof(uint64_t), "message header fields should be tightly packed" );
 
+//TODO: MSVC is padding message_header, so for now we're packing it before writing it. We could change
+//      to uint32_t proto:8, but then we get a problem with FC_REFLECT (&operator doesn't work on bit-fields)
+#ifndef WIN32  
+  static_assert( sizeof(message_header) == sizeof(uint64_t), "message header fields should be tightly packed" );
+#endif
 
   /**
    *  Abstracts the process of packing/unpacking a message for a 
@@ -103,6 +106,15 @@ namespace fc
 { 
    namespace raw {
 
+      struct pack_view
+        {
+        int32_t size : 24;
+        int32_t proto : 8;
+        int16_t chan_num;
+        int16_t msg_type;
+        };
+      static_assert( sizeof(pack_view) == sizeof(uint64_t), "pack_view should be tightly packed" );
+
       /**
        *  @read write in blocks of at least 8 bytes for encryption purposes
        */
@@ -110,7 +122,12 @@ namespace fc
       inline void pack( Stream& s, const bts::network::message& m )
       {
          FC_ASSERT( m.size % 8 == 0 );
-         s.write( (char*)&m, sizeof( bts::network::message_header ) );
+         pack_view packed_value;
+         packed_value.size = m.size;
+         packed_value.proto = m.proto;
+         packed_value.chan_num = m.chan_num;
+         packed_value.msg_type = m.msg_type;
+         s.write( (char*)&packed_value, sizeof( packed_value ) );
          if( m.size )
          {
             s.write( m.data.data(), m.data.size() );
@@ -122,8 +139,14 @@ namespace fc
        */
       template<typename Stream>
       inline void unpack( Stream& s, bts::network::message& m )
-      {
+      {  
+         pack_view packed_value;
          s.read( (char*)&m, sizeof( bts::network::message_header ) );
+         s.read( (char*)&packed_value, sizeof( packed_value ) );
+         m.size = packed_value.size;
+         m.proto = packed_value.proto;
+         m.chan_num = packed_value.chan_num;
+         m.msg_type = packed_value.msg_type;
          FC_ASSERT( m.size % 8 == 0 );
          if( m.size > 0 )
          {

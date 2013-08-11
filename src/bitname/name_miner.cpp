@@ -58,7 +58,8 @@ namespace bts { namespace bitname {
                     {
                        ++_block_ver; // signal other threads to stop
                        b.nonce   = *nonce;
-                       b.utc_sec = fc::time_point_sec(*ts);
+                       fc::time_point time_point( fc::microseconds((int64_t)*ts) );
+                       b.utc_sec = fc::time_point_sec( time_point );
                        _callback_thread.async( [=](){ _del->found_name_block( b ); } );
                     }
                     if( ver < _block_ver ) return;

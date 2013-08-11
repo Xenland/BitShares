@@ -73,7 +73,8 @@ namespace bts { namespace blockchain {
         out << "<table width=\"100%\"><tr><th width=\"50%\" padding=10>In</th><th padding=10 width=\"50%\">Out</th></tr>\n";
         for( uint32_t i = 0; i < state.balance_sheet.size(); ++i )
         {
-           if( state.balance_sheet[i].in.amount != 0 || state.balance_sheet[i].out.amount != 0  )
+           if( state.balance_sheet[i].in.amount  != fc::uint128(0) || 
+               state.balance_sheet[i].out.amount != fc::uint128(0)  )
            {
               out <<"<tr>\n";
               out <<"<td>"<< std::string(state.balance_sheet[i].in)<<"</td>";

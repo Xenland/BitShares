@@ -4,9 +4,10 @@ cmake_minimum_required( VERSION 2.8.11 )
 set( CMAKE_INCLUDE_CURRENT_DIR ON)
 set( CMAKE_AUTOMOC ON )
 
+set( CMAKE_PREFIX_PATH  ${CMAKE_PREFIX_PATH} ";${CMAKE_SOURCE_DIR}/vendor/qt.5.1/5.1.0/msvc2012/lib/cmake/Qt5Widgets" )
 find_package( Qt5Widgets )
 
-set( CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/fc/CMakeModules;${CMAKE_MODULE_PATH}" )
+set( CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/fc/CMakeModules" ${CMAKE_MODULE_PATH} )
 FIND_PACKAGE( OpenSSL )
 SET( ALL_OPENSSL_LIBRARIES
        ${OPENSSL_LIBRARIES}
@@ -28,6 +29,7 @@ IF( WIN32 )
   #ADD_DEFINITIONS( -DBOOST_ALL_NO_LIB -DBOOST_THREAD_BUILD_LIB)
   ADD_DEFINITIONS( -DWIN32)
   ADD_DEFINITIONS( -D_WIN32_WINNT=0x0501 )
+  ADD_DEFINITIONS( -DLEVELDB_PLATFORM_WINDOWS )
   # Activate C++ exception handling
   IF (NOT CMAKE_CXX_FLAGS MATCHES "/EHsc")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")    
@@ -55,6 +57,8 @@ include_directories( ${CMAKE_SOURCE_DIR}/vendor/SFMT-src-1.4 )
 include_directories( ${CMAKE_SOURCE_DIR}/vendor/leveldb/include )
 include_directories( ${CMAKE_SOURCE_DIR}/vendor/miniupnp )
 include_directories( ${Boost_INCLUDE_DIR} )
+#need this for boost::process (not an official boost library yet)
+include_directories( ${CMAKE_SOURCE_DIR}/fc/vendor/boost_1.51/include )
    
 #link_directories( ${Boost_LIBRARY_DIRS} )
 

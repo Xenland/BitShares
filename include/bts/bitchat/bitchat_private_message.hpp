@@ -106,7 +106,7 @@ namespace bts { namespace bitchat {
 
     struct private_text_message 
     {
-       static const private_message_type  type = text_msg;
+       static const private_message_type  type;
 
        private_text_message( std::string m = std::string())
        :msg( std::move(m) ){}
@@ -116,7 +116,7 @@ namespace bts { namespace bitchat {
 
     struct private_contact_request_message 
     {
-       static const private_message_type  type = contact_request_msg;
+       static const private_message_type  type;
 
        std::string from_name;
        std::string greeting_message;///< message introducing name/key
@@ -126,7 +126,7 @@ namespace bts { namespace bitchat {
 
     struct private_contact_auth_message 
     {
-       static const private_message_type  type = contact_auth_msg;
+       static const private_message_type  type;
 
        std::string                        auth_text;         ///< "sorry, ok, ..."
        mini_pow                           min_work;          ///< how much work is required to contact this individual
@@ -153,7 +153,7 @@ namespace bts { namespace bitchat {
      */
     struct private_status_message 
     {
-       static const private_message_type  type = status_msg;
+       static const private_message_type  type;
 
        private_status_message( account_status s = unknown, std::string m = std::string() )
        :status( s ), status_message( std::move(m) ){}

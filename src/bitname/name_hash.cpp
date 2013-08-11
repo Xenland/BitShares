@@ -91,11 +91,13 @@ void replace_char_runs( std::string& s )
   }
 }
 
-
 uint64_t  name_hash( const std::string& n )
 {
   std::locale loc = std::locale::classic();
-  auto up = std::toupper( n, loc );
+  std::string up(n);
+  int length =n.length();
+  for(int i=0;i<length;++i)
+    up[i] = std::toupper( n[i], loc );
   for( auto itr = up.begin(); itr != up.end(); ++itr )
     *itr = replace_similar(*itr);
  
