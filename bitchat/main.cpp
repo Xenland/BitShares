@@ -56,15 +56,16 @@ int main( int argc, char** argv )
     bts::network::server_ptr serv( std::make_shared<bts::network::server>() );    
     serv->configure( cfg.server_config );
 
-    bts::peer::peer_channel_ptr peer_ch = std::make_shared<bts::peer::peer_channel>(serv);
-    bts::bitname::name_channel_ptr name_ch = std::make_shared<bts::bitname::name_channel>(peer_ch);
+    bts::peer::peer_channel_ptr    peer_ch        = std::make_shared<bts::peer::peer_channel>(serv);
 
-    std::shared_ptr<bitchat_del> chat_del = std::make_shared<bitchat_del>();
+    std::shared_ptr<bitchat_del>   chat_del       = std::make_shared<bitchat_del>();
+    bts::bitchat::client_ptr       chat_cl        = std::make_shared<bts::bitchat::client>( peer_ch, chat_del.get() );
 
-    bts::bitchat::client_ptr chat_cl = std::make_shared<bts::bitchat::client>( peer_ch, chat_del.get() );
-    bts::bitname::client_ptr name_cl = std::make_shared<bts::bitname::client>( name_ch );
+    /// provides synchronized accounts across all computers in the network
+    bts::bitname::client_ptr       name_cl        = std::make_shared<bts::bitname::client>( peer_ch );
+//    bts::blockchain::client_ptr    blockchain_cl  = std::make_shared<bts::blockchain::client>( peer_ch );
 
-
+    /// enable local RPC queries of data on various channels
     bts::rpc::server_ptr rpc_serv = std::make_shared<bts::rpc::server>();
     rpc_serv->set_bitname_client( name_cl );
     rpc_serv->configure( cfg.rpc_config );

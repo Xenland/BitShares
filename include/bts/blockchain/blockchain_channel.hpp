@@ -73,4 +73,6 @@ namespace bts { namespace blockchain {
        std::shared_ptr<detail::channel_impl> my;
   };
 
+  typedef std::shared_ptr<channel> channel_ptr;
+
 } } // bts::blockchain
