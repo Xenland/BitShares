@@ -5,6 +5,11 @@
     "bootstrap_endpoints": [],
     "blacklist": []
   },
+  "rpc_config": {
+    "port": 8789,
+    "user": "rpc_user",
+    "pass": "rpc_pass"
+  },
   "ids": [{
       "label": "trish",
       "key": "69a20e1989844781c43195af281db99b0b184cde3922d77f5f24faa35beaa062",
@@ -17,6 +22,13 @@
   "contacts": [{
       "label": "dan",
       "key": "03ad7290bace92ee96d05cd3e2b1049c6dfe078fa603dc12aa17bad23cc125803f",
+      "recv_broadcast": null,
+      "send_channels": [
+        0
+      ]
+    },{
+      "label": "scott",
+      "key": "02ee9f61b6c3f71d6887efb0678aa0cd2c73bb825ab5197649b98d80d5c6022ccc",
       "recv_broadcast": null,
       "send_channels": [
         0
