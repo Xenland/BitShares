@@ -158,6 +158,7 @@ namespace bts { namespace bitchat {
                 {
                     contacts[from_str] = contact( from_str, *from );
                     key_to_contact[from_str] = from_str;
+                    itr = key_to_contact.find( from_str );
                 }
                 ilog( "from: ${from}", ("from",from_str) ); 
                 del->received_message( m.msg, to, contacts[itr->second]);
