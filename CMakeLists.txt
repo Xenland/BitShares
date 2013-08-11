@@ -73,9 +73,10 @@ set( sources
      src/blockchain/transaction.cpp
      src/blockchain/trx_validation_state.cpp
      src/blockchain/blockchain_db.cpp
-     src/blockchain/blockchain_channel.cpp
      src/blockchain/blockchain_printer.cpp
      src/blockchain/blockchain_messages.cpp
+     src/blockchain/blockchain_channel.cpp
+     src/blockchain/blockchain_client.cpp
 
      src/rpc/rpc_server.cpp
 
