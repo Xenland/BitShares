@@ -4,7 +4,10 @@
 #include <bts/network/server.hpp>
 #include <bts/network/channel.hpp>
 #include <fc/reflect/variant.hpp>
+#include <fc/thread/thread.hpp>
 #include <fc/log/logger.hpp>
+
+#include <unordered_map>
 
 
 namespace bts { namespace bitname {
@@ -15,7 +18,8 @@ namespace bts { namespace bitname {
     class chan_data : public network::channel_data
     {
       public:
-        std::unordered_set<mini_pow> known_inv;
+        std::unordered_set<mini_pow> known_block_inv;
+        std::unordered_set<uint64_t> known_name_inv;
     };
 
     class name_channel_impl : public bts::network::channel
@@ -29,6 +33,101 @@ namespace bts { namespace bitname {
           network::channel_id          _chan_id;
                                     
           name_db                      _ndb;
+          fc::future<void>             _fetch_loop;
+
+          /// messages received since last inv broadcast
+          std::vector<uint64_t>        _new_names; 
+
+          /// new name updates that have come in
+          std::unordered_set<uint64_t>                 _unknown_names;
+          std::unordered_map<uint64_t,fc::time_point>  _requested_names; // messages that we have requested but not yet received
+
+
+          void fetch_loop()
+          {
+             try {
+                while( !_fetch_loop.canceled() )
+                {
+                   broadcast_inv();
+                   if( _unknown_names.size()  )
+                   {
+                      auto cons = _peers->get_connections( _chan_id );
+                      // copy so we don't hold shared state in the iterators
+                      // while we iterate and send fetch requests
+                      auto tmp = _unknown_names; 
+                      for( auto itr = tmp.begin(); itr != tmp.end(); ++itr )
+                      {
+                          fetch_name_from_best_connection( cons, *itr );
+                      }
+                   }
+                   /* By using a random sleep we give other peers the oppotunity to find
+                    * out about messages before we pick who to fetch from.
+                    * TODO: move constants to config.hpp
+                    */
+                   fc::usleep( fc::microseconds( (rand() % 20000) + 100) ); // note: usleep(0) sleeps forever... perhaps a bug?
+                }
+             } 
+             catch ( const fc::exception& e )
+             {
+               wlog( "${e}", ("e", e.to_detail_string()) );
+             }
+          }
+
+          /**
+           *  Send any new inventory items that we have received since the last
+           *  broadcast to all connections that do not know about the inv item.
+           */
+          void broadcast_inv()
+          { try {
+              if( _new_names.size() )
+              {
+                auto cons = _peers->get_connections( _chan_id );
+                for( auto c = cons.begin(); c != cons.end(); ++c )
+                {
+                  name_inv_message msg;
+
+                  chan_data& cd = get_channel_data( *c );
+                  for( uint32_t i = 0; i < _new_names.size(); ++i )
+                  {
+                     if( cd.known_name_inv.insert( _new_names[i] ).second )
+                     {
+                        msg.names.push_back( _new_names[i] );
+                     }
+                  }
+
+                  if( msg.names.size() )
+                  {
+                    (*c)->send( network::message(msg,_chan_id) );
+                  }
+                }
+                _new_names.clear();
+              }
+              // TODO: broadcast new blocks...
+          } FC_RETHROW_EXCEPTIONS( warn, "error broadcasting bitname inventory") } // broadcast_inv
+
+
+          /**
+           *   For any given message id, there are many potential hosts from which it could be fetched.  We
+           *   want to distribute the load across all hosts equally and therefore, the best one to fetch from
+           *   is the host that we have fetched the least from and that has fetched the most from us.
+           */
+          void fetch_name_from_best_connection( const std::vector<connection_ptr>& cons, const uint64_t& id )
+          { try {
+             // if request is made, move id from unknown_names to requested_msgs 
+             // TODO: update this algorithm to be something better. 
+             for( uint32_t i = 0; i < cons.size(); ++i )
+             {
+                 chan_data& cd = get_channel_data(cons[i]); 
+                 if( cd.known_name_inv.find( id ) !=  cd.known_name_inv.end() )
+                 {
+                    _requested_names[id] = fc::time_point::now();
+                    _unknown_names.erase(id);
+                    cons[i]->send( network::message( get_name_message( id ), _chan_id ) );
+                    return;
+                 }
+             }
+          } FC_RETHROW_EXCEPTIONS( warn, "error fetching name ${name_hash}", ("name_hash",id) ) }
+
 
           /**
            *  Get or create the bitchat channel data for this connection and return
@@ -140,11 +239,21 @@ namespace bts { namespace bitname {
      my->_peers = n;
      my->_chan_id = channel_id(network::name_proto,0);
      my->_peers->subscribe_to_channel( my->_chan_id, my );
+     my->_fetch_loop = fc::async( [=](){ my->fetch_loop(); } );
   }
 
   name_channel::~name_channel() 
   { 
      my->_peers->unsubscribe_from_channel( my->_chan_id );
+     my->_del = nullptr;
+     try {
+        my->_fetch_loop.cancel();
+        my->_fetch_loop.wait();
+     } 
+     catch ( ... ) 
+     {
+        wlog( "unexpected exception ${e}", ("e", fc::except_str()));
+     }
   } 
 
   void name_channel::configure( const name_channel::config& c )

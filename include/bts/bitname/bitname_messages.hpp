@@ -58,8 +58,8 @@ namespace bts { namespace bitname {
   struct get_name_message
   {
     static const message_type type;
-    get_name_message()
-    :name_hash(0){}
+    get_name_message(uint64_t name = 0)
+    :name_hash(name){}
 
     uint64_t name_hash;
   };
