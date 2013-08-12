@@ -227,6 +227,7 @@ namespace bts { namespace bitname {
    
           void handle_get_name( const connection_ptr& con,  chan_data& cdat, const get_name_message& msg )
           {
+             ilog( "${msg}", ("msg",msg) );
              auto pend_name_itr = _pending_names.find( msg.name_hash );
              if( pend_name_itr == _pending_names.end() )
              {
@@ -241,6 +242,7 @@ namespace bts { namespace bitname {
    
           void handle_name( const connection_ptr& con,  chan_data& cdat, const name_message& msg )
           { try {
+             ilog( "${msg}", ("msg",msg) );
              // TODO: verify that we requested this msg.
              // validate that the contained name is valid based upon the current trxdb state
              // if it is, add it to the pending name_trx queue..

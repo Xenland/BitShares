@@ -19,7 +19,8 @@ namespace bts { namespace bitname {
         void open( const fc::path& dbdir, bool create = true );
         void close();
 
-        void store( const name_block& b );
+        void push_block( const name_block& b );
+        void pop_block(); // pops the most recent block
 
         struct name_location 
         {
@@ -31,11 +32,14 @@ namespace bts { namespace bitname {
             uint16_t trx_num;
         };
 
+        /** finds the location of most recent registration of name_hash */
         name_location   find_name( uint64_t name_hash );
-        name_header     fetch_trx( uint64_t name_hash );
-        name_block      fetch_block( const mini_pow& block_id );
 
-        void            remove_block( const mini_pow& block_id );
+        /** fetches the most recent registration of name_hash */
+        name_trx        fetch_trx( uint64_t name_hash );
+
+        /** get a block by its block_id */
+        name_block      fetch_block( const mini_pow& block_id );
 
       private:
         std::unique_ptr<detail::name_db_impl> my;
