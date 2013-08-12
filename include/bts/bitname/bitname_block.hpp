@@ -86,6 +86,7 @@ namespace bts { namespace bitname {
 
         std::vector<name_trx> registered_names;
     };
+    name_block create_genesis_block();
 
     /**
      *  This is a light-weight block for broadcasting a solved block without

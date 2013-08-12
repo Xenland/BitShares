@@ -30,21 +30,16 @@ BOOST_AUTO_TEST_CASE( bitname_db_test )
     bts::bitname::name_db chain;
     chain.open( temp_dir.path() / "chain" );
 
-    bts::bitname::name_block gensis;
-    gensis.utc_sec = fc::time_point::now();
-    gensis.name_hash = 0;
-    gensis.key = fc::ecc::private_key::generate().get_public_key();
-    gensis.mroot = gensis.calc_merkle_root();
-
-    chain.push_block( gensis );
-    BOOST_REQUIRE_THROW( chain.push_block( gensis ), fc::exception );
+    bts::bitname::name_block genesis = bts::bitname::create_genesis_block();
+    chain.push_block( genesis );
+    BOOST_REQUIRE_THROW( chain.push_block( genesis ), fc::exception );
 
     bts::bitname::name_block block1;
     block1.utc_sec = fc::time_point::now();
     block1.name_hash = 1;
     block1.key = fc::ecc::private_key::generate().get_public_key();
     block1.mroot = block1.calc_merkle_root();
-    block1.prev = gensis.id();
+    block1.prev = genesis.id();
 
     chain.push_block( block1 );
     BOOST_REQUIRE_THROW( chain.push_block( block1 ), fc::exception );
