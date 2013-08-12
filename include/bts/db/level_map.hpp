@@ -20,7 +20,7 @@ namespace bts { namespace db {
   class level_map
   {
      public:
-        void open( const fc::path& dir, bool create )
+        void open( const fc::path& dir, bool create = true )
         {
            ldb::Options opts;
            opts.create_if_missing = create;

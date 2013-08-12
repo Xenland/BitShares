@@ -1,5 +1,6 @@
 #pragma once
 #include <bts/peer/peer_channel.hpp>
+#include <bts/addressbook/addressbook.hpp>
 #include <fc/crypto/elliptic.hpp>
 #include <fc/reflect/reflect.hpp>
 #include <fc/time.hpp>
@@ -100,7 +101,8 @@ namespace bts { namespace bitchat
              std::vector<contact>  contacts; ///< information about my contacts
           };
 
-          client( const bts::peer::peer_channel_ptr& s, bitchat_delegate* d );
+          client( const bts::peer::peer_channel_ptr& s, 
+                  const addressbook::addressbook_ptr& abook, bitchat_delegate* d );
           ~client();
 
           void               add_identity( const identity& id );
