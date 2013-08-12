@@ -96,6 +96,8 @@ set( sources
      src/bitchat/bitchat_channel.cpp
      src/bitchat/bitchat_client.cpp 
 
+     src/addressbook/addressbook.cpp 
+
      src/blockchain/asset.cpp
      src/blockchain/block.cpp
      src/blockchain/transaction.cpp
