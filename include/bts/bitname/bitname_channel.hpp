@@ -1,5 +1,5 @@
 #pragma once
-#include <bts/bitname/name_block.hpp>
+#include <bts/bitname/bitname_block.hpp>
 #include <bts/peer/peer_channel.hpp>
 #include <bts/network/server.hpp>
 #include <fc/filesystem.hpp>

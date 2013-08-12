@@ -1,5 +1,5 @@
-#include <bts/bitname/name_miner.hpp>
-#include <bts/bitname/name_hash.hpp>
+#include <bts/bitname/bitname_miner.hpp>
+#include <bts/bitname/bitname_hash.hpp>
 #include <bts/config.hpp>
 #include <fc/thread/thread.hpp>
 #include <fc/io/raw.hpp>

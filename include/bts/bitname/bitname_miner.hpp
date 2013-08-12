@@ -1,5 +1,5 @@
 #pragma once
-#include <bts/bitname/name_block.hpp>
+#include <bts/bitname/bitname_block.hpp>
 
 namespace bts { namespace bitname {
 

@@ -1,6 +1,6 @@
-#include <bts/bitname/name_client.hpp>
-#include <bts/bitname/name_channel.hpp>
-#include <bts/bitname/name_miner.hpp>
+#include <bts/bitname/bitname_client.hpp>
+#include <bts/bitname/bitname_channel.hpp>
+#include <bts/bitname/bitname_miner.hpp>
 #include <fc/crypto/hex.hpp>
 #include <fc/filesystem.hpp>
 #include <bts/db/level_map.hpp>

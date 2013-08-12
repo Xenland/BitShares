@@ -14,7 +14,7 @@ namespace bts { namespace bitchat {
 
   namespace detail 
   {
-     class bitchat_chan_data : public network::channel_data
+     class chan_data : public network::channel_data
      {
         public:
           std::unordered_set<mini_pow> known_inv;
@@ -43,21 +43,21 @@ namespace bts { namespace bitchat {
            *  Get or create the bitchat channel data for this connection and return
            *  a reference to the result.
            */
-          bitchat_chan_data& get_channel_data( const connection_ptr& c )
+          chan_data& get_channel_data( const connection_ptr& c )
           {
               auto cd = c->get_channel_data( chan_id );
               if( !cd )
               {
-                 cd = std::make_shared<bitchat_chan_data>();
+                 cd = std::make_shared<chan_data>();
                  c->set_channel_data( chan_id, cd );
               }
-              bitchat_chan_data& cdat = cd->as<bitchat_chan_data>();
+              chan_data& cdat = cd->as<chan_data>();
               return cdat;
           }
 
           virtual void handle_message( const connection_ptr& c, const bts::network::message& m )
           {
-              bitchat_chan_data& cdat = get_channel_data(c);
+              chan_data& cdat = get_channel_data(c);
 
               ilog( "${msg_type}", ("msg_type", (bitchat::message_type)m.msg_type ) );
               switch( (bitchat::message_type)m.msg_type )
@@ -122,7 +122,7 @@ namespace bts { namespace bitchat {
              // TODO: update this algorithm to be something better. 
              for( uint32_t i = 0; i < cons.size(); ++i )
              {
-                 bitchat_chan_data& cd = get_channel_data(cons[i]); 
+                 chan_data& cd = get_channel_data(cons[i]); 
                  if( cd.known_inv.find( id ) !=  cd.known_inv.end() )
                  {
                     requested_msgs[id] = fc::time_point::now();
@@ -146,7 +146,7 @@ namespace bts { namespace bitchat {
                 {
                   inv_message msg;
 
-                  bitchat_chan_data& cd = get_channel_data( *c );
+                  chan_data& cd = get_channel_data( *c );
                   for( uint32_t i = 0; i < new_msgs.size(); ++i )
                   {
                      if( cd.known_inv.insert( new_msgs[i] ).second )
@@ -168,7 +168,7 @@ namespace bts { namespace bitchat {
           /**
            *  Note that c knows about items and add any unknown items to our queue 
            */
-          void handle_inv( const connection_ptr& c, bitchat_chan_data& cd, const inv_message& msg )
+          void handle_inv( const connection_ptr& c, chan_data& cd, const inv_message& msg )
           {
               ilog( "inv: ${msg}", ("msg",msg) );
               for( auto itr = msg.items.begin(); itr != msg.items.end(); ++itr )
@@ -184,7 +184,7 @@ namespace bts { namespace bitchat {
           /**
            *  Send all inventory items that are not known to c and are dated 'after'
            */
-          void handle_get_inv( const connection_ptr& c, bitchat_chan_data& cd, const get_inv_message& msg )
+          void handle_get_inv( const connection_ptr& c, chan_data& cd, const get_inv_message& msg )
           {
              inv_message reply;
              for( auto itr = msg_time_index.lower_bound( fc::time_point(msg.after) ); itr != msg_time_index.end(); ++itr )
@@ -199,7 +199,7 @@ namespace bts { namespace bitchat {
           }
             
 
-          void handle_get_priv( const connection_ptr& c, bitchat_chan_data& cd, const get_priv_message& msg )
+          void handle_get_priv( const connection_ptr& c, chan_data& cd, const get_priv_message& msg )
           {
              // TODO: throttle the rate at which get_priv may be called for a given connection
              for( auto itr = msg.items.begin(); itr != msg.items.end(); ++itr )
@@ -213,7 +213,7 @@ namespace bts { namespace bitchat {
              }
           }
 
-          void handle_priv_msg( const connection_ptr& c, bitchat_chan_data& cd, encrypted_message&& msg )
+          void handle_priv_msg( const connection_ptr& c, chan_data& cd, encrypted_message&& msg )
           {
               auto mid = msg.id();
 

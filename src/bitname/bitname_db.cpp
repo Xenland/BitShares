@@ -1,4 +1,4 @@
-#include <bts/bitname/name_db.hpp>
+#include <bts/bitname/bitname_db.hpp>
 #include <leveldb/db.h>
 #include "../db.hpp"
 #include <fc/io/raw.hpp>

@@ -1,7 +1,6 @@
 #include <bts/network/server.hpp>
 #include <bts/peer/peer_channel.hpp>
-#include <bts/bitname/name_channel.hpp>
-#include <bts/bitname/name_client.hpp>
+#include <bts/bitname/bitname_client.hpp>
 #include <bts/bitchat/bitchat_client.hpp>
 #include <bts/rpc/rpc_server.hpp>
 #include <bts/addressbook/addressbook.hpp>

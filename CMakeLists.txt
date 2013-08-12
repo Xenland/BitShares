@@ -84,12 +84,13 @@ set( sources
      src/peer/peer_channel.cpp
      src/peer/peer_messages.cpp
 
-     src/bitname/name_miner.cpp
-     src/bitname/name_block.cpp
-     src/bitname/name_db.cpp
-     src/bitname/name_channel.cpp
-     src/bitname/name_hash.cpp
-     src/bitname/name_client.cpp
+     src/bitname/bitname_miner.cpp
+     src/bitname/bitname_block.cpp
+     src/bitname/bitname_db.cpp
+     src/bitname/bitname_channel.cpp
+     src/bitname/bitname_hash.cpp
+     src/bitname/bitname_client.cpp
+     src/bitname/bitname_messages.cpp
 
      src/bitchat/bitchat_private_message.cpp
      src/bitchat/bitchat_messages.cpp

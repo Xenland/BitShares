@@ -1,4 +1,4 @@
-#include <bts/bitname/name_block.hpp>
+#include <bts/bitname/bitname_block.hpp>
 #include <fc/io/raw.hpp>
 
 namespace bts { namespace bitname {
