@@ -31,15 +31,21 @@ namespace bts { namespace bitname {
             mini_pow block_id;
             uint16_t trx_num;
         };
+        
+        /**
+         *  Checks to see if the name can be registered and
+         *  throws an exception on error.
+         */
+        void validate_trx( const name_trx& trx )const;
 
         /** finds the location of most recent registration of name_hash */
-        name_location   find_name( uint64_t name_hash );
+        name_location   find_name( uint64_t name_hash )const;
 
         /** fetches the most recent registration of name_hash */
-        name_trx        fetch_trx( uint64_t name_hash );
+        name_trx        fetch_trx( uint64_t name_hash )const;
 
         /** get a block by its block_id */
-        name_block      fetch_block( const mini_pow& block_id );
+        name_block      fetch_block( const mini_pow& block_id )const;
 
       private:
         std::unique_ptr<detail::name_db_impl> my;

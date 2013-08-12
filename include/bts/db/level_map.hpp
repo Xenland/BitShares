@@ -60,6 +60,55 @@ namespace bts { namespace db {
           } FC_RETHROW_EXCEPTIONS( warn, "error fetching key ${key}", ("key",k) );
         }
 
+        class iterator
+        {
+           public:
+             iterator(){}
+             bool valid()const 
+             {
+                return _it && _it->Valid(); 
+             }
+
+             Key key()const
+             {
+                 Key tmp_key;
+                 fc::datastream<const char*> ds2( _it->key().data(), _it->key().size() );
+                 fc::raw::unpack( ds2, tmp_key );
+                 return tmp_key;
+             }
+
+             Value value()const
+             {
+               Value tmp_val;
+               fc::datastream<const char*> ds( _it->value().data(), _it->value().size() );
+               fc::raw::unpack( ds, tmp_val );
+               return tmp_val;
+             }
+
+             iterator& operator++() { _it->Next(); return *this; }
+             iterator& operator--() { _it->Prev(); return *this; }
+           
+           protected:
+             friend class level_map;
+             iterator( std::unique_ptr<ldb::Iterator>&& it )
+             :_it(std::move(it)){}
+
+             std::shared_ptr<ldb::Iterator> _it;
+        };
+
+        iterator find( const Key& key )
+        { try {
+           std::unique_ptr<ldb::Iterator> it( _db->NewIterator( ldb::ReadOptions() ) );
+           FC_ASSERT( it != nullptr );
+           iterator itr( std::move(it) );
+           if( itr.key() == key ) 
+           {
+              return itr;
+           }
+           return iterator();
+        } FC_RETHROW_EXCEPTIONS( warn, "error finding ${key}", ("key",key) ) }
+
+
         bool last( Key& k )
         {
           try {
