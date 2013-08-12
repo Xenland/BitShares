@@ -28,15 +28,18 @@ namespace bts { namespace bitname {
           name_channel_impl()
           :_del(nullptr){}
 
-          name_channel_delegate*       _del;
-          bts::peer::peer_channel_ptr  _peers;
-          network::channel_id          _chan_id;
-                                    
-          name_db                      _ndb;
-          fc::future<void>             _fetch_loop;
+          name_channel_delegate*                       _del;
+          bts::peer::peer_channel_ptr                  _peers;
+          network::channel_id                          _chan_id;
+                                                       
+          name_db                                      _ndb;
+          fc::future<void>                             _fetch_loop;
 
           /// messages received since last inv broadcast
-          std::vector<uint64_t>        _new_names; 
+          std::vector<uint64_t>                        _new_names; 
+
+          /// names not yet in any block, available for request
+          std::unordered_map<uint64_t, name_trx>       _pending_names;
 
           /// new name updates that have come in
           std::unordered_set<uint64_t>                 _unknown_names;
@@ -187,10 +190,19 @@ namespace bts { namespace bitname {
                  default:
                    wlog( "unknown bitname message type ${msg_type}", ("msg_type", m.msg_type ) );
              }
-          }
+          } // handle_message
 
           void handle_name_inv( const connection_ptr& con,  chan_data& cdat, const name_inv_message& msg )
           {
+              ilog( "inv: ${msg}", ("msg",msg) );
+              for( auto itr = msg.names.begin(); itr != msg.names.end(); ++itr )
+              {
+                 cdat.known_name_inv.insert( *itr );
+                 if( _pending_names.find( *itr ) == _pending_names.end() )
+                 {
+                    _unknown_names.insert( *itr );
+                 }
+              }
           }
    
           void handle_block_inv( const connection_ptr& con,  chan_data& cdat, const block_inv_message& msg )
@@ -215,11 +227,35 @@ namespace bts { namespace bitname {
    
           void handle_get_name( const connection_ptr& con,  chan_data& cdat, const get_name_message& msg )
           {
+             auto pend_name_itr = _pending_names.find( msg.name_hash );
+             if( pend_name_itr == _pending_names.end() )
+             {
+                // must be a DB lookup... 
+                wlog( "TODO: perform db lookup" );
+             }
+             else
+             {
+                con->send( network::message( name_message( pend_name_itr->second ), _chan_id ) );
+             }
           }
    
           void handle_name( const connection_ptr& con,  chan_data& cdat, const name_message& msg )
-          {
-          }
+          { try {
+             // TODO: verify that we requested this msg.
+             // validate that the contained name is valid based upon the current trxdb state
+             // if it is, add it to the pending name_trx queue..
+             if( _pending_names.find(msg.name.name_hash) == _pending_names.end() )
+             {
+                _pending_names[msg.name.name_hash] = msg.name;
+                _new_names.push_back( msg.name.name_hash );
+                FC_ASSERT( _del != nullptr );
+                _del->pending_name_registration( msg.name );
+             }
+             else
+             {
+                wlog( "duplicate name trx received ${name_trx}", ("name_trx",msg) );
+             }
+          } FC_RETHROW_EXCEPTIONS( warn, "", ("msg", msg) ) }
    
           void handle_block( const connection_ptr& con,  chan_data& cdat, const block_message& msg )
           {
@@ -228,7 +264,6 @@ namespace bts { namespace bitname {
           void handle_headers( const connection_ptr& con,  chan_data& cdat, const headers_message& msg )
           {
           }
-
     };
 
   } // namespace detail
@@ -270,12 +305,22 @@ namespace bts { namespace bitname {
      my->_del = d;
   }
 
-  void name_channel::submit_name( const name_trx& t )
+  void name_channel::submit_name( const name_trx& new_name_trx )
   {
+     FC_ASSERT( fc::time_point::now() - new_name_trx.utc_sec  <  fc::seconds(60*10) ); // TODO: remove hardcode time window
+   //TODO  FC_ASSERT( new_name_trx.utc_sec <= fc::time_point_sec(fc::time_point::now()) );
+
+     // TODO: verify new_name_trx.prev == current head... (or head.prev and id() < head )
+
+     my->_pending_names[new_name_trx.name_hash] = new_name_trx;
+     my->_new_names.push_back( new_name_trx.name_hash );
   }
 
   void name_channel::submit_block( const name_block& b )
   {
+     // TODO: verify that we have all trx in merkle tree... 
+     // block should be in our DB... 
+     // ... 
   }
 
   /**

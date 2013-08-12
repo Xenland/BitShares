@@ -67,6 +67,10 @@ namespace bts { namespace bitname {
   struct name_message
   {
     static const message_type type;
+    name_message(){}
+    name_message( const name_trx& cpy )
+    :name(cpy){}
+
     name_trx name;
   };
 

@@ -28,7 +28,7 @@ namespace bts { namespace bitchat {
           channel_delegate*        del;
           peer::peer_channel_ptr   peers;
 
-          std::map<fc::time_point, mini_pow>            msg_time_index;
+          std::map<fc::time_point, mini_pow>              msg_time_index;
           std::unordered_map<mini_pow,encrypted_message>  priv_msgs;
 
           /// messages that we have recieved inv for, but have not requested the data for
@@ -216,6 +216,7 @@ namespace bts { namespace bitchat {
           void handle_priv_msg( const connection_ptr& c, chan_data& cd, encrypted_message&& msg )
           {
               auto mid = msg.id();
+              // TODO: verify that we requested this message
 
               // validate proof of work 
               // validate timestamp
@@ -277,7 +278,7 @@ namespace bts { namespace bitchat {
   void channel::broadcast( encrypted_message&& m )
   {
       FC_ASSERT( fc::time_point::now() - m.timestamp  <  fc::seconds(30) );
-      FC_ASSERT( m.timestamp < fc::time_point::now() );
+      FC_ASSERT( m.timestamp <= fc::time_point::now() );
 
       auto id = m.id();
       my->priv_msgs[ id ] = std::move(m);
