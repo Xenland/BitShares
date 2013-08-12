@@ -118,7 +118,7 @@ set( sources
      src/merkle_tree.cpp
      src/address.cpp
      src/wallet.cpp
-     src/hd_wallet.cpp
+     src/keychain.cpp
      src/wallet_cache.cpp
      src/bitmessage.cpp
 

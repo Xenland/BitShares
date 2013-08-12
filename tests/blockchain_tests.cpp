@@ -13,7 +13,7 @@
 #include <fc/io/raw.hpp>
 #include <fc/filesystem.hpp>
 #include <bts/blockchain/blockchain_printer.hpp>
-#include <bts/hd_wallet.hpp>
+#include <bts/keychain.hpp>
 #include <fstream>
 
 using namespace bts;
@@ -21,7 +21,7 @@ using bts::blockchain::asset;
 using bts::blockchain::price;
 using namespace bts::blockchain;
 
-BOOST_AUTO_TEST_CASE( hd_wallet_test )
+BOOST_AUTO_TEST_CASE( keychain_test )
 {
   try {
     auto priv  = fc::ecc::private_key::generate().get_secret();
@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE( hd_wallet_test )
 
     BOOST_REQUIRE( c1.get_public_key() == pub_c1.pub_key );
 
-    hd_wallet wal;
+    keychain wal;
     wal.set_seed( fc::sha512::hash( "hello", 5 ) );
     BOOST_REQUIRE( wal.get_private_account( 1 ).get_public_key() ==
                    wal.get_public_account( 1 ).pub_key );

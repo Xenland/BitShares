@@ -1,4 +1,4 @@
-#include <bts/hd_wallet.hpp>
+#include <bts/keychain.hpp>
 #include <bts/proof_of_work.hpp>
 #include <fc/crypto/sha512.hpp>
 #include <fc/io/raw.hpp>
@@ -10,13 +10,13 @@
 
 namespace bts {
 
-  hd_wallet::hd_wallet(){}
+  keychain::keychain(){}
 
   /**
    *  This method will take several minutes to run and is designed to
    *  make rainbow tables difficult to calculate.
    */
-  fc::sha512 hd_wallet::stretch_seed( const fc::sha512& seed )
+  fc::sha512 keychain::stretch_seed( const fc::sha512& seed )
   {
       fc::thread t("stretch_seed");
       return t.async( [=]() {
@@ -30,12 +30,12 @@ namespace bts {
       } ).wait();
   }
 
-  void              hd_wallet::set_seed( const fc::sha512& stretched_seed )
+  void              keychain::set_seed( const fc::sha512& stretched_seed )
   {
     ext_priv_key = extended_private_key(stretched_seed);
   }
 
-  fc::sha512        hd_wallet::get_seed()const
+  fc::sha512        keychain::get_seed()const
   {
     static_assert( sizeof(*this) == sizeof( fc::sha512), "make sure there is no funny packing going on" );
     fc::sha512 seed;
@@ -43,37 +43,37 @@ namespace bts {
     return seed;
   }
 
-  extended_private_key  hd_wallet::get_private_account( uint32_t i )
+  extended_private_key  keychain::get_private_account( uint32_t i )
   {
     return ext_priv_key.child( i, false );
   }
 
-  extended_public_key   hd_wallet::get_public_account( uint32_t i )
+  extended_public_key   keychain::get_public_account( uint32_t i )
   {
     auto priv_acnt = get_private_account(i);
     return extended_public_key( priv_acnt.get_public_key(), priv_acnt.chain_code );
   }
 
-  extended_public_key   hd_wallet::get_public_trx( uint32_t account, uint32_t trx )
+  extended_public_key   keychain::get_public_trx( uint32_t account, uint32_t trx )
   {
     auto r = get_public_account( account ).child( trx );
 //    ilog( "ext pub trx: ${account}/${trx} => ${epk}", ("account",account)("trx",trx)("epk",r) );
     return r;
   }
 
-  fc::ecc::public_key   hd_wallet::get_public_trx_address( uint32_t account, uint32_t trx, uint32_t addr )
+  fc::ecc::public_key   keychain::get_public_trx_address( uint32_t account, uint32_t trx, uint32_t addr )
   {
     return get_public_trx( account, trx ).child(addr);
   }
 
-  extended_private_key  hd_wallet::get_private_trx( uint32_t account, uint32_t trx )
+  extended_private_key  keychain::get_private_trx( uint32_t account, uint32_t trx )
   {
     auto r =  get_private_account( account ).child( trx, true/*pub deriv*/ );
  //   ilog( "ext priv trx: ${account}/${trx} => ${epk}", ("account",account)("trx",trx)("epk",r) );
     return r;
   }
 
-  fc::ecc::private_key  hd_wallet::get_private_trx_address( uint32_t account, uint32_t trx, uint32_t addr )
+  fc::ecc::private_key  keychain::get_private_trx_address( uint32_t account, uint32_t trx, uint32_t addr )
   {
     return get_private_trx( account, trx ).child(addr, true /*pub deriv*/);
   }

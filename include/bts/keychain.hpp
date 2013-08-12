@@ -34,10 +34,10 @@ namespace bts {
    *  The intended use is for accounts to be created via private derivation,
    *  while trx and address children are created via public derivation.
    */
-  class hd_wallet 
+  class keychain 
   {
      public:
-        hd_wallet();
+        keychain();
 
         /**
          *  This method will take several minutes to run and is designed to
