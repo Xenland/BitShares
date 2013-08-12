@@ -90,18 +90,18 @@ namespace bts { namespace db {
            
            protected:
              friend class level_map;
-             iterator( std::unique_ptr<ldb::Iterator>&& it )
-             :_it(std::move(it)){}
+             iterator( ldb::Iterator* it )
+             :_it(it){}
 
              std::shared_ptr<ldb::Iterator> _it;
         };
 
         iterator find( const Key& key )
         { try {
-           std::unique_ptr<ldb::Iterator> it( _db->NewIterator( ldb::ReadOptions() ) );
-           FC_ASSERT( it != nullptr );
-           iterator itr( std::move(it) );
-           if( itr.key() == key ) 
+           ldb::Slice key_slice( (char*)&key, sizeof(key) );
+           iterator itr( _db->NewIterator( ldb::ReadOptions() ) );
+           itr._it->Seek( key_slice );
+           if( itr.valid() && itr.key() == key ) 
            {
               return itr;
            }
