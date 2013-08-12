@@ -25,7 +25,23 @@ namespace bts { namespace bitname {
              db::level_map<uint64_t, std::vector<name_db::name_location> > _name_hash_to_locs;
 
              name_header _head_header;
+             uint32_t    _head_block_num;
              mini_pow    _head_block_id;
+
+             void index_trx( const name_db::name_location& loc, uint64_t name_hash )
+             {
+                auto name_locs_itr = _name_hash_to_locs.find( name_hash );
+                if( name_locs_itr.valid() )
+                {
+                    auto name_locs = name_locs_itr.value();
+                    name_locs.push_back( loc );
+                    _name_hash_to_locs.store( name_hash, name_locs );
+                }
+                else
+                {
+                    _name_hash_to_locs.store( name_hash, std::vector<name_db::name_location>(1,loc) );
+                }
+             }
        };
     } // namespace detail
 
@@ -74,6 +90,20 @@ namespace bts { namespace bitname {
           validate_trx( next_block.registered_names[trx_idx] );
        }
 
+       // TODO: If something fails during this operation, we need to make sure
+       // that the name_db is left in the prior state.
+
+       // if we get this far, then all trx are valid, we can store it in the db 
+       // and update all of the trx indexes
+       auto next_id = next_block.id();
+       my->_head_block_num++;
+       my->_head_block_id = next_id;
+       my->_block_id_to_block.store(next_id,next_block);
+       my->_block_num_to_id.store( my->_head_block_num, next_id );
+       for( uint16_t trx_idx = 0; trx_idx < num_trx; ++trx_idx )
+       {
+          my->index_trx( name_location( next_id, trx_idx ), next_block.registered_names[trx_idx].name_hash );
+       }
     } FC_RETHROW_EXCEPTIONS( warn, "unable to push block ${next_block}", ("next_block", next_block) ) } 
 
     /**
@@ -86,7 +116,7 @@ namespace bts { namespace bitname {
        if( prev_reg_itr.valid() )
        {
           name_trx prev_trx = fetch_trx( trx.name_hash );
-          FC_ASSERT( trx.renewal == prev_trx.renewal + 1, "", ("prev_trx",prev_trx) );
+          FC_ASSERT( trx.renewal.value == prev_trx.renewal.value + 1, "", ("prev_trx",prev_trx) );
           // cannot renew if last renewal was a cancelation.
           FC_ASSERT( !prev_trx.cancel_sig );
           if( trx.key )
@@ -106,7 +136,6 @@ namespace bts { namespace bitname {
        {
           FC_ASSERT( trx.renewal == 0 );
        }
-
     } FC_RETHROW_EXCEPTIONS( warn, "error validating ${trx}", ("trx", trx) ) }
    
     void name_db::pop_block()

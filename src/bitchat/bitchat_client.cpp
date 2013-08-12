@@ -187,7 +187,7 @@ namespace bts { namespace bitchat {
    client::client( const bts::peer::peer_channel_ptr& peers, const addressbook::addressbook_ptr& abook, bitchat_delegate* chat_delegate )
    :my( new detail::client_impl() )
    {
-       assert( d != nullptr );
+       assert( chat_delegate != nullptr );
        my->abook = abook;
        my->peers = peers;
        my->del   = chat_delegate;

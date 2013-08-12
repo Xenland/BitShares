@@ -26,7 +26,10 @@ namespace bts { namespace bitname {
 
        uint32_t                                 nonce;     ///< 4 increment to find proof of work
        fc::time_point_sec                       utc_sec;   ///< 8 utc seconds
+       // TODO: perhaps I need a more secure hash for the mroot... 80 bits probably doesn't cut
+       // it... 
        mini_pow                                 mroot;     ///< 12 mroot of all trx
+
        /**
         *  Options for storing the name:
         *  1) 32 byte string, 1 byte size + up to 32 bytes...33 worst case, 2 best case
@@ -39,7 +42,7 @@ namespace bts { namespace bitname {
         *        - eliminates dynamic memory allocation
         */
        uint64_t                                 name_hash;  ///< 22 hash the name to 64 bits rather than store 32+ bits...
-       uint8_t                                  renewal;    ///< 30 how many times has this name been renewed.
+       fc::unsigned_int                         renewal;    ///< 30 how many times has this name been renewed.
        fc::optional<fc::ecc::public_key>        key;        ///< 31 key to assign to name, 33 bytes
        fc::optional<fc::ecc::compact_signature> cancel_sig; ///< provided instead of key if renewal is 255
     }; 
