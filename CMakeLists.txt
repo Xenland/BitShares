@@ -52,6 +52,10 @@ ELSE(WIN32)
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-local-typedefs -fmax-errors=3 " )
   SET(Boost_USE_STATIC_LIBS ON)
   FIND_PACKAGE(Boost 1.53 REQUIRED COMPONENTS thread date_time system filesystem program_options signals serialization chrono unit_test_framework context coroutine) 
+
+ IF( NOT APPLE )
+      SET( pthread pthread )
+ ENDIF( NOT APPLE )
 ENDIF(WIN32)
 
 
@@ -70,7 +74,7 @@ include_directories( ${CMAKE_SOURCE_DIR}/fc/vendor/boost_1.51/include )
 add_subdirectory( fc )
 add_subdirectory( vendor/miniupnp/miniupnpc )
 #add_subdirectory( vendor/libzerocoin )
-set( BOOST_LIBRARIES ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_CHRONO_LIBRARY} ${ALL_OPENSSL_LIBRARIES} ${Boost_COROUTINE_LIBRARY} ${Boost_CONTEXT_LIBRARY} )
+set( BOOST_LIBRARIES ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_CHRONO_LIBRARY} ${ALL_OPENSSL_LIBRARIES} ${Boost_COROUTINE_LIBRARY} ${Boost_CONTEXT_LIBRARY} ${pthread})
 
 
 
@@ -128,7 +132,9 @@ set( sources
 add_library( bshare ${sources} )
 
 add_subdirectory( bitchat )
+IF( NOT Qt5Widgets_DIR MATCHES Qt5Widgets_DIR-NOTFOUND )
 add_subdirectory( src/gui )
+ENDIF()
 
 
 #add_executable( wallet_test tests/wallet_test.cpp )
@@ -142,7 +148,7 @@ add_subdirectory( src/gui )
 #target_link_libraries( bitshares bshare fc ${BOOST_LIBRARIES})
 
 #add_executable( bitchatc bitchat/main.cpp )
-#target_link_libraries( bitchatc bshare fc ${BOOST_LIBRARIES} upnpc-static )
+#target_link_libraries( bitchatc upnpc-static bshare fc ${BOOST_LIBRARIES} upnpc-static )
 
 #add_executable( bitshared bitshared.cpp )
 #target_link_libraries( bitshared bshare fc ${BOOST_LIBRARIES} )
