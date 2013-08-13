@@ -37,13 +37,18 @@ namespace bts { namespace bitname {
 
           /// messages received since last inv broadcast
           std::vector<uint64_t>                        _new_names; 
+          std::vector<mini_pow>                        _new_blocks; 
 
           /// names not yet in any block, available for request
           std::unordered_map<uint64_t, name_trx>       _pending_names;
+          std::unordered_map<mini_pow, name_block>     _pending_blocks;
 
           /// new name updates that have come in
           std::unordered_set<uint64_t>                 _unknown_names;
           std::unordered_map<uint64_t,fc::time_point>  _requested_names; // messages that we have requested but not yet received
+
+          std::unordered_set<mini_pow>                 _unknown_blocks;
+          std::unordered_map<mini_pow,fc::time_point>  _requested_blocks; // messages that we have requested but not yet received
 
 
           void fetch_loop()
@@ -207,10 +212,28 @@ namespace bts { namespace bitname {
    
           void handle_block_inv( const connection_ptr& con,  chan_data& cdat, const block_inv_message& msg )
           {
+              ilog( "inv: ${msg}", ("msg",msg) );
+              for( auto itr = msg.block_ids.begin(); itr != msg.block_ids.end(); ++itr )
+              {
+                 cdat.known_block_inv.insert( *itr );
+                 if( _pending_blocks.find( *itr ) == _pending_blocks.end() )
+                 {
+                     _unknown_blocks.insert( *itr );
+                 }
+              }
           }
    
           void handle_get_name_inv( const connection_ptr& con,  chan_data& cdat, const get_name_inv_message& msg )
           {
+              name_inv_message reply;
+              for( auto itr = _pending_names.begin(); itr != _pending_names.end(); ++itr )
+              {
+                 if( cdat.known_name_inv.insert( itr->first ).second )
+                 {
+                    reply.names.push_back( itr->first );
+                 }
+              }
+              con->send( network::message(reply,_chan_id) );
           }
    
           void handle_get_block_inv( const connection_ptr& con,  chan_data& cdat, const get_block_inv_message& msg )
@@ -223,6 +246,9 @@ namespace bts { namespace bitname {
    
           void handle_get_block( const connection_ptr& con,  chan_data& cdat, const get_block_message& msg )
           {
+              // TODO: charge POW for this...
+              auto block = _ndb.fetch_block( msg.block_id );
+              con->send( network::message( block_message( std::move(block) ), _chan_id ) );
           }
    
           void handle_get_name( const connection_ptr& con,  chan_data& cdat, const get_name_message& msg )
@@ -231,8 +257,9 @@ namespace bts { namespace bitname {
              auto pend_name_itr = _pending_names.find( msg.name_hash );
              if( pend_name_itr == _pending_names.end() )
              {
-                // must be a DB lookup... 
-                wlog( "TODO: perform db lookup" );
+                // must be a DB lookup...  TODO: charge a POW for this...
+                auto trx = _ndb.fetch_trx( msg.name_hash );
+                con->send( network::message( name_message( trx ), _chan_id ) );
              }
              else
              {

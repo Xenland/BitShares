@@ -77,6 +77,10 @@ namespace bts { namespace bitname {
   struct block_message
   {
     static const message_type type;
+    block_message(){}
+    block_message( name_block&& blk )
+    :block( std::move(blk) ){}
+
     name_block block;
   };
 
