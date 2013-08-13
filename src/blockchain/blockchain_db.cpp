@@ -3,6 +3,7 @@
 #include <bts/blockchain/blockchain_db.hpp>
 #include <bts/blockchain/asset.hpp>
 #include <leveldb/db.h>
+#include <bts/db/level_pod_map.hpp>
 #include <bts/db/level_map.hpp>
 #include <fc/io/enum_type.hpp>
 #include <fc/reflect/variant.hpp>

@@ -24,10 +24,11 @@ struct config
    fc::path                            data_dir;
    bts::network::server::config        server_config;
    bts::rpc::server::config            rpc_config;
+   bts::bitname::client::config        bitname_config;
    std::vector<bts::bitchat::identity> ids;
    std::vector<bts::bitchat::contact>  contacts;
 };
-FC_REFLECT( config, (data_dir)(server_config)(rpc_config)(ids)(contacts) )
+FC_REFLECT( config, (data_dir)(server_config)(rpc_config)(ids)(contacts)(bitname_config) )
 
 class bitchat_del : public bts::bitchat::bitchat_delegate
 {
@@ -70,6 +71,7 @@ int main( int argc, char** argv )
 
     /// provides synchronized accounts across all computers in the network
     bts::bitname::client_ptr       name_cl        = std::make_shared<bts::bitname::client>( peer_ch );
+    name_cl->configure( cfg.bitname_config );
 //    bts::blockchain::client_ptr    blockchain_cl  = std::make_shared<bts::blockchain::client>( peer_ch );
 
     /// enable local RPC queries of data on various channels
@@ -138,18 +140,19 @@ int main( int argc, char** argv )
        }
        else if( cmd == "n" || cmd == "new_id" )
        {
-         bts::bitchat::identity id;
-         ss >> id.label;
-         id.key       = fc::ecc::private_key::generate();
-         id.broadcast = fc::ecc::private_key::generate();
-         id.recv_channels.push_back( 0 );
-
-         chat_cl->add_identity( id );
-         cfg.ids.push_back( id );
-         fc::ofstream out( argv[1] );
-         out << fc::json::to_pretty_string( cfg );
-
-         std::cout << "created identity '"<<id.label<<"' with address: "<< std::string( bts::bitchat::address( id.key.get_public_key() ) ) <<"\n";
+          bts::bitchat::identity id;
+          ss >> id.label;
+          id.key       = fc::ecc::private_key::generate();
+          id.broadcast = fc::ecc::private_key::generate();
+          id.recv_channels.push_back( 0 );
+         
+          chat_cl->add_identity( id );
+          cfg.ids.push_back( id );
+          fc::ofstream out( argv[1] );
+          out << fc::json::to_pretty_string( cfg );
+         
+          std::cout << "created identity '"<<id.label<<"' with address: "<< std::string( bts::bitchat::address( id.key.get_public_key() ) ) <<"\n";
+          name_cl->register_name( id.label, id.key.get_public_key() );
        }
        else if( cmd == "set_contact_pay_address" )
        {

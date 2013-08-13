@@ -33,7 +33,7 @@ namespace bts { namespace bitname {
            *  difficulty of finding a name is 1/5000 * the block difficulty 
            *  with a minimum difficulty of about 1 hour per CPU.
            */
-          void set_block_target( const mini_pow& p );
+          void set_block_target( const mini_pow& block_target );
 
           void set_name( const std::string& name, const fc::ecc::public_key& k );
 

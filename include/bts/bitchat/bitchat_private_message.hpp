@@ -19,6 +19,21 @@ namespace bts { namespace bitchat {
        encrypted_msg  = 4  ///< a message encrypted to unknown receip (sent in reponse to get_priv_msg)
     };
 
+    enum compression_type
+    {
+       no_compression   = 0,
+       smaz_compression = 1,
+       lzma_compression = 2
+    };
+
+    enum encryption_type
+    {
+       no_encryption       = 0,
+       blowfish_encryption = 1,
+       twofish_encryption  = 2,
+       aes_encryption      = 3
+    };
+
     struct decrypted_message;
 
     /**
@@ -33,11 +48,11 @@ namespace bts { namespace bitchat {
         static const message_type type = encrypted_msg;
         encrypted_message();
 
-        uint16_t                    nonce; ///< increment timestamp after 63K tests
-        fc::time_point              timestamp;
-        fc::ecc::public_key         dh_key;
-        uint32_t                    dh_check;
-        std::vector<char>           data;
+        uint16_t                                      nonce; ///< increment timestamp after 63K tests
+        fc::time_point                                timestamp;
+        fc::ecc::public_key                           dh_key;
+        uint32_t                                      dh_check;
+        std::vector<char>                             data;
 
         mini_pow           id()const;
 
@@ -89,19 +104,23 @@ namespace bts { namespace bitchat {
         }
 
         decrypted_message();
-        encrypted_message       encrypt( const fc::ecc::public_key& to )const;
-        decrypted_message&      sign( const fc::ecc::private_key& from );
-        fc::sha256                               digest()const;
+        encrypted_message                    encrypt( const fc::ecc::public_key& to )const;
+        decrypted_message&                   sign( const fc::ecc::private_key& from );
+        fc::sha256                           digest()const;
 
-        fc::enum_type<fc::unsigned_int,private_message_type>   msg_type;
-        std::vector<char>                                      data;
+        /** type of the decrypted, uncompressed message */
+        fc::enum_type<fc::unsigned_int,private_message_type>  msg_type;
+        /** any compression applied to data before encrypting it */
+        fc::enum_type<fc::unsigned_int,compression_type>      compression_format;
+        /** any additional encryption applied to data */
+        fc::enum_type<fc::unsigned_int,encryption_type>       encryption_method;
+        std::vector<char>                                     data;
                                                          
-        fc::time_point_sec                                     sig_time; 
-        fc::optional<fc::ecc::compact_signature>               from_sig;
+        fc::time_point_sec                                    sig_time; 
+        fc::optional<fc::ecc::compact_signature>              from_sig;
                                                                
-                                                               
-        fc::optional<fc::ecc::public_key>                      from_key;
-        fc::optional<fc::ecc::private_key>                     decrypt_key;
+        fc::optional<fc::ecc::public_key>                     from_key;
+        fc::optional<fc::ecc::private_key>                    decrypt_key;
     };
 
     struct private_text_message 
@@ -110,7 +129,7 @@ namespace bts { namespace bitchat {
 
        private_text_message( std::string m = std::string())
        :msg( std::move(m) ){}
-
+      
        std::string      msg;
     };
 
@@ -167,7 +186,9 @@ namespace bts { namespace bitchat {
 FC_REFLECT_ENUM( bts::bitchat::account_status, (unknown)(active)(away)(idle) )
 FC_REFLECT_ENUM( bts::bitchat::message_type, (inv_msg)(get_inv_msg)(get_priv_msg)(encrypted_msg) )
 FC_REFLECT_ENUM( bts::bitchat::private_message_type, (unknown_msg)(text_msg)(contact_request_msg)(contact_auth_msg)(status_msg) )
+FC_REFLECT_ENUM( bts::bitchat::compression_type, (no_compression)(smaz_compression)(lzma_compression) )
+FC_REFLECT_ENUM( bts::bitchat::encryption_type, (no_encryption)(blowfish_encryption)(twofish_encryption)(aes_encryption) )
 FC_REFLECT( bts::bitchat::encrypted_message, (nonce)(timestamp)(dh_key)(dh_check)(data) );
-FC_REFLECT( bts::bitchat::decrypted_message, (msg_type)(data)(sig_time)(from_sig) )
+FC_REFLECT( bts::bitchat::decrypted_message, (msg_type)(compression_format)(encryption_method)(data)(sig_time)(from_sig) )
 FC_REFLECT( bts::bitchat::private_text_message, (msg) )
 FC_REFLECT( bts::bitchat::private_status_message, (status)(status_message) )

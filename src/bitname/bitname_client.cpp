@@ -3,9 +3,12 @@
 #include <bts/bitname/bitname_miner.hpp>
 #include <fc/crypto/hex.hpp>
 #include <fc/filesystem.hpp>
+#include <fc/io/json.hpp>
+#include <fc/thread/thread.hpp>
+#include <fc/reflect/variant.hpp>
 #include <bts/db/level_map.hpp>
 
-#include <fc/thread/thread.hpp>
+#include <fc/log/logger.hpp>
 
 namespace bts { namespace bitname {
   
@@ -17,11 +20,12 @@ namespace bts { namespace bitname {
 
           virtual void found_name_block( const name_block& new_block )
           {
-             // make sure new_block is not stale... 
-             // check to see if it is good enough to solve the block, or just a trx
-             // broadcast it accordingly... 
-             // move on to the next name... 
-             _chan->submit_block( new_block );
+              ilog( "found name block\n ${n}", ("n", fc::json::to_pretty_string(new_block) ) );
+              // make sure new_block is not stale... 
+              // check to see if it is good enough to solve the block, or just a trx
+              // broadcast it accordingly... 
+              // move on to the next name... 
+              _chan->submit_block( new_block );
           }
 
           /**
@@ -65,7 +69,7 @@ namespace bts { namespace bitname {
   void client::configure( const client::config& client_config )
   {
      my->_config = client_config;
-     if( !fc::exists( my->_config.data_dir ) )
+     if( !fc::exists( my->_config.data_dir / "bitname" ) )
      {
        fc::create_directories( my->_config.data_dir / "bitname" );
      }
@@ -108,6 +112,8 @@ namespace bts { namespace bitname {
   void client::register_name( const std::string& bitname_id, const fc::ecc::public_key& name_key)
   {
      my->_pending_regs.store( bitname_id, name_key );
+     my->_miner.set_name( bitname_id, name_key );
+     my->_miner.start( my->_config.max_mining_effort );
   }
 
   std::map<std::string,fc::ecc::public_key>  client::pending_name_registrations()const

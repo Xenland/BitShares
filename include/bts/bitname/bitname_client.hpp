@@ -114,6 +114,10 @@ FC_REFLECT( bts::bitname::name_record,
     (name_hash)
     (name)
   )
+FC_REFLECT( bts::bitname::client::config,
+    (data_dir)
+    (max_mining_effort)
+    )
 
 #include <fc/ptr.hpp>
 FC_STUB( bts::bitname::client, 
