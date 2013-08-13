@@ -171,9 +171,6 @@ namespace bts { namespace bitname {
                  case get_name_inv_msg:
                    handle_get_name_inv( con, cdat, m.as<get_name_inv_message>() );
                    break;
-                 case get_block_inv_msg:
-                   handle_get_block_inv( con, cdat, m.as<get_block_inv_message>() );
-                   break;
                  case get_headers_msg:
                    handle_get_headers( con, cdat, m.as<get_headers_message>() );
                    break;
@@ -234,10 +231,6 @@ namespace bts { namespace bitname {
                  }
               }
               con->send( network::message(reply,_chan_id) );
-          }
-   
-          void handle_get_block_inv( const connection_ptr& con,  chan_data& cdat, const get_block_inv_message& msg )
-          {
           }
    
           void handle_get_headers( const connection_ptr& con,  chan_data& cdat, const get_headers_message& msg )

@@ -12,7 +12,6 @@ namespace bts { namespace bitname {
      name_inv_msg,
      block_inv_msg,
      get_name_inv_msg,
-     get_block_inv_msg,
      get_headers_msg,
      get_block_msg,
      get_name_msg,
@@ -34,11 +33,6 @@ namespace bts { namespace bitname {
   };
 
   struct get_name_inv_message
-  {
-    static const message_type type;
-  };
-
-  struct get_block_inv_message
   {
     static const message_type type;
   };
@@ -108,7 +102,6 @@ FC_REFLECT_ENUM( bts::bitname::message_type,
     (name_inv_msg)
     (block_inv_msg)
     (get_name_inv_msg)
-    (get_block_inv_msg)
     (get_headers_msg)
     (get_block_msg)
     (get_name_msg)
@@ -121,7 +114,6 @@ FC_REFLECT_ENUM( bts::bitname::message_type,
 FC_REFLECT( bts::bitname::name_inv_message, (names))
 FC_REFLECT( bts::bitname::block_inv_message, (block_ids))
 FC_REFLECT( bts::bitname::get_name_inv_message, BOOST_PP_SEQ_NIL )
-FC_REFLECT( bts::bitname::get_block_inv_message, BOOST_PP_SEQ_NIL )
 FC_REFLECT( bts::bitname::get_headers_message, (locator_hashes) )
 FC_REFLECT( bts::bitname::get_block_message, (block_id))
 FC_REFLECT( bts::bitname::get_name_message, (name_hash))
