@@ -217,9 +217,11 @@ namespace bts { namespace bitchat {
           {
               auto mid = msg.id();
 
+              //TODO:
               // validate proof of work 
               // validate timestamp
               // store in index
+              // track messages that I've requested and make sure that no one sends us a msg we haven't requested
               if( priv_msgs.find(mid) == priv_msgs.end() )
               {
                  new_msgs.push_back( mid );
