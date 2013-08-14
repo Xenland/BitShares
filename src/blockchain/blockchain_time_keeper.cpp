@@ -5,6 +5,8 @@
 #include <fc/log/logger.hpp>
 #include <map>
 
+#include <fc/uint128.hpp>
+
 namespace bts { namespace blockchain {
 
   namespace detail 
@@ -69,22 +71,32 @@ namespace bts { namespace blockchain {
 
             void update_next_difficulty()
             {
-                // fixed point X.6
-                int64_t  time_error_percent = _median_time_error_sec * 1000000  / _interval_sec; 
+                int64_t time_error_percent = 0;
 
-                time_error_percent /= _window;
+                int64_t current_interval = _interval_sec + _median_time_error_sec; 
 
-                if( time_error_percent < 0 ) // multiply by 1 + time_error_percent 
-                { // we need to accelerate the chain... decrease difficulty
-                    _next_difficulty = _cur_difficulty;
-                    _next_difficulty *= 1000000 + time_error_percent;
-                    _next_difficulty /= 1000000;
+                if( current_interval < 0 )
+                {
+                  current_interval = 0;
                 }
-                else // we need to slow down the chain, increase diff 
-                {// divided by 1 - time_error_percent
+
+                if( current_interval < _interval_sec )
+                    time_error_percent = -(_median_time_error_sec * 1000000) / current_interval;
+                else
+                    time_error_percent = -(_median_time_error_sec * 1000000) / _interval_sec;
+
+
+                if( time_error_percent > 0 ) // speed up
+                {
                     _next_difficulty = _cur_difficulty;
-                    _next_difficulty *= 1000000;
-                    _next_difficulty /=  1000000 - time_error_percent;
+                    _next_difficulty *= 10000000 + time_error_percent;
+                    _next_difficulty /= 10000000; 
+                }
+                else // slow down..
+                {
+                    _next_difficulty = _cur_difficulty;
+                    _next_difficulty *=  10000000;  
+                    _next_difficulty /= (10000000 - time_error_percent);
                 }
             }
 

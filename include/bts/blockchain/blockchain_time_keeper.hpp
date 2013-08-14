@@ -27,12 +27,26 @@ namespace bts { namespace blockchain {
         time_keeper();
         ~time_keeper();
         void configure( fc::time_point origin, fc::microseconds interval, uint32_t window = 4096 );
-        void push_init( uint32_t block_num, fc::time_point block_time, uint64_t block_difficulty );
-        void init_stats();
-
 
         /**
-         *  @param  difficulty 
+         *   Used to populate the initial state of the time keeper 
+         */
+        void push_init( uint32_t block_num, fc::time_point block_time, uint64_t block_difficulty );
+
+        /**
+         *  After pushing all init state, calculate the initial stats and then start enforcing
+         *  requirements on new blocks being pushed.
+         */
+        void init_stats();
+
+        /**
+         *  @param  difficulty = a measure of how hard it is to find a block, this number
+         *          increases to make it take longer to find a block, and decreases to
+         *          cause blocks to be found faster.  It is recommend to use fixed point
+         *          with at least 6 decimial places of precision, but the time_keeper doesn't
+         *          particularlly care.
+         *
+         *  @note init_stats() must be called prior to calling this for the first time.
          */
         void push( uint32_t block_num, fc::time_point block_time, uint64_t difficulty );
 
