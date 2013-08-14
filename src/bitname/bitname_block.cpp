@@ -1,4 +1,4 @@
-#include <bts/bitname/name_block.hpp>
+#include <bts/bitname/bitname_block.hpp>
 #include <fc/io/raw.hpp>
 
 namespace bts { namespace bitname {
@@ -54,6 +54,15 @@ namespace bts { namespace bitname {
   mini_pow name_trx::id( const mini_pow& prev )const
   {
     return name_header( *this, prev ).id();
+  }
+  name_block create_genesis_block()
+  {
+     name_block genesis;
+     genesis.utc_sec = fc::time_point_sec(fc::time_point::from_iso_string( "20131105T000000" ));
+     genesis.name_hash = 0;
+     genesis.key = fc::ecc::private_key::regenerate(fc::sha256::hash( "genesis", 7)).get_public_key();
+     genesis.mroot = genesis.calc_merkle_root();
+     return genesis;
   }
 
 } }

@@ -1,7 +1,6 @@
 project( bitshares )
 cmake_minimum_required( VERSION 2.8.11 )
 
-set( CMAKE_INCLUDE_CURRENT_DIR ON)
 set( CMAKE_AUTOMOC ON )
 
 set( CMAKE_PREFIX_PATH  ${CMAKE_PREFIX_PATH} ";${CMAKE_SOURCE_DIR}/vendor/qt.5.1/5.1.0/msvc2012/lib/cmake/Qt5Widgets" )
@@ -53,6 +52,10 @@ ELSE(WIN32)
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-local-typedefs -fmax-errors=3 " )
   SET(Boost_USE_STATIC_LIBS ON)
   FIND_PACKAGE(Boost 1.53 REQUIRED COMPONENTS thread date_time system filesystem program_options signals serialization chrono unit_test_framework context coroutine) 
+
+ IF( NOT APPLE )
+      SET( pthread pthread )
+ ENDIF( NOT APPLE )
 ENDIF(WIN32)
 
 
@@ -71,7 +74,7 @@ include_directories( ${CMAKE_SOURCE_DIR}/fc/vendor/boost_1.51/include )
 add_subdirectory( fc )
 add_subdirectory( vendor/miniupnp/miniupnpc )
 #add_subdirectory( vendor/libzerocoin )
-set( BOOST_LIBRARIES ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_CHRONO_LIBRARY} ${ALL_OPENSSL_LIBRARIES} ${Boost_COROUTINE_LIBRARY} ${Boost_CONTEXT_LIBRARY} )
+set( BOOST_LIBRARIES ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_CHRONO_LIBRARY} ${ALL_OPENSSL_LIBRARIES} ${Boost_COROUTINE_LIBRARY} ${Boost_CONTEXT_LIBRARY} ${pthread})
 
 
 
@@ -85,17 +88,20 @@ set( sources
      src/peer/peer_channel.cpp
      src/peer/peer_messages.cpp
 
-     src/bitname/name_miner.cpp
-     src/bitname/name_block.cpp
-     src/bitname/name_db.cpp
-     src/bitname/name_channel.cpp
-     src/bitname/name_hash.cpp
-     src/bitname/name_client.cpp
+     src/bitname/bitname_miner.cpp
+     src/bitname/bitname_block.cpp
+     src/bitname/bitname_db.cpp
+     src/bitname/bitname_channel.cpp
+     src/bitname/bitname_hash.cpp
+     src/bitname/bitname_client.cpp
+     src/bitname/bitname_messages.cpp
 
      src/bitchat/bitchat_private_message.cpp
      src/bitchat/bitchat_messages.cpp
      src/bitchat/bitchat_channel.cpp
      src/bitchat/bitchat_client.cpp 
+
+     src/addressbook/addressbook.cpp 
 
      src/blockchain/asset.cpp
      src/blockchain/block.cpp
@@ -106,16 +112,18 @@ set( sources
      src/blockchain/blockchain_messages.cpp
      src/blockchain/blockchain_channel.cpp
      src/blockchain/blockchain_client.cpp
+     src/blockchain/blockchain_time_keeper.cpp
 
      src/rpc/rpc_server.cpp
 
-     src/db.cpp
+
+     src/extended_address.cpp
      src/small_hash.cpp
      src/mini_pow.cpp 
      src/merkle_tree.cpp
      src/address.cpp
      src/wallet.cpp
-     src/hd_wallet.cpp
+     src/keychain.cpp
      src/wallet_cache.cpp
      src/bitmessage.cpp
 
@@ -125,7 +133,9 @@ set( sources
 add_library( bshare ${sources} )
 
 add_subdirectory( bitchat )
+IF( NOT Qt5Widgets_DIR MATCHES Qt5Widgets_DIR-NOTFOUND )
 add_subdirectory( src/gui )
+ENDIF()
 
 
 #add_executable( wallet_test tests/wallet_test.cpp )
@@ -139,7 +149,7 @@ add_subdirectory( src/gui )
 #target_link_libraries( bitshares bshare fc ${BOOST_LIBRARIES})
 
 #add_executable( bitchatc bitchat/main.cpp )
-#target_link_libraries( bitchatc bshare fc ${BOOST_LIBRARIES} upnpc-static )
+#target_link_libraries( bitchatc upnpc-static bshare fc ${BOOST_LIBRARIES} upnpc-static )
 
 #add_executable( bitshared bitshared.cpp )
 #target_link_libraries( bitshared bshare fc ${BOOST_LIBRARIES} )

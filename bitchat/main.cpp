@@ -1,9 +1,11 @@
 #include <bts/network/server.hpp>
 #include <bts/peer/peer_channel.hpp>
-#include <bts/bitname/name_channel.hpp>
-#include <bts/bitname/name_client.hpp>
+#include <bts/bitname/bitname_client.hpp>
 #include <bts/bitchat/bitchat_client.hpp>
 #include <bts/rpc/rpc_server.hpp>
+#include <bts/addressbook/addressbook.hpp>
+#include <bts/addressbook/contact.hpp>
+#include <bts/extended_address.hpp>
 #include <fc/filesystem.hpp>
 #include <fc/io/json.hpp>
 #include <fc/io/fstream.hpp>
@@ -12,18 +14,21 @@
 #include <fc/log/logger.hpp>
 #include <fc/io/stdio.hpp>
 #include <fc/thread/thread.hpp>
+#include <bts/network/upnp.hpp>
 
 #include <iostream>
 #include <sstream>
 
 struct config
 {
+   fc::path                            data_dir;
    bts::network::server::config        server_config;
    bts::rpc::server::config            rpc_config;
+   bts::bitname::client::config        bitname_config;
    std::vector<bts::bitchat::identity> ids;
    std::vector<bts::bitchat::contact>  contacts;
 };
-FC_REFLECT( config, (server_config)(rpc_config)(ids)(contacts) )
+FC_REFLECT( config, (data_dir)(server_config)(rpc_config)(ids)(contacts)(bitname_config) )
 
 class bitchat_del : public bts::bitchat::bitchat_delegate
 {
@@ -53,16 +58,20 @@ int main( int argc, char** argv )
     }
     config cfg = fc::json::from_file( fc::path(argv[1]) ).as<config>();
 
+    bts::addressbook::addressbook_ptr  address_book = std::make_shared<bts::addressbook::addressbook>();
+    address_book->open( cfg.data_dir / "addressbook" );
+
     bts::network::server_ptr serv( std::make_shared<bts::network::server>() );    
     serv->configure( cfg.server_config );
 
     bts::peer::peer_channel_ptr    peer_ch        = std::make_shared<bts::peer::peer_channel>(serv);
 
     std::shared_ptr<bitchat_del>   chat_del       = std::make_shared<bitchat_del>();
-    bts::bitchat::client_ptr       chat_cl        = std::make_shared<bts::bitchat::client>( peer_ch, chat_del.get() );
+    bts::bitchat::client_ptr       chat_cl        = std::make_shared<bts::bitchat::client>( peer_ch, address_book, chat_del.get() );
 
     /// provides synchronized accounts across all computers in the network
     bts::bitname::client_ptr       name_cl        = std::make_shared<bts::bitname::client>( peer_ch );
+    name_cl->configure( cfg.bitname_config );
 //    bts::blockchain::client_ptr    blockchain_cl  = std::make_shared<bts::blockchain::client>( peer_ch );
 
     /// enable local RPC queries of data on various channels
@@ -70,11 +79,13 @@ int main( int argc, char** argv )
     rpc_serv->set_bitname_client( name_cl );
     rpc_serv->configure( cfg.rpc_config );
 
+    auto  upnpserv = std::make_shared<bts::network::upnp_service>();
+    upnpserv->map_port( cfg.server_config.port );
+
     if( argc >= 3 )
     {
       serv->connect_to( fc::ip::endpoint::from_string( argv[2] ) );
     }
-
 
     for( uint32_t i = 0; i < cfg.ids.size(); i++ )
     {
@@ -100,13 +111,15 @@ int main( int argc, char** argv )
        }
        else if( cmd == "h" || cmd == "help" )
        {
-          std::cout<<"q,quit                            -  exit bitchat\n";
-          std::cout<<"h,help                            -  print this help message\n";
-          std::cout<<"c,contact  CONTACT_LABEL KEY      -  add a new contact / key pair\n";
-          std::cout<<"n,new_id   LABEL                  -  create a new identity \n";
-          std::cout<<"i,ident    LABEL                  -  switch identities \n";
-          std::cout<<"s,send     CONTACT_LABEL MESSAGE  -  send message to \n";
-          std::cout<<"l,list                            -  list contacts & idents \n";
+          std::cout<<"q,quit                                             -  exit bitchat\n";
+          std::cout<<"h,help                                             -  print this help message\n";
+          std::cout<<"c,contact                   CONTACT_LABEL MSG_ADDR -  add a new contact / key pair\n";
+          std::cout<<"n,new_id                    BITNAME                -  create a new identity \n";
+          std::cout<<"i,ident                     BITNAME                -  switch identities \n";
+          std::cout<<"s,send                      CONTACT_LABEL MESSAGE  -  send message to \n";
+          std::cout<<"set_contact_pay_address     CONTACT_LABEL EXT_ADDR -  sets the address to send payments to contact \n";
+          std::cout<<"pc,print_contact            BITNAME                \n";
+          std::cout<<"l,list                                             -  list contacts & idents \n";
        }
        else if( cmd == "c" || cmd == "contact" )
        {
@@ -127,18 +140,37 @@ int main( int argc, char** argv )
        }
        else if( cmd == "n" || cmd == "new_id" )
        {
-         bts::bitchat::identity id;
-         ss >> id.label;
-         id.key       = fc::ecc::private_key::generate();
-         id.broadcast = fc::ecc::private_key::generate();
-         id.recv_channels.push_back( 0 );
+          bts::bitchat::identity id;
+          ss >> id.label;
+          id.key       = fc::ecc::private_key::generate();
+          id.broadcast = fc::ecc::private_key::generate();
+          id.recv_channels.push_back( 0 );
+         
+          chat_cl->add_identity( id );
+          cfg.ids.push_back( id );
+          fc::ofstream out( argv[1] );
+          out << fc::json::to_pretty_string( cfg );
+         
+          std::cout << "created identity '"<<id.label<<"' with address: "<< std::string( bts::bitchat::address( id.key.get_public_key() ) ) <<"\n";
+          name_cl->register_name( id.label, id.key.get_public_key() );
+       }
+       else if( cmd == "set_contact_pay_address" )
+       {
+          std::string contact_bitname;
+          std::string ext_pay_address;
+          ss >> contact_bitname;
+          ss >> ext_pay_address;
 
-         chat_cl->add_identity( id );
-         cfg.ids.push_back( id );
-         fc::ofstream out( argv[1] );
-         out << fc::json::to_pretty_string( cfg );
-
-         std::cout << "created identity '"<<id.label<<"' with address: "<< std::string( bts::bitchat::address( id.key.get_public_key() ) ) <<"\n";
+          auto contact_to_set = address_book->get_contact_by_bitname( contact_bitname );
+          contact_to_set.send_trx_address = bts::extended_address(ext_pay_address);
+          address_book->store_contact( contact_to_set );
+       }
+       else if( cmd == "pc" || cmd == "print_contact" )
+       {
+          std::string contact_bitname;
+          ss >> contact_bitname;
+          auto contact_to_print = address_book->get_contact_by_bitname( contact_bitname );
+          std::cout << fc::json::to_pretty_string( contact_to_print ) <<"\n";
        }
        else if( cmd == "i" || cmd == "ident" )
        {

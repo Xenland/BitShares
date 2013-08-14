@@ -13,7 +13,9 @@
 #include <fc/io/raw.hpp>
 #include <fc/filesystem.hpp>
 #include <bts/blockchain/blockchain_printer.hpp>
-#include <bts/hd_wallet.hpp>
+#include <bts/keychain.hpp>
+#include <bts/bitname/bitname_db.hpp>
+#include <bts/bitname/bitname_block.hpp>
 #include <fstream>
 
 using namespace bts;
@@ -21,7 +23,71 @@ using bts::blockchain::asset;
 using bts::blockchain::price;
 using namespace bts::blockchain;
 
-BOOST_AUTO_TEST_CASE( hd_wallet_test )
+BOOST_AUTO_TEST_CASE( bitname_db_test )
+{
+  try {
+    fc::temp_directory temp_dir;
+    bts::bitname::name_db chain;
+    chain.open( temp_dir.path() / "chain" );
+
+    bts::bitname::name_block genesis = bts::bitname::create_genesis_block();
+    chain.push_block( genesis );
+    BOOST_REQUIRE_THROW( chain.push_block( genesis ), fc::exception );
+
+    bts::bitname::name_block block1;
+    block1.utc_sec = fc::time_point::now();
+    block1.name_hash = 1;
+    block1.key = fc::ecc::private_key::generate().get_public_key();
+    block1.mroot = block1.calc_merkle_root();
+    block1.prev = genesis.id();
+
+    chain.push_block( block1 );
+    BOOST_REQUIRE_THROW( chain.push_block( block1 ), fc::exception );
+
+
+    bts::bitname::name_block block2;
+    block2.utc_sec = fc::time_point::now();
+    block2.name_hash = 2;
+    block2.key = fc::ecc::private_key::generate().get_public_key();
+    
+    for( uint32_t i = 0; i < 10; ++i )
+    {
+       bts::bitname::name_trx trx;
+       trx.name_hash = i+1000;
+       trx.utc_sec = block2.utc_sec;
+       trx.key = fc::ecc::private_key::generate().get_public_key();
+
+       block2.registered_names.push_back(trx);
+    }
+    block2.prev = block1.id();
+    block2.mroot = block2.calc_merkle_root();
+    auto test_mroot = block2.calc_merkle_root();
+    BOOST_REQUIRE( block2.mroot == test_mroot );
+    chain.push_block( block2 );
+    BOOST_REQUIRE_THROW( chain.push_block( block2 ), fc::exception );
+
+    // add a new block identical to prior block, just updating the
+    // linkages...this should fail because the renewal should increment.
+    block2.prev  = block2.id();
+    block2.mroot = block2.calc_merkle_root();
+    BOOST_REQUIRE_THROW( chain.push_block( block2 ), fc::exception );
+
+    for( uint32_t i = 0; i < block2.registered_names.size(); ++i )
+    {
+        block2.registered_names[i].renewal.value++;
+    }
+    block2.mroot = block2.calc_merkle_root();
+    chain.push_block( block2 ); // it should work this time...
+    BOOST_REQUIRE_THROW( chain.push_block( block2 ), fc::exception );
+  }
+  catch ( const fc::exception& e )
+  {
+    elog( "${e}", ("e",e.to_detail_string()) );
+    throw;
+  }
+}
+
+BOOST_AUTO_TEST_CASE( keychain_test )
 {
   try {
     auto priv  = fc::ecc::private_key::generate().get_secret();
@@ -42,7 +108,7 @@ BOOST_AUTO_TEST_CASE( hd_wallet_test )
 
     BOOST_REQUIRE( c1.get_public_key() == pub_c1.pub_key );
 
-    hd_wallet wal;
+    keychain wal;
     wal.set_seed( fc::sha512::hash( "hello", 5 ) );
     BOOST_REQUIRE( wal.get_private_account( 1 ).get_public_key() ==
                    wal.get_public_account( 1 ).pub_key );

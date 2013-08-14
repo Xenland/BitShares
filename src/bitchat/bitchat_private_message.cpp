@@ -1,6 +1,6 @@
 #include <bts/bitchat/bitchat_private_message.hpp>
 #include <fc/crypto/blowfish.hpp>
-#include <fc/crypto/sha1.hpp>
+#include <fc/crypto/sha256.hpp>
 #include <fc/crypto/sha512.hpp>
 #include <fc/reflect/variant.hpp>
 #include <fc/exception/exception.hpp>
@@ -34,9 +34,13 @@ bool  encrypted_message::decrypt( const fc::ecc::private_key& with, decrypted_me
     FC_ASSERT( data.size() % 8 == 0 );
     
     auto bf_key = with.get_shared_secret( dh_key );
-    auto check  = fc::sha1::hash( bf_key )._hash[0];
-    if( check != dh_check ) 
-    {
+    uint32_t check  = fc::sha256::hash(fc::sha256::hash( bf_key ))._hash[0];
+    if( check != dh_check )  
+    { // 1 out of every 4 million msgs will have a false positive... 
+      // and will cause the message to attempt decryption with bf, this
+      // will cause failures later in the algo, but should not be
+      // fatal to the program because in theory the unpacking
+      // algorithm is secure against malicious data
       return false;
     }
     fc::blowfish bf;
@@ -48,7 +52,7 @@ bool  encrypted_message::decrypt( const fc::ecc::private_key& with, decrypted_me
     if( m.from_sig )
     {
         try {
-        m.from_key = fc::ecc::public_key( *m.from_sig, m.digest() );
+           m.from_key  = fc::ecc::public_key( *m.from_sig, m.digest() );
         } FC_RETHROW_EXCEPTIONS( warn, "error reconstructing public key ${msg}", ("msg",m) );
     } 
     m.decrypt_key = with; 
@@ -65,7 +69,10 @@ fc::future<bool>  encrypted_message::do_proof_work( const mini_pow& tar_per_kb )
 
 
 decrypted_message::decrypted_message()
-:msg_type( unknown_msg ){}
+: msg_type( unknown_msg ),
+ compression_format(no_compression),
+ encryption_method(no_encryption) // no 'additional' encryption beyond the standard blowfish, TODO: make aes
+ {}
 
 
 fc::sha256   decrypted_message::digest()const
@@ -80,8 +87,8 @@ fc::sha256   decrypted_message::digest()const
 
 decrypted_message&  decrypted_message::sign( const fc::ecc::private_key& from )
 {
-    sig_time = fc::time_point::now();
-    from_sig = from.sign_compact( digest() );
+    sig_time  = fc::time_point::now();
+    from_sig  = from.sign_compact( digest() );
     return *this;
 }
 
@@ -96,7 +103,7 @@ encrypted_message decrypted_message::encrypt(const fc::ecc::public_key& to)const
     em.dh_key        = priv_dh_key.get_public_key();
     auto bf_key      = priv_dh_key.get_shared_secret( to );
 
-    em.dh_check = fc::sha1::hash( bf_key )._hash[0];
+    em.dh_check = fc::sha256::hash(fc::sha256::hash( bf_key ))._hash[0];
 
     fc::blowfish bf;
     bf.start( (unsigned char*)&bf_key, sizeof(bf_key) );
@@ -104,10 +111,11 @@ encrypted_message decrypted_message::encrypt(const fc::ecc::public_key& to)const
     em.data = fc::raw::pack( *this );
     // TODO: avoid extra dynamic memory alloc by pre-calc size
     int extra = 8 - em.data.size() % 8;
+    // TODO: pad this securely with something other than 0?
     em.data.resize( em.data.size() + extra );
     bf.encrypt( (unsigned char*)em.data.data(), em.data.size() );
    
-   return em;
+    return em;
 }
 
 

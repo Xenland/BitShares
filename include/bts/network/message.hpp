@@ -104,16 +104,19 @@ namespace bts { namespace network {
 
 namespace fc 
 { 
-   namespace raw {
-
-      struct pack_view
-        {
-        int32_t size : 24;
-        int32_t proto : 8;
-        int16_t chan_num;
-        int16_t msg_type;
-        };
-      static_assert( sizeof(pack_view) == sizeof(uint64_t), "pack_view should be tightly packed" );
+   namespace raw 
+   {
+      namespace detail  // don't polute fc::raw with bts::blockchain specific types
+      {
+          struct packed_message_header
+          {
+            int32_t size : 24;
+            int32_t proto : 8;
+            int16_t chan_num;
+            int16_t msg_type;
+          };
+          static_assert( sizeof(packed_message_header) == sizeof(uint64_t), "packed_message_header should be tightly packed" );
+      }
 
       /**
        *  @read write in blocks of at least 8 bytes for encryption purposes
@@ -122,7 +125,7 @@ namespace fc
       inline void pack( Stream& s, const bts::network::message& m )
       {
          FC_ASSERT( m.size % 8 == 0, ", size: ${s}", ("s",m.size) );
-         pack_view packed_value;
+         detail::packed_message_header packed_value;
          packed_value.size = m.size;
          packed_value.proto = m.proto;
          packed_value.chan_num = m.chan_num;
@@ -140,7 +143,7 @@ namespace fc
       template<typename Stream>
       inline void unpack( Stream& s, bts::network::message& m )
       {  
-         pack_view packed_value;
+         detail::packed_message_header packed_value;
          s.read( (char*)&packed_value, sizeof( packed_value ) );
          m.size = packed_value.size;
          m.proto = packed_value.proto;

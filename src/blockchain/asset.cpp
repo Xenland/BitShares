@@ -4,7 +4,7 @@
 #include <fc/log/logger.hpp>
 
 /** more base 10 digits is beyond the precision of 64 bits */
-#define BASE10_PRECISION  (100000000000000ll)
+#define BASE10_PRECISION  uint64_t(100000000000000llu)
 
 
 namespace bts { namespace blockchain {

@@ -1,5 +1,5 @@
 #pragma once
-#include <bts/hd_wallet.hpp>
+#include <bts/extended_address.hpp>
 #include <bts/blockchain/blockchain_db.hpp>
 
 namespace fc { class path; }

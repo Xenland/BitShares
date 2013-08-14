@@ -101,7 +101,8 @@ namespace bts { namespace rpc {
             {
                 FC_ASSERT( params.size() == 2 );
                 check_login( capture_con );
-                return fc::variant( _bitnamec->register_name( params[0].as_string(), params[1].as<fc::ecc::public_key>() ) );
+                _bitnamec->register_name( params[0].as_string(), params[1].as<fc::ecc::public_key>() );
+                return fc::variant();
             });
          }
     };

@@ -1,5 +1,5 @@
 #pragma once
-#include <bts/bitname/name_client.hpp>
+#include <bts/bitname/bitname_client.hpp>
 
 namespace bts { namespace rpc { 
 

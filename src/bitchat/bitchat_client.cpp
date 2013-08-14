@@ -16,6 +16,8 @@ namespace bts { namespace bitchat {
        public:
          bts::peer::peer_channel_ptr peers;
          bitchat_delegate*           del;
+
+         addressbook::addressbook_ptr                       abook;
    
          std::map<std::string,contact>                      contacts;
          std::map<std::string,identity>                     idents;
@@ -183,12 +185,13 @@ namespace bts { namespace bitchat {
 
    } // namespace detail 
    
-   client::client( const bts::peer::peer_channel_ptr& p, bitchat_delegate* d )
+   client::client( const bts::peer::peer_channel_ptr& peers, const addressbook::addressbook_ptr& abook, bitchat_delegate* chat_delegate )
    :my( new detail::client_impl() )
    {
-       assert( d != nullptr );
-       my->peers = p;
-       my->del   = d;
+       assert( chat_delegate != nullptr );
+       my->abook = abook;
+       my->peers = peers;
+       my->del   = chat_delegate;
 
        // By default subscribe to channel 0 where everyone is subscribed.
        my->subscribe_to_channel( channel_id( network::chat_proto, 0 ) );
@@ -198,8 +201,6 @@ namespace bts { namespace bitchat {
    {
       ilog( "" );
    }
-
-
 
    void        client::add_identity( const identity& id )
    {

@@ -6,8 +6,6 @@
 #include <fc/io/raw.hpp>
 #include <fc/exception/exception.hpp>
 
-#include <fc/log/logger.hpp>
-
 namespace bts { namespace db {
 
   namespace ldb = leveldb;
@@ -15,9 +13,11 @@ namespace bts { namespace db {
   /**
    *  @brief implements a high-level API on top of Level DB that stores items using fc::raw / reflection
    *
+   *
+   *  @note Key must be a POD type
    */
   template<typename Key, typename Value>
-  class level_map
+  class level_pod_map
   {
      public:
         void open( const fc::path& dir, bool create = true )
@@ -46,8 +46,7 @@ namespace bts { namespace db {
         Value fetch( const Key& k )
         {
           try {
-             std::vector<char> kslice = fc::raw::pack( k );
-             ldb::Slice ks( kslice.data(), kslice.size() );
+             ldb::Slice ks( (char*)&k, sizeof(k) );
              std::string value;
              auto status = _db->Get( ldb::ReadOptions(), ks, &value );
              if( !status.ok() )
@@ -72,10 +71,8 @@ namespace bts { namespace db {
 
              Key key()const
              {
-                 Key tmp_key;
-                 fc::datastream<const char*> ds2( _it->key().data(), _it->key().size() );
-                 fc::raw::unpack( ds2, tmp_key );
-                 return tmp_key;
+                 FC_ASSERT( sizeof(Key) == _it->key().size() );
+                 return *((Key*)_it->key().data());
              }
 
              Value value()const
@@ -90,7 +87,7 @@ namespace bts { namespace db {
              iterator& operator--() { _it->Prev(); return *this; }
            
            protected:
-             friend class level_map;
+             friend class level_pod_map;
              iterator( ldb::Iterator* it )
              :_it(it){}
 
@@ -99,8 +96,7 @@ namespace bts { namespace db {
 
         iterator find( const Key& key )
         { try {
-           std::vector<char> kslice = fc::raw::pack( key );
-           ldb::Slice key_slice( kslice.data(), kslice.size() );
+           ldb::Slice key_slice( (char*)&key, sizeof(key) );
            iterator itr( _db->NewIterator( ldb::ReadOptions() ) );
            itr._it->Seek( key_slice );
            if( itr.valid() && itr.key() == key ) 
@@ -121,8 +117,8 @@ namespace bts { namespace db {
              {
                return false;
              }
-             fc::datastream<const char*> ds2( it->key().data(), it->key().size() );
-             fc::raw::unpack( ds2, k );
+             FC_ASSERT( sizeof( Key) == it->key().size() );
+             k = *((Key*)it->key().data());
              return true;
           } FC_RETHROW_EXCEPTIONS( warn, "error reading last item from database" );
         }
@@ -140,8 +136,8 @@ namespace bts { namespace db {
            fc::datastream<const char*> ds( it->value().data(), it->value().size() );
            fc::raw::unpack( ds, v );
 
-           fc::datastream<const char*> ds2( it->key().data(), it->key().size() );
-           fc::raw::unpack( ds2, k );
+           FC_ASSERT( sizeof( Key) == it->key().size() );
+           k = *((Key*)it->key().data());
            return true;
           } FC_RETHROW_EXCEPTIONS( warn, "error reading last item from database" );
         }
@@ -150,9 +146,7 @@ namespace bts { namespace db {
         {
           try
           {
-             std::vector<char> kslice = fc::raw::pack( k );
-             ldb::Slice ks( kslice.data(), kslice.size() );
-
+             ldb::Slice ks( (char*)&k, sizeof(k) );
              auto vec = fc::raw::pack(v);
              ldb::Slice vs( vec.data(), vec.size() );
              
@@ -168,8 +162,7 @@ namespace bts { namespace db {
         {
           try
           {
-             std::vector<char> kslice = fc::raw::pack( k );
-             ldb::Slice ks( kslice.data(), kslice.size() );
+            ldb::Slice ks( (char*)&k, sizeof(k) );
             auto status = _db->Delete( ldb::WriteOptions(), ks );
             if( !status.ok() )
             {
@@ -185,14 +178,11 @@ namespace bts { namespace db {
           public:
             int Compare( const leveldb::Slice& a, const leveldb::Slice& b )const
             {
-               Key ak,bk;
-               fc::datastream<const char*> dsa( a.data(), a.size() );
-               fc::raw::unpack( dsa, ak );
-               fc::datastream<const char*> dsb( b.data(), b.size() );
-               fc::raw::unpack( dsb, bk );
-
-               if( ak  < bk ) return -1;
-               if( ak == bk ) return 0;
+               FC_ASSERT( (a.size() == sizeof(Key)) && (b.size() == sizeof( Key )) );
+               Key* ak = (Key*)a.data();        
+               Key* bk = (Key*)b.data();        
+               if( *ak  < *bk ) return -1;
+               if( *ak == *bk ) return 0;
                return 1;
             }
 

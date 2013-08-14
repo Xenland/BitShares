@@ -1,19 +1,55 @@
 {
+  "data_dir": "data/a",
   "server_config": {
     "port": 9876,
     "chain": "",
     "bootstrap_endpoints": [],
     "blacklist": []
   },
-  "rpc_config" : {
-    "port" : 6789,
-    "user" : "rpc_user",
-    "pass" : "rpc_pass"
+  "rpc_config": {
+    "port": 6789,
+    "user": "rpc_user",
+    "pass": "rpc_pass"
   },
   "ids": [{
       "label": "dan",
       "key": "c7714b9021d9ec9078a58012e164f163a5228721164c68059dff61ad566a3b0b",
       "broadcast": "1eeb411196ba463fadccd460d254d54e343f21fe01493e4bddecd025e22d7caa",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "34a026264c38fe3b939ae81a750021139b94fd0656a8e40b66cd008acf96315a",
+      "broadcast": "c3aa0c30193217787a917c60ba9a79b8bbbbd770e47687be48fb9e4fe5077552",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "cfbe1f7345f50624d22a8bd830da8e2e0785ebfa37d1809f4106cf1cb898a704",
+      "broadcast": "de4b937cbd6c1533e802bc7667b8c4bea0e04672e21aa29a5ab8dfb342b815b5",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "502d9c630659438e5823f0b52624e4fc3dc5915600e9608419efdfa010b7ef9a",
+      "broadcast": "2ed82c839c4439c9a5a6b5940d78b4ed635d802eb7f310493656aaf523776ca2",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "dc49a1ebfb0ba8ee00d1b8507dda49b8662bb39de53a8d187eb232f66c919a26",
+      "broadcast": "4fef243a620f7b0858703dedec706ab974c567e1eb4d59a16a70ed0779b17bd3",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "ea778744745f63e222989c00b6b305aa66152563127ac758a38b9ce30c1ab725",
+      "broadcast": "4e7cb0e9b59291f496b03bee357aa3b058ac457193bc4846094c74928684c883",
       "recv_channels": [
         0
       ]
@@ -34,5 +70,9 @@
         0
       ]
     }
-  ]
+  ],
+  "bitname_config": {
+    "data_dir": "data/a",
+    "max_mining_effort": 1
+  }
 }

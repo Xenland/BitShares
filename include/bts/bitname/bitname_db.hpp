@@ -1,5 +1,5 @@
 #pragma once
-#include <bts/bitname/name_block.hpp>
+#include <bts/bitname/bitname_block.hpp>
 #include <fc/filesystem.hpp>
 
 namespace bts { namespace bitname {
@@ -19,7 +19,8 @@ namespace bts { namespace bitname {
         void open( const fc::path& dbdir, bool create = true );
         void close();
 
-        void store( const name_block& b );
+        void push_block( const name_block& b );
+        void pop_block(); // pops the most recent block
 
         struct name_location 
         {
@@ -30,12 +31,21 @@ namespace bts { namespace bitname {
             mini_pow block_id;
             uint16_t trx_num;
         };
+        
+        /**
+         *  Checks to see if the name can be registered and
+         *  throws an exception on error.
+         */
+        void validate_trx( const name_trx& trx )const;
 
-        name_location   find_name( uint64_t name_hash );
-        name_header     fetch_trx( uint64_t name_hash );
-        name_block      fetch_block( const mini_pow& block_id );
+        /** finds the location of most recent registration of name_hash */
+        name_location   find_name( uint64_t name_hash )const;
 
-        void            remove_block( const mini_pow& block_id );
+        /** fetches the most recent registration of name_hash */
+        name_trx        fetch_trx( uint64_t name_hash )const;
+
+        /** get a block by its block_id */
+        name_block      fetch_block( const mini_pow& block_id )const;
 
       private:
         std::unique_ptr<detail::name_db_impl> my;

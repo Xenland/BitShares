@@ -43,4 +43,28 @@ namespace bts { namespace blockchain {
      // subscribe to the proper chain channel...  
   }
 
+  extended_address blockchain_client::get_recv_address( const std::string& contact_label )
+  {
+    return extended_address();
+  }
+
+  void             blockchain_client::add_contact( const std::string& label, const extended_address& send_to_addr )const
+  {
+  }
+
+  void             blockchain_client::transfer( uint64_t amount, asset::type unit, const std::string& to_contact_label )const
+  {
+  }
+
+  
+  asset            blockchain_client::get_balance( asset::type unit, uint32_t min_conf  )const
+  {
+     return asset();
+  }
+
+  asset            blockchain_client::get_trx_balance( const std::string& contact_label, uint32_t trx_num, uint32_t min_conf  )const
+  {
+     return asset();
+  }
+
 } } // namespace bts::blockchain

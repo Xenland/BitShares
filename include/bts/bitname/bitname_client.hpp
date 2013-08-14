@@ -4,6 +4,10 @@
 #include <fc/crypto/elliptic.hpp>
 #include <fc/optional.hpp>
 #include <fc/io/varint.hpp>
+#include <fc/filesystem.hpp>
+
+#include <map>
+
 
 namespace bts { namespace bitname {
 
@@ -71,15 +75,29 @@ namespace bts { namespace bitname {
        client( const bts::peer::peer_channel_ptr& peer_chan );
        ~client();
 
+       struct config
+       {
+          config()
+          :max_mining_effort(0.25){}
+
+          fc::path data_dir;
+          double   max_mining_effort;
+       };
+
+       void configure( const config& client_config );
+
        name_record                    lookup_name( const std::string& name );
        name_record                    reverse_name_lookup( const fc::ecc::public_key& k );
        fc::ecc::public_key            verify_signature( const fc::sha256& digest, const fc::ecc::compact_signature& sig );
        fc::ecc::compact_signature     sign( const fc::sha256& digest, const std::string& name );
 
        /**
-        *  Attempts to register the name to the given public key.
+        *  Attempts to register the name to the given public key, throws an exception if the name is already
+        *  registered on the network.
         */
-       std::string                    register_name( const std::string& name, const fc::ecc::public_key& );
+       void                                       register_name( const std::string& bitname_id, const fc::ecc::public_key& );
+       std::map<std::string,fc::ecc::public_key>  pending_name_registrations()const;
+       void                                       cancel_name_registration( const std::string& bitname_id );
      private:
        std::unique_ptr<detail::client_impl> my;
   };
@@ -96,6 +114,10 @@ FC_REFLECT( bts::bitname::name_record,
     (name_hash)
     (name)
   )
+FC_REFLECT( bts::bitname::client::config,
+    (data_dir)
+    (max_mining_effort)
+    )
 
 #include <fc/ptr.hpp>
 FC_STUB( bts::bitname::client, 

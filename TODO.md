@@ -1,3 +1,4 @@
 TODO List
 ---------------------------
-1) rename bts/bitname/name_* to bts/bitname/bitname_* for consistancy sake
+1) make bitchat messages have flexible encryption algorithms
+2) bitchat messages should support the best compression possible

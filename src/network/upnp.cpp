@@ -1,7 +1,9 @@
 //#include <miniupnpc/miniwget.h>
+extern "C" {
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
 #include <miniupnpc/upnperrors.h>
+}
 
 #include <bts/network/upnp.hpp>
 #include <fc/log/logger.hpp>
