@@ -64,7 +64,7 @@ namespace bts { namespace blockchain {
          * Return the current difficulty level as the
          * average of all blocks in the window.
          */
-        fc::bigint current_difficuty()const;
+        fc::bigint current_difficulty()const;
 
      private:
         std::unique_ptr<detail::time_keeper_impl> my;

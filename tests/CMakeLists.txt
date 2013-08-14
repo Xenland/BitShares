@@ -7,3 +7,6 @@ endif(WIN32)
 
 add_executable( pow_test pow_test.cpp )
 target_link_libraries( pow_test bshare fc ${BOOST_LIBRARIES})
+
+add_executable( timekeeper timekeeper.cpp )
+target_link_libraries( timekeeper bshare fc ${BOOST_LIBRARIES})
