@@ -12,34 +12,31 @@ namespace bts { namespace blockchain {
   { 
       struct time_record
       {
-         time_record():block_num(0){}
-         time_record( uint32_t num, fc::time_point blk_t, fc::bigint pow )
-         :block_num(num),block_time(blk_t),block_pow( std::move(pow) ){}
+         time_record():block_num(0),time_error(0){}
+         time_record( uint32_t num, fc::time_point blk_t, fc::bigint pow, uint64_t error_us )
+         :block_num(num),block_time(blk_t),block_pow( std::move(pow) ),time_error(error_us){}
 
          uint32_t        block_num;
          fc::time_point  block_time;
          fc::bigint      block_pow;
+         int64_t         time_error;
       };
 
       class time_keeper_impl
       {
          public:
             time_keeper_impl( uint32_t window )
-            :_window(window),_first(0){}
+            :_window(window){}
 
             fc::time_point           _origin_time;
             fc::microseconds         _block_interval;
             uint32_t                 _window;
 
-            uint32_t                 _first;
-                                    
             fc::bigint               _cur_difficulty;
             fc::bigint               _next_difficulty;
-            fc::bigint               _cur_time;
+            fc::time_point           _cur_time;
 
-            std::deque<time_record>              _records;
-            std::map<fc::bigint,uint32_t>        _sorted_by_difficulty;
-            std::map<fc::time_point,uint32_t>    _sorted_by_time;
+            std::deque<time_record>  _records;
       };
   }
 
@@ -57,26 +54,64 @@ time_keeper::~time_keeper() { }
 
 void time_keeper::push( uint32_t block_num, fc::time_point block_time, fc::bigint block_proof_of_work )
 {
-   //ilog( "${n}, ${t}, ${p}", ("n",block_num)("t",block_time)("p",std::string(block_proof_of_work)) );
-   if( my->_records.size() )
+   if( my->_records.size() == 0 )
    {
-      FC_ASSERT( my->_records.back().block_num + 1 == block_num );
+     my->_cur_time        = block_time;
+     my->_cur_difficulty  = block_proof_of_work;
+     my->_next_difficulty = block_proof_of_work;
+     auto expected_time =  my->_origin_time + fc::microseconds(block_num * my->_block_interval.count());
+     int64_t error_us = (block_time - expected_time).count();
+     my->_records.emplace_back( detail::time_record( block_num, block_time, block_proof_of_work, error_us ) );
+     return;
    }
-   FC_ASSERT( my->_sorted_by_difficulty.size() == my->_records.size() );
-   my->_records.emplace_back( detail::time_record( block_num, block_time, block_proof_of_work ) );
-   my->_sorted_by_difficulty[block_proof_of_work] = block_num;
-   my->_sorted_by_time[block_time] = block_num;
-   FC_ASSERT( my->_sorted_by_difficulty.size() == my->_records.size() );
-   FC_ASSERT( my->_sorted_by_time.size() == my->_records.size() );
 
-   if( my->_records.size() > my->_window )
+   FC_ASSERT( my->_records.back().block_num + 1 == block_num );
+   FC_ASSERT( block_proof_of_work <= my->_next_difficulty        ); // we set a difficulty for a reason!
+   FC_ASSERT( block_time > (my->_cur_time - fc::seconds(60*60) ) ); // 1 hr grace.. 
+
+   int64_t error_us = (block_time - next_time()).count();
+   //ilog( "${n}, ${t}, ${e} ${p}", ("n",block_num)("t",block_time)("p",std::string(block_proof_of_work))("e",error_us) );
+   my->_records.emplace_back( detail::time_record( block_num, block_time, block_proof_of_work, error_us ) );
+   if( my->_records.size() > my->_window ) 
    {
-       my->_sorted_by_time.erase( my->_records[0].block_time );
-       my->_sorted_by_difficulty.erase( my->_records[0].block_pow );
-       my->_first = my->_records.front().block_num+1;
-       my->_records.pop_front();
-   FC_ASSERT( my->_sorted_by_difficulty.size() == my->_records.size() );
-   FC_ASSERT( my->_sorted_by_time.size() == my->_records.size() );
+     my->_records.pop_front();
+   }
+
+   std::vector<int64_t>     errors;
+   std::vector<int64_t>     index;
+
+   index.reserve( my->_records.size() );
+   errors.reserve( my->_records.size() );
+   for( auto itr = my->_records.begin(); itr != my->_records.end(); ++itr )
+   {
+     errors.push_back( itr->time_error );
+     index.push_back( index.size() );
+   }
+   uint32_t median_pos = my->_records.size() / 2;
+   std::nth_element( index.begin(), index.begin()+median_pos, index.end(), 
+      [&](int32_t a, int32_t b) { return my->_records[a].block_pow < my->_records[b].block_pow; } );
+
+   std::nth_element( errors.begin(), errors.begin() + median_pos, errors.end() );
+   int64_t median_error = errors[median_pos];
+
+   // 1000 * error_percent (fixed point)
+   int64_t error_percent = median_error * 1000000 / my->_block_interval.count();
+   error_percent /= my->_window;
+    
+   my->_cur_time       = my->_origin_time + fc::microseconds(block_num * my->_block_interval.count()) + fc::microseconds(median_error);
+   my->_cur_difficulty = my->_records[index[median_pos]].block_pow;
+   
+   if( error_percent < 0 ) // divided by  1 - error_percent
+   {
+      my->_next_difficulty = my->_cur_difficulty;
+      my->_next_difficulty *= fc::bigint( 1000000 );
+      my->_next_difficulty /= fc::bigint( 1000000 - error_percent );
+   }
+   else // multiply by 1 + error_percent
+   {
+      my->_next_difficulty = my->_cur_difficulty;
+      my->_next_difficulty *= fc::bigint( 1000000 + error_percent );
+      my->_next_difficulty /= 1000000;
    }
 }
 
@@ -87,29 +122,6 @@ void time_keeper::push( uint32_t block_num, fc::time_point block_time, fc::bigin
 void time_keeper::pop( uint32_t block_num )
 {
    FC_ASSERT( !"Not tested" );
-   /*
-   while( my->_records.size() ) 
-   {
-     if( my->_records.back().block_num > block_num )
-     {
-       my->_records.pop_back();
-       std::remove( my->_sorted_by_difficulty.begin(), my->_sorted_by_difficulty.end(),
-                    my->_sorted_by_difficulty.size() - 1);
-       my->_sorted_by_difficulty.pop_back();
-          
-       std::remove( my->_sorted_by_time.begin(), my->_sorted_by_time.end(),
-                    my->_sorted_by_time.size() - 1);
-       my->_sorted_by_time.pop_back();
-
-       my->sort_by_difficulty();
-       my->sort_by_time();
-     }
-     else
-     {
-       return;
-     }
-   }
-   */
 }
 
 
@@ -125,37 +137,6 @@ uint32_t time_keeper::next_block_num()const
  */
 fc::bigint time_keeper::next_difficulty()const
 {
-   FC_ASSERT( my->_sorted_by_difficulty.size() == my->_records.size() );
-   //ilog( "next time: ${error}", ("error", next_time()) );
-   //ilog( "cur  time: ${error}", ("error", current_time()) );
-   int64_t error_sec   = (next_time() - (current_time()+my->_block_interval)).count()/1000000;
-   //ilog( "error_us: ${error}", ("error", error_us) );
-   error_sec *= 10000000; // add 6 dec precision
-   int64_t error_percent = error_sec / (my->_block_interval.count()/1000000); // with 6 dec prec
-   //ilog( "error_percent (6 dec): ${error}", ("error", error_percent) );
-
- //  ilog( "double error_percent (6 dec): ${error}", ("error", error_percent) );
-   error_percent /= (my->_window *2); // keep things more stable
-
-   my->_cur_difficulty = current_difficulty();
-
-   // if error percent is positive, the network is too fast... slow it down
-   // by increasing difficulty, ie div by 1+abs(error_percent)
-   if( error_percent > 0 )
-   {
-     error_percent += 10000000; // aka 1.000000
-     auto tmp = my->_cur_difficulty * fc::bigint(10000000);
-     my->_next_difficulty = tmp / fc::bigint(error_percent);
-     return my->_next_difficulty;
-   }
-
-   // if error_percent is negitive, the network is too slow,  speed it up
-   // by reducing difficulty (multiply threshold) by error_percent
-   error_percent *= -1;
-   error_percent += 10000000; // aka 1.000000
-   auto tmp = my->_cur_difficulty * fc::bigint(error_percent);
-   my->_next_difficulty = tmp / fc::bigint(10000000);
-
    return my->_next_difficulty;
 }
          
@@ -166,15 +147,7 @@ fc::bigint time_keeper::next_difficulty()const
  */
 fc::bigint time_keeper::current_difficulty()const
 {
-   FC_ASSERT( my->_sorted_by_difficulty.size() == my->_records.size() );
-   FC_ASSERT( my->_records.size() != 0 );
-   //auto idx = my->_sorted_by_difficulty[ my->_sorted_by_difficulty.size() / 2 ];
-   //return my->_records[idx-my->_first].block_pow;
- //  std::vector<std::pair<fc::bigint,uint32_t>> sorted( my->_sorted_by_difficulty.begin(), my->_sorted_by_difficulty.end() );
-   auto median =  my->_sorted_by_difficulty.begin();
-   std::advance( median, my->_sorted_by_difficulty.size()/2 );
-   return median->first;
-  // auto idx = sorted[ sorted.size() / 2 ];
+   return my->_cur_difficulty;
 }
 
 /**
@@ -189,23 +162,7 @@ fc::bigint time_keeper::current_difficulty()const
  */
 fc::time_point time_keeper::current_time()const
 {
-   FC_ASSERT( my->_records.size() != 0 );
-   if( my->_records.size() <= 2 ) return my->_records.back().block_time;
-   auto median =  my->_sorted_by_time.begin();
-   std::advance( median, my->_records.size()/2 );
-   auto base_time = median->first;
-   base_time += fc::microseconds(my->_block_interval.count() * ((my->_records.size() / 2)-1));
-   return base_time;
-
-   /*
-   uint64_t sum = 0;
-   for( uint32_t i = 0; i < 8; ++i )
-   {
-      ++median;
-      sum += (median->first-base_time).count();
-   }
-   base_time += fc::microseconds( sum / 8 );
-   */
+   return my->_cur_time;
 }
 
 /**

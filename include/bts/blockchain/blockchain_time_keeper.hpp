@@ -27,7 +27,7 @@ namespace bts { namespace blockchain {
      public:
         time_keeper( fc::time_point origin_time, 
                      fc::microseconds block_interval, 
-                     uint32_t window = 4096 );
+                     uint32_t window = 1024 ); // no reason for window to be larger than allowed time variance
         ~time_keeper();
 
         void push( uint32_t block_num, fc::time_point block_time, fc::bigint block_proof_of_work );
