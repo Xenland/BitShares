@@ -2,9 +2,10 @@
 #include <fc/exception/exception.hpp>
 #include <fc/crypto/bigint.hpp>
 #include <fc/log/logger.hpp>
+#include <cstdint>
 
 /** more base 10 digits is beyond the precision of 64 bits */
-#define BASE10_PRECISION  uint64_t(100000000000000llu)
+#define BASE10_PRECISION  UINT64_C(100000000000000)
 
 
 namespace bts { namespace blockchain {
