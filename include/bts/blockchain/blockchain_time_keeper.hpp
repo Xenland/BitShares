@@ -1,6 +1,5 @@
 #pragma once
 #include <fc/time.hpp>
-#include <fc/crypto/bigint.hpp>
 #include <memory>
 
 namespace bts { namespace blockchain {
@@ -25,12 +24,17 @@ namespace bts { namespace blockchain {
   class time_keeper
   {
      public:
-        time_keeper( fc::time_point origin_time, 
-                     fc::microseconds block_interval, 
-                     uint32_t window = 1024 ); // no reason for window to be larger than allowed time variance
+        time_keeper();
         ~time_keeper();
+        void configure( fc::time_point origin, fc::microseconds interval, uint32_t window = 4096 );
+        void push_init( uint32_t block_num, fc::time_point block_time, uint64_t block_difficulty );
+        void init_stats();
 
-        void push( uint32_t block_num, fc::time_point block_time, fc::bigint block_proof_of_work );
+
+        /**
+         *  @param  difficulty 
+         */
+        void push( uint32_t block_num, fc::time_point block_time, uint64_t difficulty );
 
         /**
          *  pop everything after block_num
@@ -58,13 +62,13 @@ namespace bts { namespace blockchain {
         /**
          *  Calculate the difficulty for the next block.
          */
-        fc::bigint next_difficulty()const;             
+        uint64_t next_difficulty()const;             
 
         /**
          * Return the current difficulty level as the
          * average of all blocks in the window.
          */
-        fc::bigint current_difficulty()const;
+        uint64_t current_difficulty()const;
 
      private:
         std::unique_ptr<detail::time_keeper_impl> my;

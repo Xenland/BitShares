@@ -1,8 +1,16 @@
 #include <bts/bitname/bitname_db.hpp>
+#include <bts/blockchain/blockchain_time_keeper.hpp>
 #include <bts/db/level_map.hpp>
+#include <bts/db/level_pod_map.hpp>
 #include <fc/io/raw.hpp>
 #include <fc/reflect/variant.hpp>
 
+struct block_stats
+{
+  bts::mini_pow      pow;
+  fc::time_point_sec timestamp;
+};
+FC_REFLECT( block_stats, (pow)(timestamp) )
 
 namespace bts { namespace bitname {
 
@@ -21,12 +29,14 @@ namespace bts { namespace bitname {
              }
 
              db::level_map<uint32_t, mini_pow>                             _block_num_to_id;
+             db::level_pod_map<uint32_t, block_stats>                      _block_stats_db;
              db::level_map<mini_pow, name_block>                           _block_id_to_block;
              db::level_map<uint64_t, std::vector<name_db::name_location> > _name_hash_to_locs;
 
-             name_header _head_header;
-             uint32_t    _head_block_num;
-             mini_pow    _head_block_id;
+             name_header               _head_header;
+             uint32_t                  _head_block_num;
+             mini_pow                  _head_block_id;
+           //  blockchain::time_keeper   _timekeeper;
 
              void index_trx( const name_db::name_location& loc, uint64_t name_hash )
              {
@@ -63,6 +73,9 @@ namespace bts { namespace bitname {
        my->_block_num_to_id.open( db_dir / "block_num_to_id" );
        my->_block_id_to_block.open( db_dir / "block_id_to_block" );
        my->_name_hash_to_locs.open( db_dir / "name_hash_to_locs" );
+
+       // load every header, pull the number/time and difficulty out 
+       // and verify their integrety so we can calculate the next difficulty target and current time.
 
        // TODO: load head block num..
 
