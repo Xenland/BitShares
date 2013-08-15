@@ -21,6 +21,9 @@ namespace bts { namespace bitname {
           virtual void found_name_block( const name_block& new_block )
           {
               ilog( "found name block\n ${n}", ("n", fc::json::to_pretty_string(new_block) ) );
+              ilog( "   id: ${d}", ("d", new_block.id() ) );
+              ilog( "   difficulty(id): ${d}", ("d", mini_pow_difficulty(new_block.id()) ) );
+              ilog( "   block difficulty: ${d}", ("d", new_block.calc_difficulty() ) );
               // make sure new_block is not stale... 
               // check to see if it is good enough to solve the block, or just a trx
               // broadcast it accordingly... 

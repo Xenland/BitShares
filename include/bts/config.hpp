@@ -20,7 +20,8 @@
 #define BITCHAT_INVENTORY_WINDOW_SEC  (60)                // seconds to keep inventory items around
 #define DEFAULT_MINING_EFFORT_PERCENT (50)                // percent of CPU to use for mining
 #define DEFAULT_MINING_THREADS        (4)                 // number of mining threads to use
-#define MIN_NAME_DIFFICULTY           (20)                // number if leeding 0 bits in double sha512 required to register a name
+#define MIN_NAME_DIFFICULTY           (20)              // number if leeding 0 bits in double sha512 required to register a name
+//#define MIN_NAME_DIFFICULTY           (16)                // number if leeding 0 bits in double sha512 required to register a name
 #define PEER_HOST_CACHE_QUERY_LIMIT   (1000)              // number of ip/ports that we will cache
 #define MAX_CHANNELS_PER_CONNECTION   (32)
 

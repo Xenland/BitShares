@@ -7,6 +7,7 @@
 #include <fc/reflect/variant.hpp>
 #include <bts/mini_pow.hpp>
 #include <bts/blockchain/asset.hpp>
+#include <fc/crypto/hex.hpp>
 #include <bts/blockchain/blockchain_db.hpp>
 #include <bts/config.hpp>
 #include <fc/io/json.hpp>
@@ -371,7 +372,7 @@ BOOST_AUTO_TEST_CASE( wallet_test )
 
 BOOST_AUTO_TEST_CASE( mini_pow_test )
 {
-  std::string hello_world( "hello world");
+  std::string hello_world( "hello world1");
   auto p = bts::mini_pow_hash( hello_world.c_str(), hello_world.size() );
   ilog("p: ${p}", ("p",p));
   auto p2 = bts::mini_pow_hash( hello_world.c_str(), hello_world.size() );
@@ -383,18 +384,16 @@ BOOST_AUTO_TEST_CASE( mini_pow_test )
   memset( (char*)tmp, 0, sizeof(tmp) );
   ilog("");
 
-  uint8_t* first = (uint8_t*)&p;
-  uint8_t min = 255;
-  while( *first > 225 )
+  uint64_t max = 0;
+  while(true)
   {
       tmp[0]++;
       p = bts::mini_pow_hash( (char*)tmp, sizeof(tmp) );
-
-      if( *first < min ) 
+      auto dif = bts::mini_pow_difficulty( p );
+      if( dif > max )
       {
-         ilog( "found ${h}", ("h",p) );
-         min = *first;
+         ilog( "dif: ${dif}  =  ${p}   ${tmp}", ("dif",dif)("p",p)("tmp",tmp[0]) );
+         max = dif;        
       }
   }
-
 }

@@ -13,8 +13,8 @@ namespace bts { namespace bitname {
 
   uint64_t name_block::calc_difficulty()const
   {
-     fc::bigint max_pow = to_bigint( mini_pow_max() );
-     int64_t my_difficulty = (max_pow / to_bigint( id() )).to_int64();
+    // fc::bigint max_pow = to_bigint( mini_pow_max() );
+     int64_t my_difficulty = mini_pow_difficulty( id() ); //(max_pow / to_bigint( id() )).to_int64();
 
      if( registered_names.size() == 0 ) 
         return my_difficulty;
@@ -22,7 +22,7 @@ namespace bts { namespace bitname {
      std::vector<uint64_t> difficulties(registered_names.size() );
      for( uint32_t i = 0; i < registered_names.size(); ++i )
      {
-        difficulties[i] = (max_pow / to_bigint( registered_names[i].id(prev)  )).to_int64();
+        difficulties[i] = mini_pow_difficulty( registered_names[i].id(prev) );
      }
 
      uint64_t median_pos = difficulties.size() / 2;
@@ -53,7 +53,7 @@ namespace bts { namespace bitname {
         static_assert( sizeof(mini_pow[2]) == 20, "validate there is no padding between array items" );
         for( uint32_t i = 0; i < layer_one.size(); i += 2 )
         {
-            layer_two.push_back(  mini_pow_hash( layer_one[i].data, 2*sizeof(mini_pow) ) );
+            layer_two.push_back(  mini_pow_hash( (char*)&layer_one[i], 2*sizeof(mini_pow) ) );
         }
 
         layer_one = std::move(layer_two);

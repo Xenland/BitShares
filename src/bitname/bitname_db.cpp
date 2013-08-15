@@ -10,9 +10,10 @@ namespace bts { namespace bitname {
 
     namespace ldb = leveldb;
    
-    static_assert( sizeof(bts::bitname::name_db::name_location) == 12, 
+    /*
+    static_assert( sizeof(bts::bitname::name_db::name_location) == (sizeof(mini_pow)+2*sizeof(uint16_t)), 
                       "name_location requires dense packing with no padding" );
-
+    */
     namespace detail 
     {
        class name_db_impl 

@@ -21,6 +21,7 @@ namespace bts { namespace bitname {
          {
             memset( min_name_pow.data, 0xff, sizeof(min_name_pow) );
             min_name_pow.data[0] = 255 - MIN_NAME_DIFFICULTY;
+            name_pow_target = 1000;
 
             if( DEFAULT_MINING_THREADS > 0 ) _threads[0].set_name( "bitname1" );
             if( DEFAULT_MINING_THREADS > 1 ) _threads[1].set_name( "bitname2" );
@@ -49,7 +50,7 @@ namespace bts { namespace bitname {
         uint64_t              _block_ver;
         mini_pow              _block_target;
 
-        mini_pow              name_pow_target;
+        uint64_t              name_pow_target;
         mini_pow              min_name_pow;
 
         /**
@@ -75,13 +76,16 @@ namespace bts { namespace bitname {
                     *nonce += DEFAULT_MINING_THREADS;
                     auto test_result = mini_pow_hash( buf.data(), buf.size() );
 
-                   // if( cnt % 1000 == 0 ) ilog( "test: ${r} <? ${tar}   ${nonce}", ("tar",name_pow_target)("r",test_result)("nonce",*nonce) );
-                    if( test_result < name_pow_target )
+                    if( cnt % 1000 == 0 ) ilog( "test: ${r} >? ${tar}  ${id}  ${nonce}", 
+                                    ("tar",name_pow_target)("r",mini_pow_difficulty(test_result))("id",test_result)("nonce",*nonce) );
+                    if( mini_pow_difficulty(test_result) > name_pow_target )
                     {
                        ++_block_ver; // signal other threads to stop
                        b.nonce   = *nonce;
                        b.utc_sec = fc::time_point_sec( *ts );
-                       wlog( "found... ${b}", ("b",b) );
+                      // wlog( "found... ${b}", ("b",b) );
+                       wlog( "test: ${r} >? ${tar}  ${id}  ${nonce}", 
+                                    ("tar",name_pow_target)("r",mini_pow_difficulty(test_result))("id",test_result)("nonce",*nonce) );
                        _callback_thread.async( [=](){ _del->found_name_block( b ); } );
                     }
                     if( ver < _block_ver )
@@ -108,7 +112,7 @@ namespace bts { namespace bitname {
            _cur_block.mroot = _cur_block.calc_merkle_root();
 
            //uint64_t block_diff = _cur_block.calc_difficulty();
-           name_pow_target = min_name_pow;
+           //name_pow_target = mini_pow_difficulty(min_name_pow);
 
            auto next_blk = ++_block_ver;
            if( _cur_block.name_hash != 0 )

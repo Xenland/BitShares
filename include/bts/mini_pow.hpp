@@ -58,6 +58,7 @@ namespace bts
    *
    **/
   typedef fc::array<char,10>  mini_pow;
+  //typedef uint64_t  mini_pow;
 
   /**
    *  This hash function is designed to be secure, but
@@ -77,6 +78,7 @@ namespace bts
   mini_pow   mini_pow_hash( const char* data, size_t len );
   mini_pow   mini_pow_hash( const fc::sha512& seed );
   mini_pow   mini_pow_max();
+  uint64_t   mini_pow_difficulty( const mini_pow& pow );
 
   /**
    *  Converts the POW to a bigint so that operations may
