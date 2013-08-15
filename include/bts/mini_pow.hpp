@@ -76,6 +76,7 @@ namespace bts
    */
   mini_pow   mini_pow_hash( const char* data, size_t len );
   mini_pow   mini_pow_hash( const fc::sha512& seed );
+  mini_pow   mini_pow_max();
 
   /**
    *  Converts the POW to a bigint so that operations may

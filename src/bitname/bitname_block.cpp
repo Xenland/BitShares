@@ -1,5 +1,7 @@
 #include <bts/bitname/bitname_block.hpp>
+#include <fc/crypto/bigint.hpp>
 #include <fc/io/raw.hpp>
+#include <algorithm>
 
 namespace bts { namespace bitname {
   mini_pow  name_header::id()const
@@ -9,16 +11,25 @@ namespace bts { namespace bitname {
   }
 
 
-  mini_pow name_block::calc_difficulty()const
+  uint64_t name_block::calc_difficulty()const
   {
-     fc::bigint total;
-     for( auto itr = registered_names.begin(); itr != registered_names.end(); ++itr )
+     fc::bigint max_pow = to_bigint( mini_pow_max() );
+     int64_t my_difficulty = (max_pow / to_bigint( id() )).to_int64();
+
+     if( registered_names.size() == 0 ) 
+        return my_difficulty;
+
+     std::vector<uint64_t> difficulties(registered_names.size() );
+     for( uint32_t i = 0; i < registered_names.size(); ++i )
      {
-        total += to_bigint( itr->id(prev) );
+        difficulties[i] = (max_pow / to_bigint( registered_names[i].id(prev)  )).to_int64();
      }
-     total /= registered_names.size(); // calculate the average
-     total /= registered_names.size(); // divided it by the number of names
-     return to_mini_pow( total );
+
+     uint64_t median_pos = difficulties.size() / 2;
+     std::nth_element( difficulties.begin(), difficulties.begin() + difficulties.size() / 2, difficulties.end() );
+     auto median = difficulties[median_pos];
+
+     return my_difficulty + median * (difficulties.size()+1);
   }
 
   mini_pow name_block::calc_merkle_root()const

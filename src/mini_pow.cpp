@@ -39,5 +39,15 @@ namespace bts {
       memcpy( p.data + sizeof(p)-bige.size(), bige.data(), std::min<size_t>(bige.size(),sizeof(p)) );
       return p;
   }
+  mini_pow   mini_pow_max()
+  {
+    static mini_pow max_pow = []()
+        {
+           mini_pow m;
+           memset( m.data, 0xff, sizeof(mini_pow) );
+           return m;
+        }();
+    return max_pow;
+  }
 
 }

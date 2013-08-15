@@ -82,7 +82,7 @@ namespace bts { namespace bitname {
          *  The result is that we can calculate the average difficulty of a set and divide by the number of
          *  items in that set to calculate the combined difficulty.  
          */
-        mini_pow            calc_difficulty()const;
+        uint64_t            calc_difficulty()const;
 
         std::vector<name_trx> registered_names;
     };

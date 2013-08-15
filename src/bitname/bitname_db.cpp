@@ -1,16 +1,10 @@
 #include <bts/bitname/bitname_db.hpp>
 #include <bts/blockchain/blockchain_time_keeper.hpp>
+#include <bts/config.hpp>
 #include <bts/db/level_map.hpp>
 #include <bts/db/level_pod_map.hpp>
 #include <fc/io/raw.hpp>
 #include <fc/reflect/variant.hpp>
-
-struct block_stats
-{
-  bts::mini_pow      pow;
-  fc::time_point_sec timestamp;
-};
-FC_REFLECT( block_stats, (pow)(timestamp) )
 
 namespace bts { namespace bitname {
 
@@ -28,15 +22,14 @@ namespace bts { namespace bitname {
              {
              }
 
-             db::level_map<uint32_t, mini_pow>                             _block_num_to_id;
-             db::level_pod_map<uint32_t, block_stats>                      _block_stats_db;
-             db::level_map<mini_pow, name_block>                           _block_id_to_block;
-             db::level_map<uint64_t, std::vector<name_db::name_location> > _name_hash_to_locs;
+             db::level_pod_map<uint32_t, mini_pow>                             _block_num_to_id;
+             db::level_pod_map<mini_pow, name_block>                           _block_id_to_block;
+             db::level_pod_map<uint64_t, std::vector<name_db::name_location> > _name_hash_to_locs;
 
              name_header               _head_header;
              uint32_t                  _head_block_num;
              mini_pow                  _head_block_id;
-           //  blockchain::time_keeper   _timekeeper;
+             blockchain::time_keeper   _timekeeper;
 
              void index_trx( const name_db::name_location& loc, uint64_t name_hash )
              {
@@ -74,10 +67,31 @@ namespace bts { namespace bitname {
        my->_block_id_to_block.open( db_dir / "block_id_to_block" );
        my->_name_hash_to_locs.open( db_dir / "name_hash_to_locs" );
 
-       // load every header, pull the number/time and difficulty out 
-       // and verify their integrety so we can calculate the next difficulty target and current time.
+       auto genesis = create_genesis_block(); 
+       my->_timekeeper.configure( genesis.utc_sec, fc::seconds( BITNAME_BLOCK_INTERVAL_SEC ), BITNAME_TIMEKEEPER_WINDOW );
 
-       // TODO: load head block num..
+       if( my->_block_num_to_id.last(my->_head_block_num, my->_head_block_id) )
+       {
+           uint32_t start_window = 0;
+           if( my->_head_block_num > BITNAME_TIMEKEEPER_WINDOW ) 
+           {
+              start_window = my->_head_block_num - BITNAME_TIMEKEEPER_WINDOW;
+           }
+
+           for( uint32_t i = start_window; i <= my->_head_block_num; ++i )
+           {
+              auto block_id = my->_block_num_to_id.fetch(i);
+              auto block_data = my->_block_id_to_block.fetch(block_id);
+              my->_timekeeper.push_init( i, block_data.utc_sec, block_data.calc_difficulty() ); 
+           }
+       }
+       else // no data in db, populate it with the genesis block!
+       {
+           my->_block_num_to_id.store( 0, genesis.id() );
+           my->_block_id_to_block.store( genesis.id(), genesis );
+           my->_timekeeper.push_init( 0, genesis.utc_sec, genesis.calc_difficulty() );
+       }
+       my->_timekeeper.init_stats();
 
     } FC_RETHROW_EXCEPTIONS( warn, "unable to open name db at path ${path}", ("path", db_dir)("create",create) ) }
 
@@ -95,7 +109,7 @@ namespace bts { namespace bitname {
        FC_ASSERT( next_block.mroot == mroot );
 
        auto block_difficulty = next_block.calc_difficulty();
-       // TODO make sure the block has enough difficulty to be included
+       FC_ASSERT( block_difficulty >= my->_timekeeper.next_difficulty() );
 
        size_t num_trx =  next_block.registered_names.size();
        for( uint32_t trx_idx = 0; trx_idx < num_trx; ++trx_idx )
@@ -117,6 +131,7 @@ namespace bts { namespace bitname {
        {
           my->index_trx( name_location( next_id, trx_idx ), next_block.registered_names[trx_idx].name_hash );
        }
+       my->_timekeeper.push( my->_head_block_num, next_block.utc_sec, block_difficulty );
     } FC_RETHROW_EXCEPTIONS( warn, "unable to push block ${next_block}", ("next_block", next_block) ) } 
 
     /**

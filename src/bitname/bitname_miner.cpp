@@ -107,11 +107,8 @@ namespace bts { namespace bitname {
 
            _cur_block.mroot = _cur_block.calc_merkle_root();
 
-           name_pow_target = to_mini_pow( to_bigint( _cur_block.calc_difficulty() ) / fc::bigint(10000) );
-           if( name_pow_target < min_name_pow )
-           {
-              name_pow_target = min_name_pow;
-           }
+           //uint64_t block_diff = _cur_block.calc_difficulty();
+           name_pow_target = min_name_pow;
 
            auto next_blk = ++_block_ver;
            if( _cur_block.name_hash != 0 )
