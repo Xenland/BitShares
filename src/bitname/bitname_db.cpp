@@ -87,6 +87,8 @@ namespace bts { namespace bitname {
        }
        else // no data in db, populate it with the genesis block!
        {
+           my->_head_block_id  = genesis.id();
+           my->_head_block_num = 0;
            my->_block_num_to_id.store( 0, genesis.id() );
            my->_block_id_to_block.store( genesis.id(), genesis );
            my->_timekeeper.push_init( 0, genesis.utc_sec, genesis.calc_difficulty() );
@@ -100,6 +102,10 @@ namespace bts { namespace bitname {
        my->_block_num_to_id.close();
        my->_block_id_to_block.close();
        my->_name_hash_to_locs.close();
+    }
+    uint64_t name_db::target_difficulty()const
+    {
+      return my->_timekeeper.next_difficulty();
     }
 
     void name_db::push_block( const name_block& next_block )
@@ -168,7 +174,14 @@ namespace bts { namespace bitname {
    
     void name_db::pop_block()
     {
+      FC_ASSERT( !"TODO: pop_block Not implemented" );
     }
+    
+    mini_pow name_db::head_block_id()const 
+    { 
+      return my->_head_block_id; 
+    }
+
 
     name_db::name_location name_db::find_name( uint64_t name_hash )const
     { try {

@@ -1,4 +1,5 @@
 #include <bts/blockchain/blockchain_time_keeper.hpp>
+#include <bts/config.hpp>
 #include <fc/exception/exception.hpp>
 #include <algorithm>
 #include <deque>
@@ -96,6 +97,13 @@ namespace bts { namespace blockchain {
                 else
                     time_error_percent = (_median_time_error_sec * 1000000) / _interval_sec;
 
+                if( time_error_percent > 10000000 )
+                {
+                    time_error_percent = 9999999;
+                }
+                  
+             //   ilog( "_cur_difficulty: ${c}   time_error_percent: ${tep}", 
+             //         ("c", _cur_difficulty)("tep",time_error_percent) );
                 _next_difficulty = _cur_difficulty;
                 _next_difficulty *= 10000000 - time_error_percent;
                 _next_difficulty /= 10000000; 
@@ -109,6 +117,8 @@ namespace bts { namespace blockchain {
                 
                 _median_time_error_sec = _records[index[median_pos]].time_error_sec;
                 _cur_time = expected_time( head_block_num() ) + fc::seconds(_median_time_error_sec);
+                //ilog( "expected time: ${time}       current time: ${cur}   error: ${err}",
+                //      ("time",expected_time(head_block_num()))( "cur", _cur_time )("err",_median_time_error_sec) );
             }
 
             uint32_t head_block_num()const
@@ -156,8 +166,10 @@ void time_keeper::push( uint32_t block_num, fc::time_point block_time, uint64_t 
    FC_ASSERT( my->_records.size() > 0 );
    FC_ASSERT( my->_records.back().block_num + 1 == block_num );
    FC_ASSERT( block_difficulty >= my->_next_difficulty        ); // we set a difficulty for a reason!
-   FC_ASSERT( block_time > (my->_cur_time - fc::seconds(60*60) ) ); // 1 hr grace.. 
-  
+   FC_ASSERT( block_time >= (my->_cur_time - fc::seconds(BLOCKCHAIN_TIMEKEEPER_MIN_BACK_SEC) ),
+              "block_time: ${block_time} _cur_time: ${cur_time}", 
+              ("block_time", block_time)("cur_time",my->_cur_time)); // 1 hr grace.. 
+   //ilog( "${block}   ${time} init diff  ${diff}", ("block",block_num)("time",block_time)("diff",block_difficulty) );
    int64_t error_sec = (block_time - my->expected_time(block_num)).count() / 1000000;
    my->_records.emplace_back( detail::time_record( block_num, block_time, block_difficulty, error_sec ) );
 
@@ -166,6 +178,7 @@ void time_keeper::push( uint32_t block_num, fc::time_point block_time, uint64_t 
      my->_records.pop_front();
    }
    my->update_stats();
+   //ilog( "${block}   ${time} next diff  ${diff}", ("block",block_num)("time",block_time)("diff",next_difficulty()) );
 }
 
 

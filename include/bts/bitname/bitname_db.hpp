@@ -22,6 +22,9 @@ namespace bts { namespace bitname {
         void push_block( const name_block& b );
         void pop_block(); // pops the most recent block
 
+        mini_pow head_block_id()const;
+        uint64_t target_difficulty()const;
+
         struct name_location 
         {
             name_location( const mini_pow& i, uint16_t n )

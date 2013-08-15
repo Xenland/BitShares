@@ -37,5 +37,6 @@
 #define MAX_BLOCK_TRXS_SIZE           (1024*1024 - 2*sizeof( bts::blockchain::block )  )
 
 
-#define BITNAME_BLOCK_INTERVAL_SEC    (60*5) // 5 minutes
-#define BITNAME_TIMEKEEPER_WINDOW     (4096) // blocks used for estimating time
+#define BITNAME_BLOCK_INTERVAL_SEC         (60*5) // 5 minutes
+#define BITNAME_TIMEKEEPER_WINDOW          (4096) // blocks used for estimating time
+#define BLOCKCHAIN_TIMEKEEPER_MIN_BACK_SEC (60*10) // 10 minutes

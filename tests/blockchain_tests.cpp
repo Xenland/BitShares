@@ -30,16 +30,25 @@ BOOST_AUTO_TEST_CASE( bitname_db_test )
     bts::bitname::name_db chain;
     chain.open( temp_dir.path() / "chain" );
 
-    bts::bitname::name_block genesis = bts::bitname::create_genesis_block();
-    chain.push_block( genesis );
-    BOOST_REQUIRE_THROW( chain.push_block( genesis ), fc::exception );
+  // genesis block is added by default... 
+  //  bts::bitname::name_block genesis = bts::bitname::create_genesis_block();
+  //  chain.push_block( genesis );
+  //  BOOST_REQUIRE_THROW( chain.push_block( genesis ), fc::exception );
 
+  // fetch current head... 
     bts::bitname::name_block block1;
     block1.utc_sec = fc::time_point::now();
     block1.name_hash = 1;
     block1.key = fc::ecc::private_key::generate().get_public_key();
     block1.mroot = block1.calc_merkle_root();
-    block1.prev = genesis.id();
+    block1.prev = chain.head_block_id();
+
+    auto target = chain.target_difficulty();
+    while( block1.calc_difficulty() < target )
+    {
+      block1.nonce++;
+    }
+    ilog( "target: ${t}    block: ${b}", ("t",target)("b",block1.calc_difficulty() ) );
 
     chain.push_block( block1 );
     BOOST_REQUIRE_THROW( chain.push_block( block1 ), fc::exception );
@@ -63,6 +72,17 @@ BOOST_AUTO_TEST_CASE( bitname_db_test )
     block2.mroot = block2.calc_merkle_root();
     auto test_mroot = block2.calc_merkle_root();
     BOOST_REQUIRE( block2.mroot == test_mroot );
+
+
+    target = chain.target_difficulty();
+    while( block2.calc_difficulty() < target )
+    {
+      block2.nonce++;
+      ilog( "target: ${t}    block: ${b}", ("t",target)("b",block2.calc_difficulty() ) );
+    }
+    ilog( "target: ${t}    block: ${b}", ("t",target)("b",block2.calc_difficulty() ) );
+
+
     chain.push_block( block2 );
     BOOST_REQUIRE_THROW( chain.push_block( block2 ), fc::exception );
 
@@ -77,6 +97,14 @@ BOOST_AUTO_TEST_CASE( bitname_db_test )
         block2.registered_names[i].renewal.value++;
     }
     block2.mroot = block2.calc_merkle_root();
+
+    target = chain.target_difficulty();
+    while( block2.calc_difficulty() < target )
+    {
+      block2.nonce++;
+      ilog( "target: ${t}    block: ${b}", ("t",target)("b",block2.calc_difficulty() ) );
+    }
+
     chain.push_block( block2 ); // it should work this time...
     BOOST_REQUIRE_THROW( chain.push_block( block2 ), fc::exception );
   }
