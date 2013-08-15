@@ -75,29 +75,30 @@ namespace bts { namespace blockchain {
 
                 int64_t current_interval = _interval_sec + _median_time_error_sec; 
 
-                if( current_interval < 0 )
+                if( current_interval <= 0 )
                 {
-                  current_interval = 0;
+                  current_interval = 1; // prevent divide by 0 below 
                 }
-
+                
+                // note: if you have an investment that loses 50% of its value, you must
+                //       see a 100% gain to get back to your original value.  Therefore, 
+                //       if our interval is 50% of the target rate, we need to make the
+                //       difficulty 2x as easy, but if our interval is 150% of the target
+                //       rate we only need to increase difficulty 33%.
+                //
+                //       if the current interval is less than the target, our difficulty
+                //       adjustment needs to be made relative to the current_interval, but
+                //       if it is above the target, then it should be made relative to the
+                //       target interval.
+                //
                 if( current_interval < _interval_sec )
-                    time_error_percent = -(_median_time_error_sec * 1000000) / current_interval;
+                    time_error_percent = (_median_time_error_sec * 1000000) / current_interval;
                 else
-                    time_error_percent = -(_median_time_error_sec * 1000000) / _interval_sec;
+                    time_error_percent = (_median_time_error_sec * 1000000) / _interval_sec;
 
-
-                if( time_error_percent > 0 ) // speed up
-                {
-                    _next_difficulty = _cur_difficulty;
-                    _next_difficulty *= 10000000 + time_error_percent;
-                    _next_difficulty /= 10000000; 
-                }
-                else // slow down..
-                {
-                    _next_difficulty = _cur_difficulty;
-                    _next_difficulty *=  10000000;  
-                    _next_difficulty /= (10000000 - time_error_percent);
-                }
+                _next_difficulty = _cur_difficulty;
+                _next_difficulty *= 10000000 - time_error_percent;
+                _next_difficulty /= 10000000; 
             }
 
             void update_current_time( std::vector<uint32_t>& index )
@@ -202,14 +203,8 @@ uint64_t time_keeper::current_difficulty()const
 }
 
 /**
- *  Estimate the current time based only on the
- *  block history and assuming that the most recent
- *  block is included.  This is calculated as the
- *  median of the time records + half the time
- *  represented by the window.  The current time
- *  should represent the 'expected' time of the current
- *  head, which is different than the time reported 
- *  by the current head.
+ *  This value returns an estimate of the current time
+ *  based upon the blockchain.   
  */
 fc::time_point time_keeper::current_time()const
 {
