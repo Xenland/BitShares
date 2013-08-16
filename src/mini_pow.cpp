@@ -31,7 +31,6 @@ namespace bts {
       int32_t lz = 512 - h3.log2();
       memcpy( p.data, ((char*)&h4), sizeof(p) );
       p.data[0] = 255 - lz;
-      p.data[1] |= (1<<7);
       return p;
   }
   fc::bigint     to_bigint( const mini_pow& p )
@@ -63,8 +62,13 @@ namespace bts {
 
   uint64_t mini_pow_difficulty( const mini_pow& pow )
   {
-     fc::bigint bits( &pow.data[1], sizeof(pow)-1 );
-     bits <<= (uint32_t( (uint8_t(pow.data[0])) )-72);
+     uint8_t shift(pow.data[0]);
+     if( shift <= 72 ) return -1;
+     auto tmp = pow;
+     tmp.data[0]=0; // leading byte must be 0 or the bigint will be
+                    // interpreted as a negative number.
+     fc::bigint bits( &tmp.data[0], sizeof(pow)-1 );
+     bits <<= uint32_t(shift-72);
      return ((max256() / bits)).to_int64();
   }
 

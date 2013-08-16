@@ -1,5 +1,6 @@
 #include <bts/bitname/bitname_miner.hpp>
 #include <bts/bitname/bitname_hash.hpp>
+#include <bts/difficulty.hpp>
 #include <bts/config.hpp>
 #include <fc/thread/thread.hpp>
 #include <fc/io/raw.hpp>
@@ -16,12 +17,16 @@ namespace bts { namespace bitname {
       public:
         name_miner_impl()
         :_callback_thread( fc::thread::current() ),
-         _del(nullptr),
+         _callback_del(nullptr),
          _cur_effort(0) //DEFAULT_MINING_EFFORT_PERCENT/100.0)
          {
-            memset( min_name_pow.data, 0xff, sizeof(min_name_pow) );
-            min_name_pow.data[0] = 255 - MIN_NAME_DIFFICULTY;
-            name_pow_target = 1000;
+            fc::sha224 min_name_hash_target;
+            // TODO: remove hardcoded 3
+            memset( ((char*)&min_name_hash_target) + 3, 0xff, sizeof(fc::sha224)-3 );
+
+            _name_trx_target     = difficulty( min_name_hash_target );
+            _block_target        = _name_trx_target;
+            _min_name_trx_target = _name_trx_target;
 
             if( DEFAULT_MINING_THREADS > 0 ) _threads[0].set_name( "bitname1" );
             if( DEFAULT_MINING_THREADS > 1 ) _threads[1].set_name( "bitname2" );
@@ -38,8 +43,8 @@ namespace bts { namespace bitname {
         }
 
         fc::thread&           _callback_thread;
+        name_miner_delegate*  _callback_del;
 
-        name_miner_delegate*  _del;
         fc::thread            _threads[DEFAULT_MINING_THREADS];
 
         fc::future<void>      _mining_complete[DEFAULT_MINING_THREADS];
@@ -47,11 +52,10 @@ namespace bts { namespace bitname {
         float                 _cur_effort;
         name_block            _cur_block;
 
-        uint64_t              _block_ver;
-        mini_pow              _block_target;
-
-        uint64_t              name_pow_target;
-        mini_pow              min_name_pow;
+        uint64_t              _block_ver; // incremented anytime block state changes
+        uint64_t              _block_target;
+        uint64_t              _name_trx_target;
+        uint64_t              _min_name_trx_target;
 
         /**
          *  Called from mining thread
@@ -62,44 +66,41 @@ namespace bts { namespace bitname {
             ilog( "thread: ${t}  ver ${ver}", ("t",thread_num)("ver",ver) );
             if( b.name_hash == 0 ) return;
 
-            // calculate temp buffer
-            std::vector<char> buf = fc::raw::pack( (const name_header&)b );
-            uint32_t* nonce = (uint32_t*)buf.data();
-            uint32_t* ts    = nonce + 1;
-            *nonce = thread_num;
-            *ts    = fc::time_point_sec(fc::time_point::now()).sec_since_epoch();
-
+            uint16_t max_nonce(-1);
+            
             while( ver >= _block_ver )
             {
-                for( uint32_t cnt = 0; cnt < 100000*(_cur_effort); ++cnt ) 
-                {
-                    *nonce += DEFAULT_MINING_THREADS;
-                    auto test_result = mini_pow_hash( buf.data(), buf.size() );
-
-                    if( cnt % 1000 == 0 ) ilog( "test: ${r} >? ${tar}  ${id}  ${nonce}", 
-                                    ("tar",name_pow_target)("r",mini_pow_difficulty(test_result))("id",test_result)("nonce",*nonce) );
-                    if( mini_pow_difficulty(test_result) > name_pow_target )
-                    {
-                       ++_block_ver; // signal other threads to stop
-                       b.nonce   = *nonce;
-                       b.utc_sec = fc::time_point_sec( *ts );
-                      // wlog( "found... ${b}", ("b",b) );
-                       wlog( "test: ${r} >? ${tar}  ${id}  ${nonce}", 
-                                    ("tar",name_pow_target)("r",mini_pow_difficulty(test_result))("id",test_result)("nonce",*nonce) );
-                       _callback_thread.async( [=](){ _del->found_name_block( b ); } );
-                    }
-                    if( ver < _block_ver )
-                    {
-                      return;
-                    }
-                }
-                fc::usleep( fc::microseconds( 100 + 1000000 * (1-_cur_effort) ) );
-                *ts    = fc::time_point_sec(fc::time_point::now()).sec_since_epoch();
+               b.utc_sec = fc::time_point::now();
+               for( uint32_t nonce = 0; nonce < max_nonce; nonce += DEFAULT_MINING_THREADS )
+               {
+                   b.nonce   = nonce;
+               
+                   uint64_t header_difficulty = b.difficulty();
+                   if( header_difficulty > _name_trx_target )
+                   {
+                      uint64_t block_difficulty = b.block_difficulty();
+                      if( block_difficulty > _block_target )
+                      {
+                         ++_block_ver;
+                         _callback_thread.async( [=](){ _callback_del->found_name_block( b ); } );
+                      }
+                      else
+                      {
+                        name_trx ntrx = b; // avoid capturing the entire block!
+                         _callback_thread.async( [=](){ _callback_del->found_name_trx( ntrx ); } );
+                      }
+                   }
+                   // exit if the block has been updated
+                   if( ver < _block_ver ) { return; }
+               }
+               do {
+                   fc::usleep( fc::microseconds( 100 + 1000000 * (1-_cur_effort) ) );
+               } while ( b.utc_sec == fc::time_point::now() );
             }
           }
           catch ( const fc::exception& e )
           {
-            wlog( "${e}", ("e", e.to_detail_string() ) );
+            wlog( "${e}\n ${block}", ("e", e.to_detail_string() )("block",b) );
             // TODO: do something smart with this exception!
           }
         }
@@ -107,9 +108,9 @@ namespace bts { namespace bitname {
         void start_new_block()
         {
            ilog( "start_new_block" );
-           FC_ASSERT( _del != nullptr ); // no point in mining if there is no one to tell when we find the result
+           FC_ASSERT( _callback_del != nullptr ); // no point in mining if there is no one to tell when we find the result
 
-           _cur_block.mroot = _cur_block.calc_merkle_root();
+           _cur_block.trxs_hash = _cur_block.calc_trxs_hash();
 
            //uint64_t block_diff = _cur_block.calc_difficulty();
            //name_pow_target = mini_pow_difficulty(min_name_pow);
@@ -130,13 +131,17 @@ namespace bts { namespace bitname {
   name_miner::name_miner() :my( new detail::name_miner_impl() ) {}
   name_miner::~name_miner(){}
 
-  void name_miner::set_delegate(  name_miner_delegate* d )
+  void name_miner::set_delegate(  name_miner_delegate* callback_del )
   {
-     my->_del = d;
+     my->_callback_del = callback_del;
   }
-  void name_miner::set_block_target( const mini_pow& block_target )
+  void name_miner::set_block_target( uint64_t block_target )
   {
      my->_block_target = block_target;
+     // TODO: remove hard coded 10000... define why whe chose 10000... because it should
+     // result keeping the trx registration rate in line.. with 10000 per block (about 1MB)
+     // TODO: perhaps keep this limit lower until the hashing power grows enough...?
+     my->_name_trx_target = std::max( my->_min_name_trx_target, my->_block_target / 10000 );
      my->start_new_block();
   }
 
@@ -166,10 +171,10 @@ namespace bts { namespace bitname {
     }
   }
 
-
-  void name_miner::set_prev( const mini_pow& p )
+  void name_miner::set_prev( const fc::sha224& prev_block_hash )
   {
       my->_cur_block.registered_names.clear();
+      my->_cur_block.prev = prev_block_hash;
       my->start_new_block();
   }
 
@@ -179,11 +184,11 @@ namespace bts { namespace bitname {
       my->start_new_block();
   }
 
-  void name_miner::set_name( const std::string& name, const fc::ecc::public_key& k )
+  void name_miner::set_name_trx( const name_trx& name_trx_to_mine )
   {
-     FC_ASSERT( name.size() < 32 );
-     my->_cur_block.name_hash = bts::bitname::name_hash(name);
-     my->_cur_block.key = k;
+     name_trx& cur = my->_cur_block;
+     cur = name_trx_to_mine;
+
      my->start_new_block();
   }
 

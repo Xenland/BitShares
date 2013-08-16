@@ -93,6 +93,22 @@ namespace bts { namespace db {
 
              std::shared_ptr<ldb::Iterator> _it;
         };
+        iterator begin() 
+        { try {
+           iterator itr( _db->NewIterator( ldb::ReadOptions() ) );
+           itr._it->SeekToFirst();
+
+           if( !itr._it->status().ok() )
+           {
+               FC_THROW_EXCEPTION( exception, "database error: ${msg}", ("msg", itr._it->status().ToString() ) );
+           }
+
+           if( itr.valid() )
+           {
+              return itr;
+           }
+           return iterator();
+        } FC_RETHROW_EXCEPTIONS( warn, "error seeking to first" ) }
 
         iterator find( const Key& key )
         { try {

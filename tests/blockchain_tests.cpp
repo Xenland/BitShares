@@ -39,49 +39,61 @@ BOOST_AUTO_TEST_CASE( bitname_db_test )
   // fetch current head... 
     bts::bitname::name_block block1;
     block1.utc_sec = fc::time_point::now();
-    block1.name_hash = 1;
+    block1.age = 1;
+    block1.name_hash = 10001;
     block1.key = fc::ecc::private_key::generate().get_public_key();
-    block1.mroot = block1.calc_merkle_root();
+    block1.trxs_hash = block1.calc_trxs_hash();
+    block1.repute_points = 1;
     block1.prev = chain.head_block_id();
 
     auto target = chain.target_difficulty();
-    while( block1.calc_difficulty() < target )
+    ilog( "target: ${t}    block: ${b}", ("t",target)("b",block1.difficulty() ) );
+    while( block1.difficulty() < target )
     {
       block1.nonce++;
+      block1.utc_sec = fc::time_point::now();
+      if( block1.nonce % 10000 == 0 )
+      {
+        ilog( "target: ${t}    block: ${b}", ("t",target)("b",block1.difficulty() ) );
+      }
     }
-    ilog( "target: ${t}    block: ${b}", ("t",target)("b",block1.calc_difficulty() ) );
+    ilog( "target: ${t}    block: ${b}", ("t",target)("b",block1.difficulty() ) );
 
     chain.push_block( block1 );
     BOOST_REQUIRE_THROW( chain.push_block( block1 ), fc::exception );
 
 
     bts::bitname::name_block block2;
+    block2.age = 2;
+    block2.repute_points = 1;
     block2.utc_sec = fc::time_point::now();
-    block2.name_hash = 2;
+    block2.name_hash = 2000;
     block2.key = fc::ecc::private_key::generate().get_public_key();
     
     for( uint32_t i = 0; i < 10; ++i )
     {
        bts::bitname::name_trx trx;
-       trx.name_hash = i+1000;
+       trx.name_hash = i+1001;
+       trx.age = 2;
+       trx.repute_points = 1;
        trx.utc_sec = block2.utc_sec;
        trx.key = fc::ecc::private_key::generate().get_public_key();
 
        block2.registered_names.push_back(trx);
     }
     block2.prev = block1.id();
-    block2.mroot = block2.calc_merkle_root();
-    auto test_mroot = block2.calc_merkle_root();
-    BOOST_REQUIRE( block2.mroot == test_mroot );
+    block2.trxs_hash = block2.calc_trxs_hash();
+    auto test_mroot = block2.calc_trxs_hash();
+    BOOST_REQUIRE( block2.trxs_hash == test_mroot );
 
 
     target = chain.target_difficulty();
-    while( block2.calc_difficulty() < target )
+    while( block2.difficulty() < target )
     {
       block2.nonce++;
-      ilog( "target: ${t}    block: ${b}", ("t",target)("b",block2.calc_difficulty() ) );
+      ilog( "target: ${t}    block: ${b}", ("t",target)("b",block2.difficulty() ) );
     }
-    ilog( "target: ${t}    block: ${b}", ("t",target)("b",block2.calc_difficulty() ) );
+    ilog( "target: ${t}    block: ${b}", ("t",target)("b",block2.difficulty() ) );
 
 
     chain.push_block( block2 );
@@ -90,20 +102,21 @@ BOOST_AUTO_TEST_CASE( bitname_db_test )
     // add a new block identical to prior block, just updating the
     // linkages...this should fail because the renewal should increment.
     block2.prev  = block2.id();
-    block2.mroot = block2.calc_merkle_root();
+    block2.age   = 3;
+    block2.trxs_hash = block2.calc_trxs_hash();
     BOOST_REQUIRE_THROW( chain.push_block( block2 ), fc::exception );
 
     for( uint32_t i = 0; i < block2.registered_names.size(); ++i )
     {
-        block2.registered_names[i].renewal.value++;
+        block2.registered_names[i].repute_points.value++;
     }
-    block2.mroot = block2.calc_merkle_root();
+    block2.trxs_hash = block2.calc_trxs_hash();
 
     target = chain.target_difficulty();
-    while( block2.calc_difficulty() < target )
+    while( block2.difficulty() < target )
     {
       block2.nonce++;
-      ilog( "target: ${t}    block: ${b}", ("t",target)("b",block2.calc_difficulty() ) );
+      ilog( "target: ${t}    block: ${b}", ("t",target)("b",block2.difficulty() ) );
     }
 
     chain.push_block( block2 ); // it should work this time...

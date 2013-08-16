@@ -1,19 +1,28 @@
 #include <bts/bitname/bitname_db.hpp>
+#include <bts/difficulty.hpp>
 #include <bts/blockchain/blockchain_time_keeper.hpp>
 #include <bts/config.hpp>
 #include <bts/db/level_map.hpp>
 #include <bts/db/level_pod_map.hpp>
 #include <fc/io/raw.hpp>
+#include <fc/io/fstream.hpp>
 #include <fc/reflect/variant.hpp>
+#include <unordered_map>
+
+struct name_location 
+{
+    name_location( uint32_t block_num= 0, uint16_t tx_num = 0)
+    :block_num(block_num),trx_num(tx_num){}
+
+    uint32_t block_num;
+    uint16_t trx_num; /// trx_num -1 == header name
+};
+FC_REFLECT( name_location, (block_num)(trx_num) )
 
 namespace bts { namespace bitname {
 
     namespace ldb = leveldb;
    
-    /*
-    static_assert( sizeof(bts::bitname::name_db::name_location) == (sizeof(mini_pow)+2*sizeof(uint16_t)), 
-                      "name_location requires dense packing with no padding" );
-    */
     namespace detail 
     {
        class name_db_impl 
@@ -23,16 +32,36 @@ namespace bts { namespace bitname {
              {
              }
 
-             db::level_pod_map<uint32_t, mini_pow>                             _block_num_to_id;
-             db::level_pod_map<mini_pow, name_block>                           _block_id_to_block;
-             db::level_pod_map<uint64_t, std::vector<name_db::name_location> > _name_hash_to_locs;
+             /** map block number to header */
+             db::level_pod_map<uint32_t, name_header>                 _block_num_to_header;
 
-             name_header               _head_header;
-             uint32_t                  _head_block_num;
-             mini_pow                  _head_block_id;
+             /** map block number to the trxs used in that block */
+             db::level_pod_map<uint32_t, std::vector<name_trx> >      _block_num_to_name_trxs;
+
+             /** tracks this history of every name and where it can be found in the chain */
+             db::level_pod_map<uint64_t, std::vector<name_location> > _name_hash_to_locs;
+
              blockchain::time_keeper   _timekeeper;
 
-             void index_trx( const name_db::name_location& loc, uint64_t name_hash )
+             /** the id of every header back to the genesis, index is block_num 
+              *
+              * This can be reconstructed from _block_num_to_block if there is
+              * any corruption on load.
+              **/
+             std::vector<fc::sha224>                    _header_ids;
+
+             /** rapid lookup of block_num from block_id, this can be built
+              * from _header_ids
+              **/
+             std::unordered_map<fc::sha224,uint32_t>   _id_to_block_num;
+
+
+             name_location find_name( uint64_t name )
+             {
+               return name_location(); // TODO: implement this
+             }
+
+             void index_trx( const name_location& loc, uint64_t name_hash )
              {
                 auto name_locs_itr = _name_hash_to_locs.find( name_hash );
                 if( name_locs_itr.valid() )
@@ -43,19 +72,97 @@ namespace bts { namespace bitname {
                 }
                 else
                 {
-                    _name_hash_to_locs.store( name_hash, std::vector<name_db::name_location>(1,loc) );
+                    _name_hash_to_locs.store( name_hash, std::vector<name_location>(1,loc) );
                 }
              }
+
+             void load_indexes( const fc::path& db_dir )
+             {
+                 bool rebuild_header_ids = true;
+                 if( fc::exists( db_dir / "header_ids" ) )
+                 {
+                     fc::ifstream in( db_dir / "header_ids", fc::ifstream::binary );
+                     fc::raw::unpack( in, _header_ids );
+                 
+                     // TODO: validate integrety
+                 
+                     // rebuild_header_ids = false;
+                 }
+                 
+                 if( rebuild_header_ids )
+                 {
+                    auto itr = _block_num_to_header.begin();
+                    while( itr.valid() )
+                    {
+                      _header_ids.push_back( itr.value().id() );
+                      _id_to_block_num[_header_ids.back()] = _header_ids.size()-1;
+                      ++itr;
+                    }
+                 
+                    // TODO: save to disk
+                 }
+             }
+
+             void load_genesis()
+             {
+                 // TODO: verify that all databases are NULL/empty 
+                
+                 auto genesis = create_genesis_block(); 
+                 _timekeeper.configure( genesis.utc_sec, 
+                                        fc::seconds( BITNAME_BLOCK_INTERVAL_SEC ),
+                                        BITNAME_TIMEKEEPER_WINDOW );
+                 
+                 if( _header_ids.size() == 0 )
+                 {
+                    _block_num_to_header.store( 0, genesis );
+                    index_trx( name_location( 0, -1 ), genesis.name_hash );
+                    push_header_id( genesis.id() );
+                 }
+             }
+
+             void push_header_id( const fc::sha224& id )
+             {
+                // TODO: consider using boost::multiindex 
+                _header_ids.push_back(id);
+                _id_to_block_num[id] = _header_ids.size()-1;
+             }
+
+             void init_timekeeper()
+             {
+                uint32_t window_start = 0;
+                if( _header_ids.size() > BITNAME_TIMEKEEPER_WINDOW )
+                {
+                    window_start = _header_ids.size() - BITNAME_TIMEKEEPER_WINDOW;
+                }
+
+                for( uint32_t window_pos = window_start; 
+                     window_pos < _header_ids.size(); ++window_pos )
+                {
+                   name_header head = _block_num_to_header.fetch( window_pos );
+                   FC_ASSERT( head.id() == _header_ids[window_pos] ); // sanity check
+                   _timekeeper.push_init( window_pos, head.utc_sec, bts::difficulty(_header_ids[window_pos]) ); 
+                }
+                _timekeeper.init_stats();
+             }
+
        };
     } // namespace detail
 
     name_db::name_db()
     :my( new detail::name_db_impl() ){}
-    name_db::~name_db(){}
+    name_db::~name_db()
+    {
+      try {
+       close(); 
+      } 
+      catch( const fc::exception& e )
+      {
+        wlog( "exception ${e}", ("e",e.to_detail_string() ) );
+      }
+    }
 
     void name_db::open( const fc::path& db_dir, bool create )
     { try {
-
        if( !fc::exists( db_dir ) )
        {
          if( !create )
@@ -64,60 +171,70 @@ namespace bts { namespace bitname {
          }
          fc::create_directories( db_dir );
        }
-       my->_block_num_to_id.open( db_dir / "block_num_to_id" );
-       my->_block_id_to_block.open( db_dir / "block_id_to_block" );
+
+       my->_block_num_to_header.open( db_dir / "block_num_to_header" );
+       my->_block_num_to_name_trxs.open( db_dir / "block_num_to_name_trxs" );
        my->_name_hash_to_locs.open( db_dir / "name_hash_to_locs" );
 
-       auto genesis = create_genesis_block(); 
-       my->_timekeeper.configure( genesis.utc_sec, fc::seconds( BITNAME_BLOCK_INTERVAL_SEC ), BITNAME_TIMEKEEPER_WINDOW );
-
-       if( my->_block_num_to_id.last(my->_head_block_num, my->_head_block_id) )
-       {
-           uint32_t start_window = 0;
-           if( my->_head_block_num > BITNAME_TIMEKEEPER_WINDOW ) 
-           {
-              start_window = my->_head_block_num - BITNAME_TIMEKEEPER_WINDOW;
-           }
-
-           for( uint32_t i = start_window; i <= my->_head_block_num; ++i )
-           {
-              auto block_id = my->_block_num_to_id.fetch(i);
-              auto block_data = my->_block_id_to_block.fetch(block_id);
-              my->_timekeeper.push_init( i, block_data.utc_sec, block_data.calc_difficulty() ); 
-           }
-       }
-       else // no data in db, populate it with the genesis block!
-       {
-           my->_head_block_id  = genesis.id();
-           my->_head_block_num = 0;
-           my->_block_num_to_id.store( 0, genesis.id() );
-           my->_block_id_to_block.store( genesis.id(), genesis );
-           my->_timekeeper.push_init( 0, genesis.utc_sec, genesis.calc_difficulty() );
-       }
-       my->_timekeeper.init_stats();
+       my->load_indexes(db_dir);
+       my->load_genesis();
+       my->init_timekeeper();
 
     } FC_RETHROW_EXCEPTIONS( warn, "unable to open name db at path ${path}", ("path", db_dir)("create",create) ) }
 
     void name_db::close()
-    {
-       my->_block_num_to_id.close();
-       my->_block_id_to_block.close();
+    { try {
+       // TODO: save _header_ids to disk
+       my->_block_num_to_header.close();
+       my->_block_num_to_name_trxs.close();
        my->_name_hash_to_locs.close();
-    }
+    } FC_RETHROW_EXCEPTIONS( warn, "" ) }
+
+    uint64_t name_db::target_name_difficulty()const
+    { try {
+      uint64_t next_dif =  my->_timekeeper.next_difficulty();
+      next_dif /= 10000; // TODO: document this magic number, move to config.hpp
+
+      if( next_dif < min_name_difficulty() )
+      {
+        next_dif = min_name_difficulty();
+      }
+      return next_dif;
+    } FC_RETHROW_EXCEPTIONS( warn, "" ) }
+
     uint64_t name_db::target_difficulty()const
-    {
-      return my->_timekeeper.next_difficulty();
-    }
+    { try {
+      uint64_t next_dif =  my->_timekeeper.next_difficulty();
+      if( next_dif < min_name_difficulty() )
+      {
+        next_dif = min_name_difficulty();
+      }
+      return next_dif;
+    } FC_RETHROW_EXCEPTIONS( warn, "" ) }
 
     void name_db::push_block( const name_block& next_block )
     { try {
-       FC_ASSERT( next_block.prev == my->_head_block_id, "", ("head_block_id",my->_head_block_id) );
-       auto mroot = next_block.calc_merkle_root();
-       FC_ASSERT( next_block.mroot == mroot );
+       fc::sha224 next_id = next_block.id();
+       FC_ASSERT( bts::difficulty(next_id) == next_block.difficulty() ); // TODO... don't check here
 
-       auto block_difficulty = next_block.calc_difficulty();
-       FC_ASSERT( block_difficulty >= my->_timekeeper.next_difficulty() );
+       FC_ASSERT( next_block.prev            == my->_header_ids.back(), "", ("head_block_id",my->_header_ids.back()) );
+       FC_ASSERT( next_block.trxs_hash       == next_block.calc_trxs_hash() );
+       FC_ASSERT( bts::difficulty(next_id)   >= target_difficulty() );
+       /*
+       FC_ASSERT( next_block.difficulty()   >= next_block.block_difficulty()/2,
+                 "",("next_id",next_id)("difficulty(next_id)",bts::difficulty(next_id))("next_block_dif", next_block.block_difficulty()));
+          */
+       // check work first, this doesn't involve db queries
+       for( uint32_t trx = 0; trx < next_block.registered_names.size(); ++trx )
+       {
+          FC_ASSERT( bts::difficulty(next_block.registered_names[trx].id(next_block.prev)) >= target_name_difficulty() );
+       }
 
+       // the header has some special rules that don't apply to normal trx, like
+       // being able to change a public key
+       validate_trx( next_block, true /*is_header*/ );
+
+       // now validate trxs against db state
        size_t num_trx =  next_block.registered_names.size();
        for( uint32_t trx_idx = 0; trx_idx < num_trx; ++trx_idx )
        {
@@ -126,88 +243,185 @@ namespace bts { namespace bitname {
 
        // TODO: If something fails during this operation, we need to make sure
        // that the name_db is left in the prior state.
-
-       // if we get this far, then all trx are valid, we can store it in the db 
-       // and update all of the trx indexes
-       auto next_id = next_block.id();
-       my->_head_block_num++;
-       my->_head_block_id = next_id;
-       my->_block_id_to_block.store(next_id,next_block);
-       my->_block_num_to_id.store( my->_head_block_num, next_id );
+       
+       uint32_t next_num = my->_header_ids.size();
+       my->push_header_id( next_id );
+       my->_block_num_to_header.store( next_num, next_block );
+       my->_block_num_to_name_trxs.store( next_num, next_block.registered_names );
+       
        for( uint16_t trx_idx = 0; trx_idx < num_trx; ++trx_idx )
        {
-          my->index_trx( name_location( next_id, trx_idx ), next_block.registered_names[trx_idx].name_hash );
+          my->index_trx( name_location( next_num, trx_idx ), next_block.registered_names[trx_idx].name_hash );
        }
-       my->_timekeeper.push( my->_head_block_num, next_block.utc_sec, block_difficulty );
+       my->_timekeeper.push( next_num, next_block.utc_sec, bts::difficulty( next_id ) );
     } FC_RETHROW_EXCEPTIONS( warn, "unable to push block ${next_block}", ("next_block", next_block) ) } 
+
 
     /**
      *  checks to make sure the transaction is valid and could be applied to the
      *  current database.
      */
-    void name_db::validate_trx( const name_trx& trx )const
+    void name_db::validate_trx( const name_trx& trx, bool is_header )const
     { try {
+       fc::sha224 chain_head_id = my->_header_ids.back();
+       FC_ASSERT( trx.utc_sec > (fc::time_point(chain_time()) - fc::seconds( BITNAME_TIME_TOLLERANCE_SEC ) ) );
+       FC_ASSERT( trx.difficulty( chain_head_id ) >= target_name_difficulty() );
+
        auto prev_reg_itr = my->_name_hash_to_locs.find( trx.name_hash );
-       if( prev_reg_itr.valid() )
+
+       if( prev_reg_itr.valid() ) // renewal... 
        {
-          name_trx prev_trx = fetch_trx( trx.name_hash );
-          FC_ASSERT( trx.renewal.value == prev_trx.renewal.value + 1, "", ("prev_trx",prev_trx) );
-          // cannot renew if last renewal was a cancelation.
-          FC_ASSERT( !prev_trx.cancel_sig );
-          if( trx.key )
+          std::vector<name_location> name_locs = prev_reg_itr.value();
+          FC_ASSERT( name_locs.size() > 0 );
+          name_location prev_loc = name_locs.back();
+
+          std::vector<name_trx>  prev_block_trxs = my->_block_num_to_name_trxs.fetch( prev_loc.block_num );
+          name_trx  prev_trx;
+          
+          uint32_t repute = 1;
+          if( prev_loc.trx_num == -1 ) // then the last block earned me points!
           {
-              // cannot renew to new key
-              FC_ASSERT( *prev_trx.key ==  *trx.key );
+             repute += prev_block_trxs.size();
+             prev_trx = my->_block_num_to_header.fetch( prev_loc.block_num );
           }
           else
           {
-              FC_ASSERT( !!trx.cancel_sig ); // must have sig to cancel previous reg.
-              // TODO: verify signature is of the prev_trx and the signer is the prev_trx.key
-              FC_ASSERT( !"TODO: Cancelation Not Implemented Yet" );
+             prev_trx  = prev_block_trxs[prev_loc.trx_num];
           }
-          FC_ASSERT( trx.utc_sec > my->_head_header.utc_sec );
+
+          if( trx.repute_points != 0 ) // this is an update
+          {
+             FC_ASSERT( trx.repute_points.value == prev_trx.repute_points.value + repute );
+             FC_ASSERT( trx.key  == prev_trx.key );
+             FC_ASSERT( trx.age  == prev_trx.age );
+          }
+          else // this is a transfer or cancel
+          {
+             FC_ASSERT( trx.age == my->_header_ids.size() );
+             FC_ASSERT( !!trx.change_sig );
+
+             auto last_update = (my->_header_ids.size() - prev_loc.block_num);
+             
+             auto trx_id = trx.id(chain_head_id);
+             auto digest = fc::sha256::hash( (char*)&trx_id, sizeof(trx_id) );
+             fc::ecc::public_key signed_key( *trx.change_sig, digest );
+             if( trx.key == fc::ecc::public_key_data() )  // this is a cancel attempt
+             {
+                 // cancel attempt within the transfer window, must be signed
+                 // by the prior public key rather than the new public key.
+                 if( last_update < BITNAME_BLOCKS_BEFORE_TRANSFER )
+                 {
+                     FC_ASSERT( name_locs.size() > 2 );
+                     auto prev_prev_update_loc = name_locs[name_locs.size()-2];
+                     if( prev_prev_update_loc.trx_num == -1 )
+                     {
+                        auto prev_prev_header =  my->_block_num_to_header.fetch( prev_prev_update_loc.block_num );
+                        FC_ASSERT( prev_prev_header.key == signed_key );
+                     }
+                     else
+                     {
+                        std::vector<name_trx>  prev_prev_block_trxs = my->_block_num_to_name_trxs.fetch( prev_prev_update_loc.block_num );
+                        FC_ASSERT( prev_prev_block_trxs.size() > prev_prev_update_loc.trx_num );
+                        FC_ASSERT( prev_prev_block_trxs[prev_prev_update_loc.trx_num].key == signed_key );
+                     }
+                 }
+                 else // we are outside the transfer window, we can cancel with current key
+                 {
+                     FC_ASSERT( signed_key == prev_trx.key );
+                 }
+             }
+             else // this is a transfer attempt
+             {
+                 FC_ASSERT( is_header );
+                 FC_ASSERT( signed_key == prev_trx.key );
+                 FC_ASSERT( last_update > BITNAME_BLOCKS_BEFORE_TRANSFER );
+             }
+          }
        }
-       else
+       else // new registration...
        {
-          FC_ASSERT( trx.renewal == 0 );
+          FC_ASSERT( trx.age == my->_header_ids.size(), "", ("header_ids.size()", my->_header_ids.size()) );
+          FC_ASSERT( trx.repute_points == 1 );
+          FC_ASSERT( trx.key != fc::ecc::public_key_data() );
+          FC_ASSERT( trx.name_hash > 1000 ); // first 1000 hash slots are reserved for future use
        }
-    } FC_RETHROW_EXCEPTIONS( warn, "error validating ${trx}", ("trx", trx) ) }
+    } FC_RETHROW_EXCEPTIONS( warn, "error validating ${trx} header: ${is_header}", 
+                                      ("trx", trx)("is_header",is_header) ) }
    
     void name_db::pop_block()
     {
       FC_ASSERT( !"TODO: pop_block Not implemented" );
     }
     
-    mini_pow name_db::head_block_id()const 
-    { 
-      return my->_head_block_id; 
-    }
+    fc::sha224 name_db::head_block_id()const 
+    { try { 
+      FC_ASSERT( my->_header_ids.size() != 0 ); 
+      return my->_header_ids.back();
+    } FC_RETHROW_EXCEPTIONS( warn, "" ) }
 
-
-    name_db::name_location name_db::find_name( uint64_t name_hash )const
+    uint32_t   name_db::get_expiration( uint64_t name_hash ) const
     { try {
-
-        auto name_locations = my->_name_hash_to_locs.fetch(name_hash);
-        FC_ASSERT( name_locations.size() > 0 );
-        return name_locations.back();
-
-    } FC_RETHROW_EXCEPTIONS( warn, "unable to fetch location for name with hash ${name_hash}", ("name_hash",name_hash) ) }
-
+      auto locs = my->_name_hash_to_locs.fetch(name_hash);
+      return locs.back().block_num + BITNAME_BLOCKS_PER_YEAR;
+    } FC_RETHROW_EXCEPTIONS( warn, "" ) }
 
     name_trx   name_db::fetch_trx( uint64_t name_hash )const
     { try {
-        auto name_loc = find_name( name_hash );
-        auto name_block = fetch_block( name_loc.block_id );
-        FC_ASSERT( name_block.registered_names.size() > name_loc.trx_num );
-        FC_ASSERT( name_block.registered_names[name_loc.trx_num].name_hash == name_hash );
-        return name_block.registered_names[name_loc.trx_num];
+        auto name_loc  = my->find_name( name_hash );
+        auto name_trxs = my->_block_num_to_name_trxs.fetch( name_loc.block_num );
+        FC_ASSERT( name_trxs.size() > name_loc.trx_num );
+        FC_ASSERT( name_trxs[name_loc.trx_num].name_hash == name_hash );
+        return name_trxs[name_loc.trx_num];
     } FC_RETHROW_EXCEPTIONS( warn, "unable to fetch trx for name hash ${name_hash}", ("name_hash", name_hash ) ) }
 
-    name_block   name_db::fetch_block( const mini_pow& block_id )const
+
+    name_header name_db::fetch_block_header( const fc::sha224& block_id )const
     { try {
-        return my->_block_id_to_block.fetch(block_id);
+        return fetch_block_header( get_block_num( block_id ) );
+    } FC_RETHROW_EXCEPTIONS( warn, "unable to fetch block header forid ${block_id}", ("block_id",block_id) ) }
+
+
+    name_header name_db::fetch_block_header( uint32_t block_num )const
+    { try {
+        return my->_block_num_to_header.fetch( block_num );
+    } FC_RETHROW_EXCEPTIONS( warn, "unable to fetch block header for block num ${block_num}", ("block_num",block_num) ) }
+
+
+    name_block   name_db::fetch_block( uint32_t block_num )const
+    { try {
+        auto header = fetch_block_header( block_num );
+        name_block block(header);
+        block.registered_names = my->_block_num_to_name_trxs.fetch( block_num );
+        return block;
+    } FC_RETHROW_EXCEPTIONS( warn, "unable to fetch block num ${block_num}", ("block_num",block_num) ) }
+
+
+    name_block   name_db::fetch_block( const fc::sha224& block_id )const
+    { try {
+        return fetch_block( get_block_num( block_id ) );
     } FC_RETHROW_EXCEPTIONS( warn, "unable to fetch block id ${block_id}", ("block_id",block_id) ) }
 
 
+    fc::time_point_sec name_db::chain_time()const
+    { try {
+      return my->_timekeeper.current_time();
+    } FC_RETHROW_EXCEPTIONS( warn, "" ) }
+
+    /**
+     *
+     */
+    fc::time_point_sec name_db::expected_time( uint32_t block_num )const
+    { try {
+      return my->_timekeeper.expected_time(block_num);
+    } FC_RETHROW_EXCEPTIONS( warn, "" ) }
+
+    /**
+     */
+    uint32_t name_db::get_block_num( const fc::sha224& block_id )const
+    { try {
+        auto block_num_itr = my->_id_to_block_num.find(block_id);
+        FC_ASSERT( block_num_itr != my->_id_to_block_num.end() );
+        return block_num_itr->second;
+    } FC_RETHROW_EXCEPTIONS( warn, "unable to fetch block num for id ${block_id}", ("block_id",block_id) ) }
 
 } } // bts::bitname

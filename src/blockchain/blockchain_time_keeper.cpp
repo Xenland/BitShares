@@ -235,5 +235,9 @@ fc::time_point time_keeper::next_time()const
 {
   return my->expected_time( next_block_num() );
 }
+fc::time_point time_keeper::expected_time( uint32_t block_num )const
+{
+  return my->expected_time(block_num);
+}
 
 } } // bts::blockchain

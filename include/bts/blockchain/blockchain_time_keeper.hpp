@@ -83,7 +83,8 @@ namespace bts { namespace blockchain {
          * average of all blocks in the window.
          */
         uint64_t current_difficulty()const;
-
+        
+        fc::time_point expected_time( uint32_t block_num )const;
      private:
         std::unique_ptr<detail::time_keeper_impl> my;
   };

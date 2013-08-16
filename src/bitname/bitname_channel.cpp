@@ -18,8 +18,8 @@ namespace bts { namespace bitname {
     class chan_data : public network::channel_data
     {
       public:
-        std::unordered_set<mini_pow> known_block_inv;
-        std::unordered_set<uint64_t> known_name_inv;
+        std::unordered_set<fc::sha224> known_block_inv;
+        std::unordered_set<uint64_t>   known_name_inv;
     };
 
     class name_channel_impl : public bts::network::channel
@@ -40,15 +40,15 @@ namespace bts { namespace bitname {
           std::vector<mini_pow>                        _new_blocks; 
 
           /// names not yet in any block, available for request
-          std::unordered_map<uint64_t, name_trx>       _pending_names;
-          std::unordered_map<mini_pow, name_block>     _pending_blocks;
+          std::unordered_map<uint64_t,   name_trx>       _pending_names;
+          std::unordered_map<fc::sha224, name_block>     _pending_blocks;
 
           /// new name updates that have come in
           std::unordered_set<uint64_t>                 _unknown_names;
           std::unordered_map<uint64_t,fc::time_point>  _requested_names; // messages that we have requested but not yet received
 
-          std::unordered_set<mini_pow>                 _unknown_blocks;
-          std::unordered_map<mini_pow,fc::time_point>  _requested_blocks; // messages that we have requested but not yet received
+          std::unordered_set<fc::sha224>                 _unknown_blocks;
+          std::unordered_map<fc::sha224,fc::time_point>  _requested_blocks; // messages that we have requested but not yet received
 
 
           void fetch_loop()
@@ -329,8 +329,8 @@ namespace bts { namespace bitname {
 
   void name_channel::submit_name( const name_trx& new_name_trx )
   {
-     FC_ASSERT( fc::time_point::now() - new_name_trx.utc_sec  <  fc::seconds(60*10) ); // TODO: remove hardcode time window
-   //TODO  FC_ASSERT( new_name_trx.utc_sec <= fc::time_point_sec(fc::time_point::now()) );
+     //FC_ASSERT( fc::time_point::now() - new_name_trx.utc_sec  <  fc::seconds(60*10) ); // TODO: remove hardcode time window
+     //TODO  FC_ASSERT( new_name_trx.utc_sec <= fc::time_point_sec(fc::time_point::now()) );
 
      // TODO: verify new_name_trx.prev == current head... (or head.prev and id() < head )
 

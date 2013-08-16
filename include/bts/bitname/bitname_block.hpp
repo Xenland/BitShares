@@ -2,7 +2,7 @@
 #include <fc/crypto/elliptic.hpp>
 #include <fc/optional.hpp>
 #include <fc/io/raw.hpp>
-#include <bts/mini_pow.hpp>
+#include <fc/crypto/sha224.hpp>
 
 namespace bts { namespace bitname {
 
@@ -12,40 +12,115 @@ namespace bts { namespace bitname {
      *  your own name is also performing merged mining on the block that contains
      *  the names of other individuals.  
      *
-     *  The difficulty of mining your own name is about 5000x less difficult than
-     *  finding the full block with the caviot being that there is a minimum
-     *  mining requirement.
+     *  The block difficulty is calculated as the sum of all difficulties of
+     *  included name_trx plus the difficulty of the header.  The difficulty of
+     *  the header must be over 50% of the difficulty of the block.
+     *
+     *  The minimum difficulty for finding a name is about 1 hr of CPU time, but
+     *  could be as high as block target / 10K.  
+     *
+     *  When a block is name_trx is found, the name earns one repute point, when
+     *  a name block is found, the name the found it earns an additional repute point 
+     *  for each included transaction.
+     *
+     *  Users mine for the following benefits:
+     *    1) register a public key to their name
+     *    2) gain repute_points
+     *    3) renew their name / prevent expiration
+     *    4) change / cancel their name.
      */
     struct name_trx 
     {
-       name_trx()
-       :nonce(0){}
+        name_trx()
+        :nonce(0),age(0),trxs_hash(0),name_hash(0){}
+        
+        /** Helper method, given a name trx, we need the prev block hash to
+         * calculate the id.  Normally this is provided with the name_header,
+         * but the there is no need to construct a name_header to simply 
+         * calculate the id.
+         */
+        fc::sha224 id( const fc::sha224& prev )const;
+        uint64_t   difficulty( const fc::sha224& prev )const;
 
-       /** helper method */
-       mini_pow id( const mini_pow& prev )const;
-
-       uint32_t                                 nonce;     ///< 4 increment to find proof of work
-       fc::time_point_sec                       utc_sec;   ///< 8 utc seconds
-       // TODO: perhaps I need a more secure hash for the mroot... 80 bits probably doesn't cut
-       // it... 
-       mini_pow                                 mroot;     ///< 12 mroot of all trx
+        /** Increment to find proof of work, intentionally small to slow down mining rate
+         *  to 65K/hash sec without adding new trxs (with valid proof of work) or generating
+         *  a new public key, but new public keys are not available for renewals.
+         *
+         *  This should drive inclusion of trx in the mroot to accelerate an individuals own
+         *  hashing rate.  The trxs_hash root could also be incremented assuming there was
+         *  no attempt to 'solve the block'.  Why does anyone bother trying to solve the
+         *  block?  Because solving the block allows you to change your public key or
+         *  to cancel it.   These actions must be done at the block level so that light
+         *  clients can easily verify that a key is valid and hasn't been changed.  Solving
+         *  the block also gains you one renewal point for each trx included in the block and
+         *  these renewal points combined with age factor into the 'credability' and 'uniqueness'
+         *  of your account for web-of-trust purposes.
+         */
+       uint16_t                                 nonce;        
 
        /**
-        *  Options for storing the name:
-        *  1) 32 byte string, 1 byte size + up to 32 bytes...33 worst case, 2 best case
-        *  2) Base 64 saves 14% on length but limits character set
-        *  3) 64 bit hash, the entire world could have a name with a 50% chance of a single collision
-        *        - the consequence of a collision is that someone picks a different name! 
-        *        - this is the fastest solution and does not generate a public list of all names
-        *        - you would have to test & check to find a name
-        *        - in theory this expands to more data sets / foreign characters and arbitrary length names
-        *        - eliminates dynamic memory allocation
+        * Timestamp of the transaction, used to calculate blockchain time.
         */
-       uint64_t                                 name_hash;  ///< 22 hash the name to 64 bits rather than store 32+ bits...
-       fc::unsigned_int                         renewal;    ///< 30 how many times has this name been renewed.
-       fc::optional<fc::ecc::public_key>        key;        ///< 31 key to assign to name, 33 bytes
-       fc::optional<fc::ecc::compact_signature> cancel_sig; ///< provided instead of key if renewal is 255
-    }; 
+       fc::time_point_sec                       utc_sec; 
+
+       /**
+        *  First block number this public key was found in.
+        */
+        uint32_t                                age;      
+
+
+       /**
+        * Why can I get away with a 64 bit hash without fear of collisions?  Because each
+        * of the transactions themselves has a proof of work associated with it, an attacker
+        * would have to find a collision that simultainously satisfies the proof of work
+        * requirements of the trx.  Each attempt at a collision would require about 5 minutes
+        * of CPU time or more (120K attempts/year per CPU) by which time the block would have expired.
+        *
+        * What could be gained by finding a collision? You could perhaps fool a light-client
+        * and convince them you own a name you do not or change the reputation.  These attacks
+        * would not work against full clients.  By using 64 bits I reduce the storage and
+        * bandwidth requirements significantly considering the entire name_trx struct is less
+        * than 60 bytes.
+        *
+        * Note: with all of the power of the bitcoin network, a 64 bit collision can only
+        * be found a couple of times per year and the cost per hash is billions of times
+        * less.
+        */
+       uint64_t                                 trxs_hash;        
+
+       /**
+        *  64 bit hash of name, the entire world could have a name with a 50% chance of a single collision
+        *    - the consequence of a collision is that someone picks a different name! 
+        *    - this is the fastest solution and does not generate a public list of all names
+        *    - you would have to test & check to find a name
+        *    - in theory this expands to more data sets / foreign characters and arbitrary length names
+        *    - eliminates dynamic memory allocation
+        *
+        *    The first 1000 name_hash slots are reserved for protocol updates.  0 is reserved
+        *    for gensis block, the rest can be used to indicate additional data that may be
+        *    serialized as part of the name_trx for future growth.
+        */
+       uint64_t                                 name_hash;         
+
+       /**
+        *  If the key is changing or being canceled, renewal_points must be 0 
+        *  and an optional signature can then be provied.
+        */
+       fc::unsigned_int                         repute_points;  
+       /**
+        *  Public key, must be the same as the prior public key unless this
+        *  is a new registration or solves the block.
+        */
+       fc::ecc::public_key_data                 key;           
+
+       /**
+        * Only valid when repute_points is 0 and indicates that a name
+        * has changed owners or been canceled.  A name is canceled (in the event
+        * of a conflict) if an update with a null key is provided.  A name
+        * can be canceled within 24 hours of a key change using the prior key.
+        */
+       fc::optional<fc::ecc::compact_signature> change_sig;   
+    };  // name_trx
 
 
     /**
@@ -59,10 +134,12 @@ namespace bts { namespace bitname {
     struct name_header : public name_trx
     {
        name_header(){}
-       name_header( const name_trx& b, const mini_pow& p )
+       name_header( const name_trx& b, const fc::sha224& p )
        :name_trx(b),prev(p){}
-       mini_pow id()const;
-       mini_pow prev;    ///< previous block
+
+       uint64_t   difficulty()const;
+       fc::sha224 id()const;
+       fc::sha224 prev;    ///< previous block
     };
 
     
@@ -72,21 +149,28 @@ namespace bts { namespace bitname {
      */
     struct name_block : public name_header
     {
-        mini_pow            calc_merkle_root()const; 
-        /**
-         *  Assuming a hash value on a scale from 1000 to 0, the
-         *  probability of finding a hash below 100 = 10% and the difficulty level would be 1000/100 = 10.
-         *
-         *  The probability of finding 4 below 100 would be equal to the probability of finding 1 below 25.
-         *
-         *  The result is that we can calculate the average difficulty of a set and divide by the number of
-         *  items in that set to calculate the combined difficulty.  
-         */
-        uint64_t            calc_difficulty()const;
+        name_block(){}
 
+        name_block( const name_header& h )
+        :name_header(h){}
+
+        uint64_t            calc_trxs_hash()const; 
+
+        /**
+         *   Assuming all registered_names meet the current 
+         *   target difficulty / 10K and are all greater than
+         *   the minimum difficulty, simply multiple the
+         *   number of registered names * name target difficulty
+         *   and then add the difficulty of this header.
+         */
+        uint64_t            block_difficulty()const;
+
+        /**
+         *  Each name requires target_difficulty / 10K or Min
+         *  POW.
+         */
         std::vector<name_trx> registered_names;
     };
-    name_block create_genesis_block();
 
     /**
      *  This is a light-weight block for broadcasting a solved block without
@@ -95,23 +179,26 @@ namespace bts { namespace bitname {
      */
     struct name_block_index 
     {
-        mini_pow                  prev_block;
+        fc::sha224                prev_block;
         std::vector<uint64_t>     registered_names;
     };
 
 
+    name_block create_genesis_block();
+    uint64_t    min_name_difficulty();
 } } // namespace bts::bitname
 
 
 #include <fc/reflect/reflect.hpp>
 FC_REFLECT( bts::bitname::name_trx, 
-    (mroot)
     (nonce)
+    (age)
     (utc_sec)
-    (renewal)
+    (trxs_hash)
     (name_hash)
+    (repute_points)
     (key)
-    (cancel_sig)
+    (change_sig)
 )
 FC_REFLECT_DERIVED( bts::bitname::name_header, (bts::bitname::name_trx), (prev) )
 FC_REFLECT_DERIVED( bts::bitname::name_block, (bts::bitname::name_header), (registered_names) )
@@ -127,19 +214,16 @@ namespace fc {  namespace raw {
     inline void pack( Stream& s, const bts::bitname::name_trx& t )
     {
        fc::raw::pack(s,t.nonce);
+       fc::raw::pack(s,t.age);
        fc::raw::pack(s,t.utc_sec);
-       fc::raw::pack(s,t.mroot);
+       fc::raw::pack(s,t.trxs_hash);
        fc::raw::pack(s,t.name_hash);
-       fc::raw::pack(s,t.renewal);
-       if( t.renewal == 255 && t.cancel_sig)
+       fc::raw::pack(s,t.repute_points);
+       fc::raw::pack(s,t.key);
+       if( t.repute_points.value == 0 )
        {
-           FC_ASSERT( !!t.cancel_sig );
-           fc::raw::pack(s,*t.cancel_sig);
-       }
-       else
-       {
-           FC_ASSERT( !!t.key );
-           fc::raw::pack( s, *t.key );
+           FC_ASSERT( !!t.change_sig );
+           fc::raw::pack(s,*t.change_sig);
        }
     }
 
@@ -147,19 +231,17 @@ namespace fc {  namespace raw {
     inline void unpack( Stream& s, bts::bitname::name_trx& t )
     {
        fc::raw::unpack(s,t.nonce);
+       fc::raw::unpack(s,t.age);
        fc::raw::unpack(s,t.utc_sec);
-       fc::raw::unpack(s,t.mroot);
+       fc::raw::unpack(s,t.trxs_hash);
        fc::raw::unpack(s,t.name_hash);
-       fc::raw::unpack(s,t.renewal);
-       if( t.renewal != 255 )
+       fc::raw::unpack(s,t.repute_points);
+       fc::raw::unpack(s,t.key);
+
+       if( t.repute_points.value == 0 )
        {
-           t.key = fc::ecc::public_key();
-           fc::raw::unpack( s, *t.key );
-       }
-       else
-       {
-           t.cancel_sig = fc::ecc::compact_signature();
-           fc::raw::unpack( s, *t.cancel_sig );
+           t.change_sig = fc::ecc::compact_signature();
+           fc::raw::unpack( s, *t.change_sig );
        }
     }
 } }

@@ -25,89 +25,12 @@
       "recv_channels": [
         0
       ]
-    },{
-      "label": "pam",
-      "key": "d3471acef76c67f3fe96aedcfa9124d64fec7e817aeb4bc6f7871830f45d955d",
-      "broadcast": "a685003b277322faf42d166e7292177d1f35b4cf2cca5b8bced431483c1a09b6",
-      "recv_channels": [
-        0
-      ]
-    },{
-      "label": "pam",
-      "key": "9ebaf7e38f6e08648264fb781ce4b3ed1c0045ea703e6b394fefcd0541e406c4",
-      "broadcast": "16683bc0548ce2fdd325b22769534165904b93bf3c6cb71b9d242b35055665ef",
-      "recv_channels": [
-        0
-      ]
-    },{
-      "label": "pam",
-      "key": "fb9eea7fc3511528fdeecdc7a1acd40d61836a321a179a177c9d22101070677e",
-      "broadcast": "a4207d4f4ec94e2a14c973849ddc9aa4b35bbb4f2313f739d808f6f4410d7fab",
-      "recv_channels": [
-        0
-      ]
-    },{
-      "label": "pam",
-      "key": "2879c7b9bc5b4643b4b5d8d76505b5bdf1c994c7a575a129a5751add6d24eb12",
-      "broadcast": "268c8e64633bafc809b7bed58c89f2b930e34cae471eee32d740de059d47994f",
-      "recv_channels": [
-        0
-      ]
-    },{
-      "label": "pam",
-      "key": "b6d175497cc8f591a4c0c383712a0d7b83d7fbe5a4e486187223e4515a2ff991",
-      "broadcast": "6d306b5550d1427bd34bec036e1b5f10d4bd9eedfa41386d2f11549f2962e5b0",
-      "recv_channels": [
-        0
-      ]
-    },{
-      "label": "pam",
-      "key": "0fc8ac8dc99fd1061cdac958e0b31a4063d973c02b241a0e20e01c9f9f5ed8a6",
-      "broadcast": "2587ea647dea43e2f65204663fe7a8642875e4ca51dbe24ed5c0070ca8ebe29d",
-      "recv_channels": [
-        0
-      ]
-    },{
-      "label": "pam",
-      "key": "06988a8a9a80c7ba9a061c30ddd7b9cbf153d624b5970ca758857da66d1ce4c4",
-      "broadcast": "a75e8ca5097910a55f1a665de9fbe8b528140ef55e78e8049267a1e29506643e",
-      "recv_channels": [
-        0
-      ]
-    },{
-      "label": "pam",
-      "key": "e5119c2b30ecc4de6f34814b8f91bacc32637c278902538662f9e4463f61f529",
-      "broadcast": "1ade195d8a69aec1ca993630865a646bacdc605093c9ee2b1f6b56e19d26fba1",
-      "recv_channels": [
-        0
-      ]
-    },{
-      "label": "pam",
-      "key": "b9b3d54b35cb30baf9ae5d927bd7a861faeaff339b1665eeee27989b7c063f2e",
-      "broadcast": "11fdd85e6276297113385cb30c5803dbe140b142621105b8b9c93cbae344c6af",
-      "recv_channels": [
-        0
-      ]
-    },{
-      "label": "pam",
-      "key": "64e238b6481e3fec1b09b81af4e7a0aa65973234997074f9d6b35cc4a417db2c",
-      "broadcast": "33ee9a0c909e409f23556d7fd5a29123335905a25e8f85e457ef2652fbf61407",
-      "recv_channels": [
-        0
-      ]
-    },{
-      "label": "pam",
-      "key": "047a4c5c6dc6d3f2042b3a57159cf93518836887e7ea9d9ef279a2dae2dc8a74",
-      "broadcast": "f31b35899345b6daff07e24d4929bbd7d9484d32471ec56270c6c5cc2f8b9ee2",
-      "recv_channels": [
-        0
-      ]
     }
   ],
   "contacts": [{
       "label": "scott",
       "key": "02ee9f61b6c3f71d6887efb0678aa0cd2c73bb825ab5197649b98d80d5c6022ccc",
-      "recv_broadcast": ,
+      "recv_broadcast": null,
       "send_channels": [
         0
       ]

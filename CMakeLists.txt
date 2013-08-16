@@ -79,6 +79,8 @@ set( BOOST_LIBRARIES ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FIL
 
 
 set( sources 
+     src/difficulty.cpp 
+
      src/network/stcp_socket.cpp
      src/network/connection.cpp
      src/network/server.cpp
@@ -88,13 +90,13 @@ set( sources
      src/peer/peer_channel.cpp
      src/peer/peer_messages.cpp
 
-     src/bitname/bitname_miner.cpp
      src/bitname/bitname_block.cpp
-     src/bitname/bitname_db.cpp
-     src/bitname/bitname_channel.cpp
      src/bitname/bitname_hash.cpp
-     src/bitname/bitname_client.cpp
+     src/bitname/bitname_miner.cpp
+     src/bitname/bitname_db.cpp
      src/bitname/bitname_messages.cpp
+     src/bitname/bitname_channel.cpp
+     src/bitname/bitname_client.cpp
 
      src/bitchat/bitchat_private_message.cpp
      src/bitchat/bitchat_messages.cpp

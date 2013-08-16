@@ -41,6 +41,52 @@ class bitchat_del : public bts::bitchat::bitchat_delegate
      }
 };
 
+class bitname_test_del : public bts::bitname::client_delegate
+{
+   public:
+    bitname_test_del()
+    :current_name( fc::time_point::now().time_since_epoch().count() ){}
+
+    bts::bitname::client* _client;
+    /**
+     *  Called when a new valid name trx is found 
+     *  (either by mining or reported form the network).  
+     */
+    void bitname_header_pending( const bts::bitname::name_header& h )
+    {
+        ilog( "${h}", ("h",h) );
+        if( h.name_hash == current_name )
+        {
+           current_name = fc::time_point::now().time_since_epoch().count();
+
+          auto next_name = std::string(fc::time_point::now()); 
+          ilog( "registering next name ${name}", ("name",next_name));
+           _client->register_name( next_name,
+                                   fc::ecc::private_key::generate().get_public_key() );
+        }
+    };  
+
+    /**
+     *  Called anytime the head block is extended or replaced.
+     */
+    void bitname_block_added( const bts::bitname::name_block& h )
+    {
+        ilog( "block added:\n${s}", ("s", fc::json::to_pretty_string(h) ) );
+
+        if( h.name_hash == current_name )
+        {
+           current_name = fc::time_point::now().time_since_epoch().count();
+
+          auto next_name = std::string(fc::time_point::now()); 
+          ilog( "registering next name ${name}", ("name",next_name));
+           _client->register_name( next_name,
+                                   fc::ecc::private_key::generate().get_public_key() );
+        }
+    };  
+
+    uint64_t current_name;
+};
+
 
 int main( int argc, char** argv )
 {
@@ -66,12 +112,17 @@ int main( int argc, char** argv )
 
     bts::peer::peer_channel_ptr    peer_ch        = std::make_shared<bts::peer::peer_channel>(serv);
 
-    std::shared_ptr<bitchat_del>   chat_del       = std::make_shared<bitchat_del>();
+    std::shared_ptr<bitchat_del>      chat_del       = std::make_shared<bitchat_del>();
     bts::bitchat::client_ptr       chat_cl        = std::make_shared<bts::bitchat::client>( peer_ch, address_book, chat_del.get() );
 
     /// provides synchronized accounts across all computers in the network
     bts::bitname::client_ptr       name_cl        = std::make_shared<bts::bitname::client>( peer_ch );
+    std::shared_ptr<bitname_test_del> name_test_del  = std::make_shared<bitname_test_del>();
+    name_test_del->_client = name_cl.get();
+    name_cl->set_delegate( name_test_del.get() );
     name_cl->configure( cfg.bitname_config );
+
+
 //    bts::blockchain::client_ptr    blockchain_cl  = std::make_shared<bts::blockchain::client>( peer_ch );
 
     /// enable local RPC queries of data on various channels

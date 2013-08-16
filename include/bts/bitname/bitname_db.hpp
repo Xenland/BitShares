@@ -19,36 +19,49 @@ namespace bts { namespace bitname {
         void open( const fc::path& dbdir, bool create = true );
         void close();
 
+        /**
+         *  Push the block, validating it, and throw an exception
+         *  if there are any problems. todo: validate all trxtimes
+         *  are within 10 minutes of the block time
+         */
         void push_block( const name_block& b );
-        void pop_block(); // pops the most recent block
-
-        mini_pow head_block_id()const;
-        uint64_t target_difficulty()const;
-
-        struct name_location 
-        {
-            name_location( const mini_pow& i, uint16_t n )
-            :block_id(i),trx_num(n){}
-            name_location():trx_num(0){}
-
-            mini_pow block_id;
-            uint16_t trx_num;
-        };
-        
         /**
          *  Checks to see if the name can be registered and
          *  throws an exception on error.
          */
-        void validate_trx( const name_trx& trx )const;
+        void validate_trx( const name_trx& trx, bool is_header = false )const;
 
-        /** finds the location of most recent registration of name_hash */
-        name_location   find_name( uint64_t name_hash )const;
+        void pop_block(); // pops the most recent block
+
+        fc::sha224           head_block_id()const;
+        uint64_t             target_difficulty()const;
+        uint64_t             target_name_difficulty()const;
+        fc::time_point_sec   chain_time()const;
+
+        /**
+         * Tracks the ID of all headers for rapid query by new nodes
+         * connecting and attempting to sync.
+         */
+        const std::vector<fc::sha224>&  get_header_ids()const;
+
+        /** Returns the number of blocks that have confirmed the
+         *  most recent name.
+         */
+        uint32_t        get_expiration( uint64_t name_hash )const;
 
         /** fetches the most recent registration of name_hash */
         name_trx        fetch_trx( uint64_t name_hash )const;
 
         /** get a block by its block_id */
-        name_block      fetch_block( const mini_pow& block_id )const;
+        name_block      fetch_block( const fc::sha224& block_id )const;
+        name_block      fetch_block( uint32_t block_num )const;
+
+        name_header     fetch_block_header( const fc::sha224& block_id )const;
+        name_header     fetch_block_header( uint32_t block_num )const;
+        uint32_t        get_block_num( const fc::sha224& block_id )const;
+
+        /** the time we expect block_num to be generated */
+        fc::time_point_sec expected_time( uint32_t block_num )const;
 
       private:
         std::unique_ptr<detail::name_db_impl> my;
@@ -56,4 +69,3 @@ namespace bts { namespace bitname {
 
 } }
 
-FC_REFLECT( bts::bitname::name_db::name_location, (block_id)(trx_num) )

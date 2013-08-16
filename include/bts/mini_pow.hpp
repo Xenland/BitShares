@@ -58,7 +58,6 @@ namespace bts
    *
    **/
   typedef fc::array<char,10>  mini_pow;
-  //typedef uint64_t  mini_pow;
 
   /**
    *  This hash function is designed to be secure, but

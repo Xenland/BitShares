@@ -17,13 +17,10 @@ namespace bts { namespace bitname {
      class client_impl : public name_miner_delegate, public name_channel_delegate
      {
         public:
+          client_impl():_delegate(nullptr){}
 
           virtual void found_name_block( const name_block& new_block )
           {
-              ilog( "found name block\n ${n}", ("n", fc::json::to_pretty_string(new_block) ) );
-              ilog( "   id: ${d}", ("d", new_block.id() ) );
-              ilog( "   difficulty(id): ${d}", ("d", mini_pow_difficulty(new_block.id()) ) );
-              ilog( "   block difficulty: ${d}", ("d", new_block.calc_difficulty() ) );
               // make sure new_block is not stale... 
               // check to see if it is good enough to solve the block, or just a trx
               // broadcast it accordingly... 
@@ -52,9 +49,15 @@ namespace bts { namespace bitname {
               // be removed from the pending state.
           }
 
+          client_delegate*                                 _delegate;
           client::config                                   _config;
           name_channel_ptr                                 _chan;
           name_miner                                       _miner;
+
+          /**
+           *  Which ever pending reg has the least confirmations and
+           *  is still valid will be the next chosen.
+           */
           db::level_map<std::string,fc::ecc::public_key>   _pending_regs;
      };
 
@@ -68,6 +71,11 @@ namespace bts { namespace bitname {
       my->_miner.set_delegate( my.get() );
   }
   client::~client(){}
+
+  void client::set_delegate( client_delegate* my_del )
+  {
+    my->_delegate = my_del;
+  }
 
   void client::configure( const client::config& client_config )
   {
@@ -86,12 +94,11 @@ namespace bts { namespace bitname {
        name_header head = my->_chan->lookup_name( name );
        name_record rec;
        rec.last_update  = head.utc_sec;
-       rec.num_updates  = head.renewal;
-       rec.revoked      = !!head.cancel_sig;
+       //rec.num_updates  = head.renewal;
+       //rec.revoked      = !!head.cancel_sig;
        rec.name_hash    = fc::to_hex( (char*)&head.name_hash, sizeof( head.name_hash)  );
        rec.name         = name;
-       FC_ASSERT( !!head.key )
-       rec.pub_key      = *head.key;
+       rec.pub_key      = head.key;
        
        return rec;
      } FC_RETHROW_EXCEPTIONS( warn, "error looking up name '${name}'", ("name",name) );
@@ -114,9 +121,11 @@ namespace bts { namespace bitname {
 
   void client::register_name( const std::string& bitname_id, const fc::ecc::public_key& name_key)
   {
+     /*
      my->_pending_regs.store( bitname_id, name_key );
      my->_miner.set_name( bitname_id, name_key );
      my->_miner.start( my->_config.max_mining_effort );
+     */
   }
 
   std::map<std::string,fc::ecc::public_key>  client::pending_name_registrations()const

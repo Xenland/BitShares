@@ -29,7 +29,7 @@ namespace bts { namespace bitname {
   struct block_inv_message
   {
     static const message_type type;
-    std::vector<mini_pow>  block_ids;
+    std::vector<fc::sha224>  block_ids;
   };
 
   struct get_name_inv_message
@@ -40,13 +40,13 @@ namespace bts { namespace bitname {
   struct get_headers_message
   {
     static const message_type type;
-    std::vector<mini_pow>  locator_hashes;
+    std::vector<fc::sha224>  locator_hashes;
   };
 
   struct get_block_message
   {
     static const message_type type;
-    mini_pow block_id;
+    fc::sha224 block_id;
   };
 
   struct get_name_message
@@ -90,8 +90,8 @@ namespace bts { namespace bitname {
     headers_message()
     :first_block_num(0){}
 
-    uint32_t               first_block_num;
-    std::vector<mini_pow>  header_ids;
+    uint32_t                 first_block_num;
+    std::vector<fc::sha224>  header_ids;
   };
 
 

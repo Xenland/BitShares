@@ -1,78 +1,72 @@
 #include <bts/bitname/bitname_block.hpp>
+#include <bts/difficulty.hpp>
 #include <fc/crypto/bigint.hpp>
 #include <fc/io/raw.hpp>
+#include <fc/crypto/city.hpp>
 #include <algorithm>
 
+#include <fc/log/logger.hpp>
+
 namespace bts { namespace bitname {
-  mini_pow  name_header::id()const
+
+  fc::sha224  name_header::id()const
   {
+    fc::sha224::encoder enc;
     auto d = fc::raw::pack(*this);
-    return mini_pow_hash(d.data(),d.size());
+    return enc.result();
   }
 
-
-  uint64_t name_block::calc_difficulty()const
+  uint64_t name_header::difficulty()const
   {
-    // fc::bigint max_pow = to_bigint( mini_pow_max() );
-     int64_t my_difficulty = mini_pow_difficulty( id() ); //(max_pow / to_bigint( id() )).to_int64();
-
-     if( registered_names.size() == 0 ) 
-        return my_difficulty;
-
-     std::vector<uint64_t> difficulties(registered_names.size() );
-     for( uint32_t i = 0; i < registered_names.size(); ++i )
-     {
-        difficulties[i] = mini_pow_difficulty( registered_names[i].id(prev) );
-     }
-
-     uint64_t median_pos = difficulties.size() / 2;
-     std::nth_element( difficulties.begin(), difficulties.begin() + difficulties.size() / 2, difficulties.end() );
-     auto median = difficulties[median_pos];
-
-     return my_difficulty + median * (difficulties.size()+1);
+      return bts::difficulty(id());
   }
 
-  mini_pow name_block::calc_merkle_root()const
+  uint64_t name_block::block_difficulty()const
   {
-     if( registered_names.size() == 0 ) return mini_pow();
-     if( registered_names.size() == 1 ) return registered_names.front().id(prev);
-
-     std::vector<mini_pow> layer_one;
+     uint64_t sum = 0;
      for( auto itr = registered_names.begin(); itr != registered_names.end(); ++itr )
      {
-       layer_one.push_back(itr->id(prev));
+       sum += itr->difficulty( prev ); 
      }
-     std::vector<mini_pow> layer_two;
-     while( layer_one.size() > 1 )
+     if( sum > 0 )
      {
-        if( layer_one.size() % 2 == 1 )
-        {
-          layer_one.push_back( mini_pow() );
-        }
-
-        static_assert( sizeof(mini_pow[2]) == 20, "validate there is no padding between array items" );
-        for( uint32_t i = 0; i < layer_one.size(); i += 2 )
-        {
-            layer_two.push_back(  mini_pow_hash( (char*)&layer_one[i], 2*sizeof(mini_pow) ) );
-        }
-
-        layer_one = std::move(layer_two);
+         return difficulty() + sum;
      }
-     return layer_one.front();
+     return difficulty() / 2;
+  }
+
+  uint64_t name_block::calc_trxs_hash()const
+  {
+     fc::sha512::encoder enc;
+     fc::raw::pack( prev );
+     fc::raw::pack( registered_names );
+     auto result = enc.result();
+     // city hash isn't crypto secure, but its input is sha512 which is.
+     return fc::city_hash64( (char*)&result, sizeof(result) );
   }
 
   /** helper method */
-  mini_pow name_trx::id( const mini_pow& prev )const
+  fc::sha224 name_trx::id( const fc::sha224& prev )const
   {
     return name_header( *this, prev ).id();
   }
+
+  uint64_t name_trx::difficulty( const fc::sha224& prev )const
+  {
+    return name_header( *this, prev ).difficulty();
+  }
+
+  uint64_t min_name_difficulty() 
+  {
+      return 1;
+  }
+
   name_block create_genesis_block()
   {
      name_block genesis;
      genesis.utc_sec = fc::time_point_sec(fc::time_point::from_iso_string( "20130814T000000" ));
      genesis.name_hash = 0;
      genesis.key = fc::ecc::private_key::regenerate(fc::sha256::hash( "genesis", 7)).get_public_key();
-     genesis.mroot = genesis.calc_merkle_root();
      return genesis;
   }
 

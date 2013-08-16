@@ -1,5 +1,6 @@
 #pragma once
 #include <bts/peer/peer_channel.hpp>
+#include <bts/bitname/bitname_block.hpp>
 #include <fc/reflect/reflect.hpp>
 #include <fc/crypto/elliptic.hpp>
 #include <fc/optional.hpp>
@@ -26,48 +27,26 @@ namespace bts { namespace bitname {
      fc::optional<std::string>   name;        ///< if we know the name that generated the hash
   };
 
+  class client_delegate 
+  {
+     public:
+        virtual ~client_delegate(){}
+        /**
+         *  Called when a new valid name trx is found 
+         *  (either by mining or reported form the network).  
+         */
+        void bitname_header_pending( const bitname::name_header& h ){};  
+
+        /**
+         *  Called anytime the head block is extended or replaced.
+         */
+        void bitname_block_added( const bitname::name_block& h ){};  
+  };
+
   /**
    *  These methods define the bitname JSON-RPC client used for external applications to lookup information 
    *  about names and validate logins.
    *
-   *  Website Login Protocol:
-   *
-   *    Browser makes Request:
-   *    https://domain/request_login
-   *    {
-   *      "user_nonce" : "nonce"
-   *    }
-   *    
-   *    Response: 
-   *    {   
-   *        "user_nonce"     : USER_PROVIDED, 
-   *        "host_nonce"     : host_provided, 
-   *        "host_bitname"   : "name...",   note: bitdns may be better for this side 
-   *        "host_signature" : "..."
-   *    }
-   *
-   *    Browser then queries local bitname service:
-   *      1) server_record  = local_service->lookup( host_bitname )
-   *      2) server_pub_key = local_service->verify_signature( sha256( user_nonce | host_nonce | host_ip ), host_signature )
-   *      3) assert( server_pub_key == server_record.pub_key )
-   *      4) Ask user if they would like to login (and ask which ID if they have multiple)... display the name.
-   *      5) If the user says ok... then login with the following request
-   *
-   *    https://domain/login
-   *    { 
-   *      "user_bitname" : 
-   *      "user_nonce" : 
-   *      "host_nonce" : 
-   *      "host_signature" : 
-   *      "user_signature" :
-   *    }
-   *
-   *    Response:
-   *    Session Cookie... 
-   *    {
-   *       "status" : "ok"
-   *       "status" : "denied"
-   *    }
    */
   class client 
   {
@@ -84,12 +63,16 @@ namespace bts { namespace bitname {
           double   max_mining_effort;
        };
 
+       void set_delegate( client_delegate* client_del );
        void configure( const config& client_config );
 
        name_record                    lookup_name( const std::string& name );
        name_record                    reverse_name_lookup( const fc::ecc::public_key& k );
        fc::ecc::public_key            verify_signature( const fc::sha256& digest, const fc::ecc::compact_signature& sig );
        fc::ecc::compact_signature     sign( const fc::sha256& digest, const std::string& name );
+
+       fc::time_point                 get_current_chain_time()const;
+       uint16_t                       get_current_difficulty()const;
 
        /**
         *  Attempts to register the name to the given public key, throws an exception if the name is already
