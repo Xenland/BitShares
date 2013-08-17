@@ -1,5 +1,6 @@
 //#include <miniupnpc/miniwget.h>
 extern "C" {
+#define STATICLIB
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
 #include <miniupnpc/upnperrors.h>
