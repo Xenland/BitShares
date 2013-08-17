@@ -24,18 +24,26 @@ namespace bts { namespace network {
                known_keys.insert(*itr);
             }
           }
+          bool did_request( const Key& k )const
+          {
+             return requested_values.find(k) != requested_values.end();
+          }
+          void received_response( const Key& k )
+          {
+             FC_ASSERT( did_request( k ) );
+             requested_values[k] = fc::time_point();
+          }
           std::unordered_set<Key>                 known_keys;
-
           std::unordered_map<Key,fc::time_point>  requested_values;
       };
 
       struct item_state
       {
         item_state()
-        :pending_validation(false),valid(false){}
+        :valid(false){}
 
+        fc::time_point        recv_time;
         fc::time_point        query_time;
-        bool                  pending_validation;
         bool                  valid;
         fc::optional<Value>   value;
       };
@@ -53,21 +61,12 @@ namespace bts { namespace network {
         return _query_queue.size();
       }
 
-      Key      query_next()
+      Key query_next()
       {
          FC_ASSERT( _query_queue.size() != 0 );
          auto key = *_query_queue.begin();
          _inventory[key].query_time = fc::time_point::now();
          return key;
-      }
-
-      void  received( const Key& k, const Value& v )
-      {
-         item_state& state = _inventory[k];
-         FC_ASSERT( !state.value, "duplicate value received", ("value",v) );
-         state.value              = v;
-         state.pending_validation = true;
-         _validation_queue.push_back(k);
       }
 
       const fc::optional<Value>& get_value( const Key& key )
@@ -78,27 +77,13 @@ namespace bts { namespace network {
           return itr->second.value;
       }
 
-      uint32_t pending_validation_count()const
-      {
-        return _validation_queue.size();
-      }
-
-      const Value& pop_for_validation()
-      {
-         FC_ASSERT( _validation_queue.size() != 0 );
-         auto key = _validation_queue.front();
-         _validation_queue.pop_front();
-         FC_ASSERT( _inventory[key].value );
-         return *_inventory[key].value;
-      }
-
-      void validated( const Key& key, bool is_ok )
+      void validated( const Key& key, const Value& value, bool is_ok )
       {
          item_state& state = _inventory[key];
-         FC_ASSERT( state.pending_validation == true );
-         state.pending_validation            = false;
-         state.valid                         = is_ok;     
-         FC_ASSERT( !!state.value );
+         FC_ASSERT( !state.value, "duplicate value received", ("value",value) );
+         state.recv_time = fc::time_point::now();
+         state.value     = value;
+         state.valid     = is_ok;
       }
 
       void  remove( const Key& key )
@@ -111,9 +96,10 @@ namespace bts { namespace network {
 
       void remove_invalid()
       {
+         fc::time_point expire_time = fc::time_point::now() - fc::seconds(60); 
          for( auto itr = _inventory.begin(); itr != _inventory.end(); )
          {
-           if( !itr->second.valid && !itr->second.pending_validation ) 
+           if( !itr->second.valid && itr->second.recv_time < expire_time )
            {
               itr = _inventory.erase(itr);
            }

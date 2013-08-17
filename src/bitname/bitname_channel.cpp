@@ -251,10 +251,18 @@ namespace bts { namespace bitname {
           void handle_name( const connection_ptr& con,  chan_data& cdat, const name_message& msg )
           { try {
              ilog( "${msg}", ("msg",msg) );
-             // TODO: verify that we requested this msg.
-             // validate that the contained name is valid based upon the current trxdb state
-             // if it is, add it to the pending name_trx queue..
-             _trx_broadcast_mgr.received( msg.name.name_hash, msg.name );
+             cdat.trxs_mgr.received_response( msg.name.name_hash );
+             try { 
+                _name_db.validate_trx( msg.name ); 
+                _trx_broadcast_mgr.validated( msg.name.name_hash, msg.name, true );
+             } 
+             catch ( const fc::exception& e )
+             {
+                // TODO: connection just sent us an invalid trx... what do we do...
+                wlog( "${e}", ("e",e.to_detail_string()) ); 
+                _trx_broadcast_mgr.validated( msg.name.name_hash, msg.name, false );
+                throw;
+             }
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg", msg) ) }
    
           void handle_block( const connection_ptr& con,  chan_data& cdat, const block_message& msg )
@@ -308,7 +316,7 @@ namespace bts { namespace bitname {
   }
 
   void name_channel::submit_name( const name_trx& new_name_trx )
-  {
+  { try {
      //FC_ASSERT( fc::time_point::now() - new_name_trx.utc_sec  <  fc::seconds(60*10) ); // TODO: remove hardcode time window
      //TODO  FC_ASSERT( new_name_trx.utc_sec <= fc::time_point_sec(fc::time_point::now()) );
 
@@ -316,8 +324,9 @@ namespace bts { namespace bitname {
 
      //my->_pending_names[new_name_trx.name_hash] = new_name_trx;
      //my->_new_names.push_back( new_name_trx.name_hash );
-     my->_trx_broadcast_mgr.received( new_name_trx.name_hash, new_name_trx );
-  }
+     my->_name_db.validate_trx( new_name_trx );
+     my->_trx_broadcast_mgr.validated( new_name_trx.name_hash, new_name_trx, true );
+  } FC_RETHROW_EXCEPTIONS( warn, "error submitting name", ("new_name_trx", new_name_trx) ) }
 
   void name_channel::submit_block( const name_block& b )
   {
