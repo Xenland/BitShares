@@ -3,6 +3,7 @@
 #include <bts/bitname/bitname_db.hpp>
 #include <bts/network/server.hpp>
 #include <bts/network/channel.hpp>
+#include <bts/network/broadcast_manager.hpp>
 #include <fc/reflect/variant.hpp>
 #include <fc/thread/thread.hpp>
 #include <fc/log/logger.hpp>
@@ -18,8 +19,8 @@ namespace bts { namespace bitname {
     class chan_data : public network::channel_data
     {
       public:
-        std::unordered_set<fc::sha224> known_block_inv;
-        std::unordered_set<uint64_t>   known_name_inv;
+        broadcast_manager<name_hash_type,name_trx>::channel_data         trxs_mgr;
+        broadcast_manager<name_id_type,name_block_index>::channel_data   block_mgr;
     };
 
     class name_channel_impl : public bts::network::channel
@@ -28,28 +29,15 @@ namespace bts { namespace bitname {
           name_channel_impl()
           :_del(nullptr){}
 
-          name_channel_delegate*                       _del;
-          bts::peer::peer_channel_ptr                  _peers;
-          network::channel_id                          _chan_id;
-                                                       
-          name_db                                      _ndb;
-          fc::future<void>                             _fetch_loop;
+          name_channel_delegate*                           _del;
+          bts::peer::peer_channel_ptr                      _peers;
+          network::channel_id                              _chan_id;
+                                                           
+          name_db                                          _name_db;
+          fc::future<void>                                 _fetch_loop;
 
-          /// messages received since last inv broadcast
-          std::vector<uint64_t>                        _new_names; 
-          std::vector<mini_pow>                        _new_blocks; 
-
-          /// names not yet in any block, available for request
-          std::unordered_map<uint64_t,   name_trx>       _pending_names;
-          std::unordered_map<fc::sha224, name_block>     _pending_blocks;
-
-          /// new name updates that have come in
-          std::unordered_set<uint64_t>                 _unknown_names;
-          std::unordered_map<uint64_t,fc::time_point>  _requested_names; // messages that we have requested but not yet received
-
-          std::unordered_set<fc::sha224>                 _unknown_blocks;
-          std::unordered_map<fc::sha224,fc::time_point>  _requested_blocks; // messages that we have requested but not yet received
-
+          broadcast_manager<name_hash_type,name_trx>       _trx_broadcast_mgr;
+          broadcast_manager<name_id_type,name_block_index> _block_index_broadcast_mgr;
 
           void fetch_loop()
           {
@@ -57,6 +45,8 @@ namespace bts { namespace bitname {
                 while( !_fetch_loop.canceled() )
                 {
                    broadcast_inv();
+
+                   /*
                    if( _unknown_names.size()  )
                    {
                       auto cons = _peers->get_connections( _chan_id );
@@ -68,9 +58,13 @@ namespace bts { namespace bitname {
                           fetch_name_from_best_connection( cons, *itr );
                       }
                    }
+                   */
                    /* By using a random sleep we give other peers the oppotunity to find
                     * out about messages before we pick who to fetch from.
                     * TODO: move constants to config.hpp
+                    *
+                    * TODO: fetch set your fetch order based upon how many times we have received
+                    *        an inv regarding a particular item.
                     */
                    fc::usleep( fc::microseconds( (rand() % 20000) + 100) ); // note: usleep(0) sleeps forever... perhaps a bug?
                 }
@@ -87,6 +81,8 @@ namespace bts { namespace bitname {
            */
           void broadcast_inv()
           { try {
+
+              /*
               if( _new_names.size() )
               {
                 auto cons = _peers->get_connections( _chan_id );
@@ -110,6 +106,7 @@ namespace bts { namespace bitname {
                 }
                 _new_names.clear();
               }
+              */
               // TODO: broadcast new blocks...
           } FC_RETHROW_EXCEPTIONS( warn, "error broadcasting bitname inventory") } // broadcast_inv
 
@@ -125,6 +122,7 @@ namespace bts { namespace bitname {
              // TODO: update this algorithm to be something better. 
              for( uint32_t i = 0; i < cons.size(); ++i )
              {
+                 /*
                  chan_data& cd = get_channel_data(cons[i]); 
                  if( cd.known_name_inv.find( id ) !=  cd.known_name_inv.end() )
                  {
@@ -133,6 +131,7 @@ namespace bts { namespace bitname {
                     cons[i]->send( network::message( get_name_message( id ), _chan_id ) );
                     return;
                  }
+                 */
              }
           } FC_RETHROW_EXCEPTIONS( warn, "error fetching name ${name_hash}", ("name_hash",id) ) }
 
@@ -199,12 +198,9 @@ namespace bts { namespace bitname {
               ilog( "inv: ${msg}", ("msg",msg) );
               for( auto itr = msg.names.begin(); itr != msg.names.end(); ++itr )
               {
-                 cdat.known_name_inv.insert( *itr );
-                 if( _pending_names.find( *itr ) == _pending_names.end() )
-                 {
-                    _unknown_names.insert( *itr );
-                 }
+                 _trx_broadcast_mgr.received_inventory_notice( *itr ); 
               }
+              cdat.trxs_mgr.update_known( msg.names );
           }
    
           void handle_block_inv( const connection_ptr& con,  chan_data& cdat, const block_inv_message& msg )
@@ -212,24 +208,16 @@ namespace bts { namespace bitname {
               ilog( "inv: ${msg}", ("msg",msg) );
               for( auto itr = msg.block_ids.begin(); itr != msg.block_ids.end(); ++itr )
               {
-                 cdat.known_block_inv.insert( *itr );
-                 if( _pending_blocks.find( *itr ) == _pending_blocks.end() )
-                 {
-                     _unknown_blocks.insert( *itr );
-                 }
+                 _block_index_broadcast_mgr.received_inventory_notice( *itr );
               }
+              cdat.block_mgr.update_known( msg.block_ids );
           }
    
           void handle_get_name_inv( const connection_ptr& con,  chan_data& cdat, const get_name_inv_message& msg )
           {
               name_inv_message reply;
-              for( auto itr = _pending_names.begin(); itr != _pending_names.end(); ++itr )
-              {
-                 if( cdat.known_name_inv.insert( itr->first ).second )
-                 {
-                    reply.names.push_back( itr->first );
-                 }
-              }
+              reply.names = _trx_broadcast_mgr.get_inventory( cdat.trxs_mgr.known_keys );
+              cdat.trxs_mgr.update_known( reply.names );
               con->send( network::message(reply,_chan_id) );
           }
    
@@ -237,26 +225,26 @@ namespace bts { namespace bitname {
           {
           }
    
+
           void handle_get_block( const connection_ptr& con,  chan_data& cdat, const get_block_message& msg )
           {
               // TODO: charge POW for this...
-              auto block = _ndb.fetch_block( msg.block_id );
+              auto block = _name_db.fetch_block( msg.block_id );
               con->send( network::message( block_message( std::move(block) ), _chan_id ) );
           }
    
           void handle_get_name( const connection_ptr& con,  chan_data& cdat, const get_name_message& msg )
           {
              ilog( "${msg}", ("msg",msg) );
-             auto pend_name_itr = _pending_names.find( msg.name_hash );
-             if( pend_name_itr == _pending_names.end() )
+             const fc::optional<name_trx>& trx = _trx_broadcast_mgr.get_value( msg.name_hash );
+             if( !trx ) // must be a db
              {
-                // must be a DB lookup...  TODO: charge a POW for this...
-                auto trx = _ndb.fetch_trx( msg.name_hash );
+                auto trx = _name_db.fetch_trx( msg.name_hash );
                 con->send( network::message( name_message( trx ), _chan_id ) );
              }
              else
              {
-                con->send( network::message( name_message( pend_name_itr->second ), _chan_id ) );
+                con->send( network::message( name_message( *trx ), _chan_id ) );
              }
           }
    
@@ -266,25 +254,17 @@ namespace bts { namespace bitname {
              // TODO: verify that we requested this msg.
              // validate that the contained name is valid based upon the current trxdb state
              // if it is, add it to the pending name_trx queue..
-             if( _pending_names.find(msg.name.name_hash) == _pending_names.end() )
-             {
-                _pending_names[msg.name.name_hash] = msg.name;
-                _new_names.push_back( msg.name.name_hash );
-                FC_ASSERT( _del != nullptr );
-                _del->pending_name_registration( msg.name );
-             }
-             else
-             {
-                wlog( "duplicate name trx received ${name_trx}", ("name_trx",msg) );
-             }
+             _trx_broadcast_mgr.received( msg.name.name_hash, msg.name );
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg", msg) ) }
    
           void handle_block( const connection_ptr& con,  chan_data& cdat, const block_message& msg )
           {
+             
           }
    
           void handle_headers( const connection_ptr& con,  chan_data& cdat, const headers_message& msg )
           {
+
           }
     };
 
@@ -315,7 +295,7 @@ namespace bts { namespace bitname {
 
   void name_channel::configure( const name_channel::config& c )
   {
-      my->_ndb.open( c.name_db_dir, true/*create*/ );
+      my->_name_db.open( c.name_db_dir, true/*create*/ );
 
       // TODO: connect to the network and attempt to download the chain...
       //      *  what if no peers on on the name channel ??  * 
@@ -334,8 +314,9 @@ namespace bts { namespace bitname {
 
      // TODO: verify new_name_trx.prev == current head... (or head.prev and id() < head )
 
-     my->_pending_names[new_name_trx.name_hash] = new_name_trx;
-     my->_new_names.push_back( new_name_trx.name_hash );
+     //my->_pending_names[new_name_trx.name_hash] = new_name_trx;
+     //my->_new_names.push_back( new_name_trx.name_hash );
+     my->_trx_broadcast_mgr.received( new_name_trx.name_hash, new_name_trx );
   }
 
   void name_channel::submit_block( const name_block& b )
