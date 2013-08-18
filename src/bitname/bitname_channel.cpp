@@ -23,6 +23,24 @@ namespace bts { namespace bitname {
         broadcast_manager<name_id_type,name_block_index>::channel_data   block_mgr;
     };
 
+    struct block_index_download_manager
+    {
+       name_block                              incomplete; 
+       name_block_index                        index;
+       std::unordered_map<uint64_t,uint32_t>   unknown;
+
+       bool try_complete( const name_trx& n )
+       {
+         auto itr = unknown.find(n.name_hash);
+         if( itr != unknown.end() )
+         {
+            incomplete.registered_names[itr->second] = n; 
+            unknown.erase(itr);
+         }
+         return unknown.size() == 0;
+       }
+    };
+
     class name_channel_impl : public bts::network::channel
     {
        public:
@@ -38,6 +56,77 @@ namespace bts { namespace bitname {
                                                             
           broadcast_manager<name_hash_type,name_trx>        _trx_broadcast_mgr;
           broadcast_manager<name_id_type,name_block_index>  _block_index_broadcast_mgr;
+
+          std::vector<block_index_download_manager>         _block_downloads;
+
+          void fetch_block_from_index( const name_block_index& index )
+          {
+             block_index_download_manager  block_idx_downloader;
+             block_idx_downloader.incomplete = name_block(index.header);
+             block_idx_downloader.index      = index;
+
+             block_idx_downloader.incomplete.registered_names.resize( index.registered_names.size() );
+             for( uint32_t i = 0; i < index.registered_names.size(); ++i )
+             {
+                auto val = _trx_broadcast_mgr.get_value( index.registered_names[i] );
+                if( val ) 
+                {
+                   block_idx_downloader.incomplete.registered_names[i] = *val;
+                }
+                else
+                {
+                   FC_ASSERT( block_idx_downloader.unknown.find(index.registered_names[i]) ==
+                              block_idx_downloader.unknown.end() ); // checks for duplicates
+                   block_idx_downloader.unknown[index.registered_names[i]] = i;
+                }
+             }
+
+             if( block_idx_downloader.unknown.size() == 0 )
+             {
+                submit_block( block_idx_downloader.incomplete );
+             }
+             else
+             {
+                _block_downloads.push_back( block_idx_downloader );
+                fetch_unknown_name_trxs( _block_downloads.back() );
+             }
+          }
+
+          void fetch_unknown_name_trxs( const block_index_download_manager& dlmgr )
+          {
+             for( auto itr = dlmgr.unknown.begin(); itr != dlmgr.unknown.end(); ++itr )
+             {
+                // TODO: fetch missing from various hosts.. 
+
+             }
+          }
+
+          void update_block_index_downloads( const name_trx& trx )
+          {
+             for( auto itr = _block_downloads.begin(); itr != _block_downloads.end(); )
+             {
+               if( itr->try_complete( trx) )
+               {
+                  try {
+                    submit_block( itr->incomplete );
+                  } 
+                  catch ( fc::exception& e )
+                  {
+                    // TODO: how do we punish block that sent us this...
+                    // what was the reason we couldn't submit it... peraps
+                    // it is just too old and another block beat it to the
+                    // punch... 
+                    wlog( "unable to submit block after download\n${e}", 
+                          ("e",e.to_detail_string() ) );
+                  }
+                  itr = _block_downloads.erase(itr); 
+               }
+               else
+               {
+                  ++itr;
+               }
+             }
+          }
 
           void fetch_loop()
           {
@@ -71,6 +160,7 @@ namespace bts { namespace bitname {
              }
           }
 
+
           /**
            *  Send any new inventory items that we have received since the last
            *  broadcast to all connections that do not know about the inv item.
@@ -87,7 +177,7 @@ namespace bts { namespace bitname {
                      name_inv_message inv_msg;
                  
                      chan_data& con_data = get_channel_data( *c );
-                     inv_msg.names = _trx_broadcast_mgr.get_inventory( con_data.trxs_mgr.known_keys() );
+                     inv_msg.names = _trx_broadcast_mgr.get_inventory( con_data.trxs_mgr );
                  
                      if( inv_msg.names.size() )
                      {
@@ -105,7 +195,7 @@ namespace bts { namespace bitname {
                      block_inv_message inv_msg;
                  
                      chan_data& con_data = get_channel_data( *c );
-                     inv_msg.block_ids = _block_index_broadcast_mgr.get_inventory( con_data.block_mgr.known_keys() );
+                     inv_msg.block_ids = _block_index_broadcast_mgr.get_inventory( con_data.block_mgr );
                  
                      if( inv_msg.block_ids.size() )
                      {
@@ -221,7 +311,7 @@ namespace bts { namespace bitname {
           void handle_get_name_inv( const connection_ptr& con,  chan_data& cdat, const get_name_inv_message& msg )
           {
               name_inv_message reply;
-              reply.names = _trx_broadcast_mgr.get_inventory( cdat.trxs_mgr.known_keys() );
+              reply.names = _trx_broadcast_mgr.get_inventory( cdat.trxs_mgr );
               cdat.trxs_mgr.update_known( reply.names );
               con->send( network::message(reply,_chan_id) );
           }
@@ -259,6 +349,9 @@ namespace bts { namespace bitname {
              ilog( "${msg}", ("msg",msg) );
              cdat.trxs_mgr.received_response( msg.name.name_hash );
              try { 
+                // attempt to complete blocks without validating the trx so that
+                // we can then mark the block as 'complete' and then invalidate it
+                update_block_index_downloads( msg.name ); 
                 submit_name( msg.name );
              } 
              catch ( const fc::exception& e )
@@ -290,9 +383,10 @@ namespace bts { namespace bitname {
 
           void submit_block( const name_block& block )
           { try {
-             _name_db.push_block( block );
-             _block_index_broadcast_mgr.clear_inventory();
-             _trx_broadcast_mgr.clear_inventory(); // this inventory no longer matters
+             _name_db.push_block( block ); // this throws on error
+             _trx_broadcast_mgr.invalidate_all(); // current inventory is now invalid
+             _block_index_broadcast_mgr.clear_old_inventory(); // we can clear old inventory
+             _trx_broadcast_mgr.clear_old_inventory(); // this inventory no longer matters
              _block_index_broadcast_mgr.validated( block.id(), block, true );
           } FC_RETHROW_EXCEPTIONS( warn, "error submitting block", ("block", block) ) }
     };

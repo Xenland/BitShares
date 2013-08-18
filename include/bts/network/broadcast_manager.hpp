@@ -23,8 +23,26 @@ namespace bts { namespace network {
          public:
            void update_known( const std::vector<Key>& known )
            {
-              _known_keys.insert(known.begin(), known.end() );
+             for( auto itr = known.begin(); itr != known.end(); ++itr )
+             {
+               _known_keys[*itr] = fc::time_point::now();
+             }
            }
+           void clear_old( const fc::time_point& old )
+           {
+             for( auto itr = _known_keys.begin(); itr != known_keys.end(); )
+             {
+                if( *itr < old )
+                {
+                  itr= _known_keys.erase(itr);
+                }
+                else
+                {
+                  ++itr;
+                }
+             }
+           }
+
            bool did_request( const Key& k )const
            {
               return _requested_values.find(k) != _requested_values.end();
@@ -46,12 +64,12 @@ namespace bts { namespace network {
            {
               _requested_values[k] = fc::time_point::now();
            }
-           const std::unordered_set<Key>& known_keys()const
+           const std::unordered_map<Key,fc::time_point>& known_keys()const
            {
              return _known_keys;
            }
          private:
-          std::unordered_set<Key>                 _known_keys;
+          std::unordered_map<Key,fc::time_point>  _known_keys;
           std::unordered_map<Key,fc::time_point>  _requested_values;
       };
 
@@ -136,7 +154,7 @@ namespace bts { namespace network {
        *  @return a vector of validated keys that does not contain any items already 
        *          found in filter.
        */
-      std::vector<Key> get_inventory( const std::unordered_set<Key>& filter )
+      std::vector<Key> get_inventory( const channel_data& filter )
       {
          std::vector<Key> unique_items; 
          unique_items.reserve( _inventory.size() );
@@ -145,7 +163,7 @@ namespace bts { namespace network {
          {
            if( itr->second.value && itr->second.valid )
            {
-               if( filter.find( itr->first ) == filter.end() )
+               if( filter.known_keys().find( itr->first ) == filter.known_keys().end() )
                {
                   unique_items.push_back( itr->first ); 
                }
@@ -167,6 +185,36 @@ namespace bts { namespace network {
       {
          _new_since_broadcast = false;
          _inventory.clear();
+      }
+
+      /**
+       *  Called when a new block is pushed, old trxs are
+       *  no longer valid in the current context, but may
+       *  still be fetched if someone is downloading them
+       */
+      void invalidate_all()
+      {
+         for( auto itr = _inventory.begin(); itr != _inventory.end(); ++itr )
+         {
+           itr->second.valid = false;
+         }
+      }
+
+      void clear_old_inventory()
+      {
+         // TODO: define a global inventory window time??  make it a parameter?
+         fc::time_point old = fc::time_point::now() - fc::seconds( 60*10 );
+         for( auto itr = _inventory.begin(); itr != _inventory.end(); )
+         {
+            if( itr->second.recv_time < old )
+            {
+               itr = _inventory.erase( itr );
+            }
+            else
+            {
+               ++itr;
+            }
+         }
       }
 
     private:
