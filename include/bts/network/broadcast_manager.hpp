@@ -15,38 +15,44 @@ namespace bts { namespace network {
   class broadcast_manager
   {
     public:
-      struct channel_data 
-      {
-          void update_known( const std::vector<Key>& known )
-          {
-            for( auto itr = known.begin(); itr != known.end(); ++itr )
-            {
-               known_keys.insert(*itr);
-            }
-          }
-          bool did_request( const Key& k )const
-          {
-             return requested_values.find(k) != requested_values.end();
-          }
-          void received_response( const Key& k )
-          {
-             FC_ASSERT( did_request( k ) );
-             requested_values[k] = fc::time_point();
-          }
-          std::unordered_set<Key>                 known_keys;
-          std::unordered_map<Key,fc::time_point>  requested_values;
-      };
+      broadcast_manager()
+      :_new_since_broadcast(false){}
 
-      struct item_state
+      class channel_data 
       {
-        item_state()
-        :inv_count(0),valid(false){}
-
-        int32_t               inv_count; ///< how many inventory msgs have I received
-        fc::time_point        recv_time;
-        fc::time_point        query_time;
-        bool                  valid;
-        fc::optional<Value>   value;
+         public:
+           void update_known( const std::vector<Key>& known )
+           {
+              _known_keys.insert(known.begin(), known.end() );
+           }
+           bool did_request( const Key& k )const
+           {
+              return _requested_values.find(k) != _requested_values.end();
+           }
+           void received_response( const Key& k )
+           {
+              FC_ASSERT( did_request( k ) );
+              _requested_values.erase(k);
+           }
+           bool knows( const Key& k )const
+           {
+             return _known_keys.find(k) != _known_keys.end();
+           }
+           bool has_pending_request()const
+           {
+             return _requested_values.size() != 0;
+           }
+           void requested( const Key& k )
+           {
+              _requested_values[k] = fc::time_point::now();
+           }
+           const std::unordered_set<Key>& known_keys()const
+           {
+             return _known_keys;
+           }
+         private:
+          std::unordered_set<Key>                 _known_keys;
+          std::unordered_map<Key,fc::time_point>  _requested_values;
       };
 
       void  received_inventory_notice( const Key& k )
@@ -62,7 +68,7 @@ namespace bts { namespace network {
          }
       }
 
-      bool find_next_query( Key& key )
+      bool find_next_query( Key& key )const
       {
         int32_t high_count = 0;
         for( auto itr = _inventory.begin(); itr != _inventory.end(); ++itr )
@@ -73,13 +79,13 @@ namespace bts { namespace network {
              key = itr->first;
           }
         }
-        if( high_count != 0 )
-        {
+        return high_count != 0;
+      }
+
+      void  item_queried( const Key& key )
+      {
           _inventory[key].query_time = fc::time_point::now();
           _inventory[key].inv_count  = -10000; // flag so we don't query again
-          return true;
-        }
-        return false;
       }
 
       const fc::optional<Value>& get_value( const Key& key )
@@ -148,7 +154,7 @@ namespace bts { namespace network {
          return unique_items;
       }
 
-      bool has_new_since_broadcast()
+      bool has_new_since_broadcast()const
       {
         return _new_since_broadcast;
       }
@@ -157,10 +163,21 @@ namespace bts { namespace network {
         _new_since_broadcast = s;
       }
 
-      broadcast_manager()
-      :_new_since_broadcast(false){}
 
     private:
+      struct item_state
+      {
+        item_state()
+        :inv_count(0),valid(false){}
+
+        int32_t               inv_count; ///< how many inventory msgs have I received
+        fc::time_point        recv_time;
+        fc::time_point        query_time;
+        bool                  valid;
+        fc::optional<Value>   value;
+      };
+
+
       bool                                  _new_since_broadcast;
       fc::optional<Value>                   _unknown_value;
       std::unordered_map<Key,item_state>    _inventory;

@@ -41,24 +41,20 @@ namespace bts { namespace bitname {
 
           void fetch_loop()
           {
-             try {
+             try 
+             {
                 while( !_fetch_loop.canceled() )
                 {
                    broadcast_inv();
 
-                   /*
-                   if( _unknown_names.size()  )
+                   uint64_t trx_query = 0;
+                   if( _trx_broadcast_mgr.find_next_query( trx_query ) )
                    {
                       auto cons = _peers->get_connections( _chan_id );
-                      // copy so we don't hold shared state in the iterators
-                      // while we iterate and send fetch requests
-                      auto tmp = _unknown_names; 
-                      for( auto itr = tmp.begin(); itr != tmp.end(); ++itr )
-                      {
-                          fetch_name_from_best_connection( cons, *itr );
-                      }
+                      fetch_name_from_best_connection( cons, trx_query );
+                      _trx_broadcast_mgr.item_queried( trx_query );
                    }
-                   */
+                   
                    /* By using a random sleep we give other peers the oppotunity to find
                     * out about messages before we pick who to fetch from.
                     * TODO: move constants to config.hpp
@@ -91,7 +87,7 @@ namespace bts { namespace bitname {
                      name_inv_message inv_msg;
                  
                      chan_data& con_data = get_channel_data( *c );
-                     inv_msg.names = _trx_broadcast_mgr.get_inventory( con_data.trxs_mgr.known_keys );
+                     inv_msg.names = _trx_broadcast_mgr.get_inventory( con_data.trxs_mgr.known_keys() );
                  
                      if( inv_msg.names.size() )
                      {
@@ -109,7 +105,7 @@ namespace bts { namespace bitname {
                      block_inv_message inv_msg;
                  
                      chan_data& con_data = get_channel_data( *c );
-                     inv_msg.block_ids = _block_index_broadcast_mgr.get_inventory( con_data.block_mgr.known_keys );
+                     inv_msg.block_ids = _block_index_broadcast_mgr.get_inventory( con_data.block_mgr.known_keys() );
                  
                      if( inv_msg.block_ids.size() )
                      {
@@ -128,22 +124,19 @@ namespace bts { namespace bitname {
            *   want to distribute the load across all hosts equally and therefore, the best one to fetch from
            *   is the host that we have fetched the least from and that has fetched the most from us.
            */
-          void fetch_name_from_best_connection( const std::vector<connection_ptr>& cons, const uint64_t& id )
+          void fetch_name_from_best_connection( const std::vector<connection_ptr>& cons, uint64_t id )
           { try {
              // if request is made, move id from unknown_names to requested_msgs 
              // TODO: update this algorithm to be something better. 
              for( uint32_t i = 0; i < cons.size(); ++i )
              {
-                 /*
-                 chan_data& cd = get_channel_data(cons[i]); 
-                 if( cd.known_name_inv.find( id ) !=  cd.known_name_inv.end() )
+                 chan_data& chan_data = get_channel_data(cons[i]); 
+                 if( !chan_data.trxs_mgr.knows( id ) && !chan_data.trxs_mgr.has_pending_request() )
                  {
-                    _requested_names[id] = fc::time_point::now();
-                    _unknown_names.erase(id);
+                    chan_data.trxs_mgr.requested(id);
                     cons[i]->send( network::message( get_name_message( id ), _chan_id ) );
                     return;
                  }
-                 */
              }
           } FC_RETHROW_EXCEPTIONS( warn, "error fetching name ${name_hash}", ("name_hash",id) ) }
 
@@ -228,13 +221,14 @@ namespace bts { namespace bitname {
           void handle_get_name_inv( const connection_ptr& con,  chan_data& cdat, const get_name_inv_message& msg )
           {
               name_inv_message reply;
-              reply.names = _trx_broadcast_mgr.get_inventory( cdat.trxs_mgr.known_keys );
+              reply.names = _trx_broadcast_mgr.get_inventory( cdat.trxs_mgr.known_keys() );
               cdat.trxs_mgr.update_known( reply.names );
               con->send( network::message(reply,_chan_id) );
           }
    
           void handle_get_headers( const connection_ptr& con,  chan_data& cdat, const get_headers_message& msg )
           {
+         //     _name_db->get_header_ids
           }
    
 
