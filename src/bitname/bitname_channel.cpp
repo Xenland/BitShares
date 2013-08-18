@@ -29,15 +29,15 @@ namespace bts { namespace bitname {
           name_channel_impl()
           :_del(nullptr){}
 
-          name_channel_delegate*                           _del;
-          bts::peer::peer_channel_ptr                      _peers;
-          network::channel_id                              _chan_id;
-                                                           
-          name_db                                          _name_db;
-          fc::future<void>                                 _fetch_loop;
-
-          broadcast_manager<name_hash_type,name_trx>       _trx_broadcast_mgr;
-          broadcast_manager<name_id_type,name_block_index> _block_index_broadcast_mgr;
+          name_channel_delegate*                            _del;
+          bts::peer::peer_channel_ptr                       _peers;
+          network::channel_id                               _chan_id;
+                                                            
+          name_db                                           _name_db;
+          fc::future<void>                                  _fetch_loop;
+                                                            
+          broadcast_manager<name_hash_type,name_trx>        _trx_broadcast_mgr;
+          broadcast_manager<name_id_type,name_block_index>  _block_index_broadcast_mgr;
 
           void fetch_loop()
           {
@@ -81,33 +81,45 @@ namespace bts { namespace bitname {
            */
           void broadcast_inv()
           { try {
-
-              /*
-              if( _new_names.size() )
+              if( _trx_broadcast_mgr.has_new_since_broadcast() || _block_index_broadcast_mgr.has_new_since_broadcast() )
               {
-                auto cons = _peers->get_connections( _chan_id );
-                for( auto c = cons.begin(); c != cons.end(); ++c )
-                {
-                  name_inv_message msg;
-
-                  chan_data& cd = get_channel_data( *c );
-                  for( uint32_t i = 0; i < _new_names.size(); ++i )
-                  {
-                     if( cd.known_name_inv.insert( _new_names[i] ).second )
+                 auto cons = _peers->get_connections( _chan_id );
+                 if( _trx_broadcast_mgr.has_new_since_broadcast() )
+                 {
+                   for( auto c = cons.begin(); c != cons.end(); ++c )
+                   {
+                     name_inv_message inv_msg;
+                 
+                     chan_data& con_data = get_channel_data( *c );
+                     inv_msg.names = _trx_broadcast_mgr.get_inventory( con_data.trxs_mgr.known_keys );
+                 
+                     if( inv_msg.names.size() )
                      {
-                        msg.names.push_back( _new_names[i] );
+                       (*c)->send( network::message(inv_msg,_chan_id) );
                      }
-                  }
-
-                  if( msg.names.size() )
-                  {
-                    (*c)->send( network::message(msg,_chan_id) );
-                  }
-                }
-                _new_names.clear();
-              }
-              */
-              // TODO: broadcast new blocks...
+                     con_data.trxs_mgr.update_known( inv_msg.names );
+                   }
+                   _trx_broadcast_mgr.set_new_since_broadcast(false);
+                 }
+                 
+                 if( _block_index_broadcast_mgr.has_new_since_broadcast() )
+                 {
+                   for( auto c = cons.begin(); c != cons.end(); ++c )
+                   {
+                     block_inv_message inv_msg;
+                 
+                     chan_data& con_data = get_channel_data( *c );
+                     inv_msg.block_ids = _block_index_broadcast_mgr.get_inventory( con_data.block_mgr.known_keys );
+                 
+                     if( inv_msg.block_ids.size() )
+                     {
+                       (*c)->send( network::message(inv_msg,_chan_id) );
+                     }
+                     con_data.block_mgr.update_known( inv_msg.block_ids );
+                   }
+                   _block_index_broadcast_mgr.set_new_since_broadcast(false);
+                 }
+             }
           } FC_RETHROW_EXCEPTIONS( warn, "error broadcasting bitname inventory") } // broadcast_inv
 
 
@@ -266,9 +278,10 @@ namespace bts { namespace bitname {
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg", msg) ) }
    
           void handle_block( const connection_ptr& con,  chan_data& cdat, const block_message& msg )
-          {
-             
-          }
+          { try {
+               // TODO: make sure that I requrested this block... 
+               _name_db.push_block( msg.block ); 
+          } FC_RETHROW_EXCEPTIONS( warn,"handling block ${block}", ("block",msg) ) }
    
           void handle_headers( const connection_ptr& con,  chan_data& cdat, const headers_message& msg )
           {

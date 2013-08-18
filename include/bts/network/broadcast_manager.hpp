@@ -40,8 +40,9 @@ namespace bts { namespace network {
       struct item_state
       {
         item_state()
-        :valid(false){}
+        :inv_count(0),valid(false){}
 
+        int32_t               inv_count; ///< how many inventory msgs have I received
         fc::time_point        recv_time;
         fc::time_point        query_time;
         bool                  valid;
@@ -50,23 +51,35 @@ namespace bts { namespace network {
 
       void  received_inventory_notice( const Key& k )
       {
-         if( _inventory.find( k ) == _inventory.end() )
+         auto itr = _inventory.find(k);
+         if( itr != _inventory.end() )
          {
-           _query_queue.insert(k);
+           ++itr->second.inv_count;
+         }
+         else
+         {
+           _inventory[k].inv_count = 1;
          }
       }
 
-      uint32_t unknown_count()const
+      bool find_next_query( Key& key )
       {
-        return _query_queue.size();
-      }
-
-      Key query_next()
-      {
-         FC_ASSERT( _query_queue.size() != 0 );
-         auto key = *_query_queue.begin();
-         _inventory[key].query_time = fc::time_point::now();
-         return key;
+        int32_t high_count = 0;
+        for( auto itr = _inventory.begin(); itr != _inventory.end(); ++itr )
+        {
+          if( itr->second.inv_count > high_count )
+          {
+             high_count = itr->second.inv_count;
+             key = itr->first;
+          }
+        }
+        if( high_count != 0 )
+        {
+          _inventory[key].query_time = fc::time_point::now();
+          _inventory[key].inv_count  = -10000; // flag so we don't query again
+          return true;
+        }
+        return false;
       }
 
       const fc::optional<Value>& get_value( const Key& key )
@@ -77,6 +90,10 @@ namespace bts { namespace network {
           return itr->second.value;
       }
 
+      /**
+       *  Called after a key/value has been validated with the result.  This
+       *  will add the key to our inventory.
+       */
       void validated( const Key& key, const Value& value, bool is_ok )
       {
          item_state& state = _inventory[key];
@@ -84,14 +101,13 @@ namespace bts { namespace network {
          state.recv_time = fc::time_point::now();
          state.value     = value;
          state.valid     = is_ok;
+
+         _new_since_broadcast = true;
       }
 
       void  remove( const Key& key )
       {
           _inventory.erase(key);
-          _query_queue.erase(key);
-          auto new_end = std::remove( _validation_queue.begin(), _validation_queue.end(), key );
-          _validation_queue.erase( new_end, _validation_queue.end() );
       }
 
       void remove_invalid()
@@ -132,11 +148,22 @@ namespace bts { namespace network {
          return unique_items;
       }
 
+      bool has_new_since_broadcast()
+      {
+        return _new_since_broadcast;
+      }
+      void set_new_since_broadcast( bool s )
+      {
+        _new_since_broadcast = s;
+      }
+
+      broadcast_manager()
+      :_new_since_broadcast(false){}
+
     private:
+      bool                                  _new_since_broadcast;
       fc::optional<Value>                   _unknown_value;
       std::unordered_map<Key,item_state>    _inventory;
-      std::deque<Key>                       _validation_queue;
-      std::unordered_set<Key>               _query_queue;
   };
 
 } } 
