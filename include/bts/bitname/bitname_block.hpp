@@ -6,9 +6,10 @@
 
 namespace bts { namespace bitname {
 
-    typedef uint64_t   name_hash_type;
-    typedef uint64_t   name_trxs_hash_type; // consider making fc::uint128
-    typedef fc::sha224 name_id_type;
+    typedef uint64_t      name_hash_type;
+    typedef fc::uint128   name_trxs_hash_type; // consider making fc::uint128
+    typedef fc::sha224    name_id_type;        // full crypto-secure name id
+    typedef uint64_t      short_name_id_type;  // short, bandwidth effecient, collision resitant name type
 
     /**
      *  Every name registration requires its own proof of work, this proof of work
@@ -43,8 +44,10 @@ namespace bts { namespace bitname {
          * but the there is no need to construct a name_header to simply 
          * calculate the id.
          */
-        name_id_type   id( const name_id_type& prev )const;
-        uint64_t       difficulty( const name_id_type& prev )const;
+        name_id_type         id( const name_id_type& prev )const;
+        /** short id == city64(id()) */
+        short_name_id_type   short_id( const name_id_type& prev )const;
+        uint64_t             difficulty( const name_id_type& prev )const;
 
         /** Increment to find proof of work, intentionally small to slow down mining rate
          *  to 65K/hash sec without adding new trxs (with valid proof of work) or generating
@@ -142,8 +145,9 @@ namespace bts { namespace bitname {
        :name_trx(b),prev(p){}
 
        uint64_t   difficulty()const;
-       name_id_type id()const;
-       name_id_type prev;    ///< previous block
+       name_id_type       id()const;
+       short_name_id_type short_id()const;
+       name_id_type       prev;    ///< previous block
     };
 
     
@@ -158,7 +162,7 @@ namespace bts { namespace bitname {
         name_block( const name_header& h )
         :name_header(h){}
 
-        uint64_t            calc_trxs_hash()const; 
+        name_trxs_hash_type  calc_trxs_hash()const; 
 
         /**
          *   Assuming all registered_names meet the current 

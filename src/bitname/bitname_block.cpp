@@ -9,12 +9,19 @@
 
 namespace bts { namespace bitname {
 
-  fc::sha224  name_header::id()const
+  name_id_type  name_header::id()const
   {
-    fc::sha224::encoder enc;
+    name_id_type::encoder enc;
     auto d = fc::raw::pack(*this);
     return enc.result();
   }
+
+  short_name_id_type name_header::short_id()const
+  {
+     auto long_id = id();
+     return fc::city_hash64( (char*)&long_id, sizeof(long_id) );
+  }
+
 
   uint64_t name_header::difficulty()const
   {
@@ -35,23 +42,29 @@ namespace bts { namespace bitname {
      return difficulty() / 2;
   }
 
-  uint64_t name_block::calc_trxs_hash()const
+  name_trxs_hash_type name_block::calc_trxs_hash()const
   {
      fc::sha512::encoder enc;
      fc::raw::pack( prev );
      fc::raw::pack( registered_names );
      auto result = enc.result();
      // city hash isn't crypto secure, but its input is sha512 which is.
-     return fc::city_hash64( (char*)&result, sizeof(result) );
+     // we use city to compress the hash for bandwidth purposes
+     return fc::city_hash128( (char*)&result, sizeof(result) );
   }
 
   /** helper method */
-  fc::sha224 name_trx::id( const fc::sha224& prev )const
+  name_id_type name_trx::id( const name_id_type& prev )const
   {
     return name_header( *this, prev ).id();
   }
+  /** helper method */
+  short_name_id_type name_trx::short_id( const name_id_type& prev )const
+  {
+    return name_header( *this, prev ).short_id();
+  }
 
-  uint64_t name_trx::difficulty( const fc::sha224& prev )const
+  uint64_t name_trx::difficulty( const name_id_type& prev )const
   {
     return name_header( *this, prev ).difficulty();
   }
