@@ -31,7 +31,7 @@ namespace bts { namespace bitname {
   uint64_t name_block::block_difficulty()const
   {
      uint64_t sum = 0;
-     for( auto itr = registered_names.begin(); itr != registered_names.end(); ++itr )
+     for( auto itr = name_trxs.begin(); itr != name_trxs.end(); ++itr )
      {
        sum += itr->difficulty( prev ); 
      }
@@ -46,7 +46,7 @@ namespace bts { namespace bitname {
   {
      fc::sha512::encoder enc;
      fc::raw::pack( prev );
-     fc::raw::pack( registered_names );
+     fc::raw::pack( name_trxs );
      auto result = enc.result();
      // city hash isn't crypto secure, but its input is sha512 which is.
      // we use city to compress the hash for bandwidth purposes

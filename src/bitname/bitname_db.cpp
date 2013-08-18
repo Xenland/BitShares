@@ -225,9 +225,9 @@ namespace bts { namespace bitname {
                  "",("next_id",next_id)("difficulty(next_id)",bts::difficulty(next_id))("next_block_dif", next_block.block_difficulty()));
           */
        // check work first, this doesn't involve db queries
-       for( uint32_t trx = 0; trx < next_block.registered_names.size(); ++trx )
+       for( uint32_t trx = 0; trx < next_block.name_trxs.size(); ++trx )
        {
-          FC_ASSERT( bts::difficulty(next_block.registered_names[trx].id(next_block.prev)) >= target_name_difficulty() );
+          FC_ASSERT( bts::difficulty(next_block.name_trxs[trx].id(next_block.prev)) >= target_name_difficulty() );
        }
 
        // the header has some special rules that don't apply to normal trx, like
@@ -235,10 +235,10 @@ namespace bts { namespace bitname {
        validate_trx( next_block, true /*is_header*/ );
 
        // now validate trxs against db state
-       size_t num_trx =  next_block.registered_names.size();
+       size_t num_trx =  next_block.name_trxs.size();
        for( uint32_t trx_idx = 0; trx_idx < num_trx; ++trx_idx )
        {
-          validate_trx( next_block.registered_names[trx_idx] );
+          validate_trx( next_block.name_trxs[trx_idx] );
        }
 
        // TODO: If something fails during this operation, we need to make sure
@@ -247,11 +247,11 @@ namespace bts { namespace bitname {
        uint32_t next_num = my->_header_ids.size();
        my->push_header_id( next_id );
        my->_block_num_to_header.store( next_num, next_block );
-       my->_block_num_to_name_trxs.store( next_num, next_block.registered_names );
+       my->_block_num_to_name_trxs.store( next_num, next_block.name_trxs );
        
        for( uint16_t trx_idx = 0; trx_idx < num_trx; ++trx_idx )
        {
-          my->index_trx( name_location( next_num, trx_idx ), next_block.registered_names[trx_idx].name_hash );
+          my->index_trx( name_location( next_num, trx_idx ), next_block.name_trxs[trx_idx].name_hash );
        }
        my->_timekeeper.push( next_num, next_block.utc_sec, bts::difficulty( next_id ) );
     } FC_RETHROW_EXCEPTIONS( warn, "unable to push block ${next_block}", ("next_block", next_block) ) } 
@@ -391,7 +391,7 @@ namespace bts { namespace bitname {
     { try {
         auto header = fetch_block_header( block_num );
         name_block block(header);
-        block.registered_names = my->_block_num_to_name_trxs.fetch( block_num );
+        block.name_trxs = my->_block_num_to_name_trxs.fetch( block_num );
         return block;
     } FC_RETHROW_EXCEPTIONS( warn, "unable to fetch block num ${block_num}", ("block_num",block_num) ) }
 

@@ -173,14 +173,14 @@ namespace bts { namespace bitname {
 
   void name_miner::set_prev( const fc::sha224& prev_block_hash )
   {
-      my->_cur_block.registered_names.clear();
+      my->_cur_block.name_trxs.clear();
       my->_cur_block.prev = prev_block_hash;
       my->start_new_block();
   }
 
   void name_miner::add_name_trx( const name_trx& t )
   {
-      my->_cur_block.registered_names.push_back(t);
+      my->_cur_block.name_trxs.push_back(t);
       my->start_new_block();
   }
 

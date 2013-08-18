@@ -165,7 +165,7 @@ namespace bts { namespace bitname {
         name_trxs_hash_type  calc_trxs_hash()const; 
 
         /**
-         *   Assuming all registered_names meet the current 
+         *   Assuming all name_trxs meet the current 
          *   target difficulty / 10K and are all greater than
          *   the minimum difficulty, simply multiple the
          *   number of registered names * name target difficulty
@@ -179,7 +179,7 @@ namespace bts { namespace bitname {
          *  
          *  TODO: verify name_trx are all unique!
          */
-        std::vector<name_trx> registered_names;
+        std::vector<name_trx> name_trxs;
     };
 
     /**
@@ -193,15 +193,15 @@ namespace bts { namespace bitname {
         name_block_index( const name_block& block )
         :header(block)
         {
-          for( auto itr = block.registered_names.begin();
-                    itr != block.registered_names.end();
+          for( auto itr = block.name_trxs.begin();
+                    itr != block.name_trxs.end();
                     ++itr )
           {
-            registered_names.push_back( itr->name_hash );
+            name_trxs.push_back( itr->name_hash );
           }
         }
         name_header                  header;
-        std::vector<name_hash_type>  registered_names;
+        std::vector<name_hash_type>  name_trxs;
     };
 
 
@@ -222,8 +222,8 @@ FC_REFLECT( bts::bitname::name_trx,
     (change_sig)
 )
 FC_REFLECT_DERIVED( bts::bitname::name_header, (bts::bitname::name_trx), (prev) )
-FC_REFLECT_DERIVED( bts::bitname::name_block, (bts::bitname::name_header), (registered_names) )
-FC_REFLECT( bts::bitname::name_block_index, (header)(registered_names) )
+FC_REFLECT_DERIVED( bts::bitname::name_block, (bts::bitname::name_header), (name_trxs) )
+FC_REFLECT( bts::bitname::name_block_index, (header)(name_trxs) )
 
 
 /**

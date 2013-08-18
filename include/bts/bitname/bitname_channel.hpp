@@ -44,7 +44,7 @@ namespace bts { namespace bitname {
         void configure( const name_channel::config& c );
         void set_delegate( name_channel_delegate* d );
 
-        void submit_name( const name_trx& t );
+        void submit_name( const name_header& t );
         void submit_block( const name_block& b );
 
         /**

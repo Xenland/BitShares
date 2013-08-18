@@ -19,22 +19,23 @@ namespace bts { namespace bitname {
     class chan_data : public network::channel_data
     {
       public:
-        broadcast_manager<name_hash_type,name_trx>::channel_data         trxs_mgr;
+        broadcast_manager<name_hash_type,name_header>::channel_data      trxs_mgr;
         broadcast_manager<name_id_type,name_block_index>::channel_data   block_mgr;
     };
 
     struct block_index_download_manager
     {
-       name_block                              incomplete; 
-       name_block_index                        index;
-       std::unordered_map<uint64_t,uint32_t>   unknown;
+       name_block                                        incomplete; 
+       name_block_index                                  index;
+       /** map short id to incomplete.name_trxs index */
+       std::unordered_map<short_name_id_type,uint32_t>   unknown;
 
-       bool try_complete( const name_trx& n )
+       bool try_complete( const name_header& n )
        {
-         auto itr = unknown.find(n.name_hash);
+         auto itr = unknown.find(n.short_id());
          if( itr != unknown.end() )
          {
-            incomplete.registered_names[itr->second] = n; 
+            incomplete.name_trxs[itr->second] = n; 
             unknown.erase(itr);
          }
          return unknown.size() == 0;
@@ -54,7 +55,7 @@ namespace bts { namespace bitname {
           name_db                                           _name_db;
           fc::future<void>                                  _fetch_loop;
                                                             
-          broadcast_manager<name_hash_type,name_trx>        _trx_broadcast_mgr;
+          broadcast_manager<short_name_id_type,name_header> _trx_broadcast_mgr;
           broadcast_manager<name_id_type,name_block_index>  _block_index_broadcast_mgr;
 
           std::vector<block_index_download_manager>         _block_downloads;
@@ -65,19 +66,19 @@ namespace bts { namespace bitname {
              block_idx_downloader.incomplete = name_block(index.header);
              block_idx_downloader.index      = index;
 
-             block_idx_downloader.incomplete.registered_names.resize( index.registered_names.size() );
-             for( uint32_t i = 0; i < index.registered_names.size(); ++i )
+             block_idx_downloader.incomplete.name_trxs.resize( index.name_trxs.size() );
+             for( uint32_t i = 0; i < index.name_trxs.size(); ++i )
              {
-                auto val = _trx_broadcast_mgr.get_value( index.registered_names[i] );
+                auto val = _trx_broadcast_mgr.get_value( index.name_trxs[i] );
                 if( val ) 
                 {
-                   block_idx_downloader.incomplete.registered_names[i] = *val;
+                   block_idx_downloader.incomplete.name_trxs[i] = *val;
                 }
                 else
                 {
-                   FC_ASSERT( block_idx_downloader.unknown.find(index.registered_names[i]) ==
+                   FC_ASSERT( block_idx_downloader.unknown.find(index.name_trxs[i]) ==
                               block_idx_downloader.unknown.end() ); // checks for duplicates
-                   block_idx_downloader.unknown[index.registered_names[i]] = i;
+                   block_idx_downloader.unknown[index.name_trxs[i]] = i;
                 }
              }
 
@@ -101,7 +102,7 @@ namespace bts { namespace bitname {
              }
           }
 
-          void update_block_index_downloads( const name_trx& trx )
+          void update_block_index_downloads( const name_header& trx )
           {
              for( auto itr = _block_downloads.begin(); itr != _block_downloads.end(); )
              {
@@ -177,13 +178,13 @@ namespace bts { namespace bitname {
                      name_inv_message inv_msg;
                  
                      chan_data& con_data = get_channel_data( *c );
-                     inv_msg.names = _trx_broadcast_mgr.get_inventory( con_data.trxs_mgr );
+                     inv_msg.name_trxs = _trx_broadcast_mgr.get_inventory( con_data.trxs_mgr );
                  
-                     if( inv_msg.names.size() )
+                     if( inv_msg.name_trxs.size() )
                      {
                        (*c)->send( network::message(inv_msg,_chan_id) );
                      }
-                     con_data.trxs_mgr.update_known( inv_msg.names );
+                     con_data.trxs_mgr.update_known( inv_msg.name_trxs );
                    }
                    _trx_broadcast_mgr.set_new_since_broadcast(false);
                  }
@@ -224,7 +225,7 @@ namespace bts { namespace bitname {
                  if( !chan_data.trxs_mgr.knows( id ) && !chan_data.trxs_mgr.has_pending_request() )
                  {
                     chan_data.trxs_mgr.requested(id);
-                    cons[i]->send( network::message( get_name_message( id ), _chan_id ) );
+                    cons[i]->send( network::message( get_name_header_message( id ), _chan_id ) );
                     return;
                  }
              }
@@ -271,11 +272,11 @@ namespace bts { namespace bitname {
                  case get_block_msg:
                    handle_get_block( con, cdat, m.as<get_block_message>() );
                    break;
-                 case get_name_msg:
-                   handle_get_name( con, cdat, m.as<get_name_message>() );
+                 case get_name_header_msg:
+                   handle_get_name( con, cdat, m.as<get_name_header_message>() );
                    break;
-                 case name_msg:
-                   handle_name( con, cdat, m.as<name_message>() );
+                 case name_header_msg:
+                   handle_name( con, cdat, m.as<name_header_message>() );
                    break;
                  case block_msg:
                    handle_block( con, cdat, m.as<block_message>() );
@@ -291,11 +292,11 @@ namespace bts { namespace bitname {
           void handle_name_inv( const connection_ptr& con,  chan_data& cdat, const name_inv_message& msg )
           {
               ilog( "inv: ${msg}", ("msg",msg) );
-              for( auto itr = msg.names.begin(); itr != msg.names.end(); ++itr )
+              for( auto itr = msg.name_trxs.begin(); itr != msg.name_trxs.end(); ++itr )
               {
                  _trx_broadcast_mgr.received_inventory_notice( *itr ); 
               }
-              cdat.trxs_mgr.update_known( msg.names );
+              cdat.trxs_mgr.update_known( msg.name_trxs );
           }
    
           void handle_block_inv( const connection_ptr& con,  chan_data& cdat, const block_inv_message& msg )
@@ -311,8 +312,8 @@ namespace bts { namespace bitname {
           void handle_get_name_inv( const connection_ptr& con,  chan_data& cdat, const get_name_inv_message& msg )
           {
               name_inv_message reply;
-              reply.names = _trx_broadcast_mgr.get_inventory( cdat.trxs_mgr );
-              cdat.trxs_mgr.update_known( reply.names );
+              reply.name_trxs = _trx_broadcast_mgr.get_inventory( cdat.trxs_mgr );
+              cdat.trxs_mgr.update_known( reply.name_trxs );
               con->send( network::message(reply,_chan_id) );
           }
    
@@ -329,36 +330,43 @@ namespace bts { namespace bitname {
               con->send( network::message( block_message( std::move(block) ), _chan_id ) );
           }
    
-          void handle_get_name( const connection_ptr& con,  chan_data& cdat, const get_name_message& msg )
+          void handle_get_name( const connection_ptr& con,  chan_data& cdat, const get_name_header_message& msg )
           {
              ilog( "${msg}", ("msg",msg) );
-             const fc::optional<name_trx>& trx = _trx_broadcast_mgr.get_value( msg.name_hash );
+             const fc::optional<name_header>& trx = _trx_broadcast_mgr.get_value( msg.name_trx_id );
              if( !trx ) // must be a db
              {
-                auto trx = _name_db.fetch_trx( msg.name_hash );
-                con->send( network::message( name_message( trx ), _chan_id ) );
+               FC_ASSERT( !"Name transaction not in broadcast cache" );
+              /*
+                ... we should not allow fetching of individual name trx from our db...
+                this would require a huge index
+                name_header trx = _name_db.fetch_trx_header( msg.name_trx_id );
+                con->send( network::message( name_header_message( trx ), _chan_id ) );
+              */
+
              }
              else
              {
-                con->send( network::message( name_message( *trx ), _chan_id ) );
+                con->send( network::message( name_header_message( *trx ), _chan_id ) );
              }
           }
    
-          void handle_name( const connection_ptr& con,  chan_data& cdat, const name_message& msg )
+          void handle_name( const connection_ptr& con,  chan_data& cdat, const name_header_message& msg )
           { try {
              ilog( "${msg}", ("msg",msg) );
-             cdat.trxs_mgr.received_response( msg.name.name_hash );
+             auto short_id = msg.trx.short_id();
+             cdat.trxs_mgr.received_response( short_id );
              try { 
                 // attempt to complete blocks without validating the trx so that
                 // we can then mark the block as 'complete' and then invalidate it
-                update_block_index_downloads( msg.name ); 
-                submit_name( msg.name );
+                update_block_index_downloads( msg.trx ); 
+                submit_name( msg.trx );
              } 
              catch ( const fc::exception& e )
              {
                 // TODO: connection just sent us an invalid trx... what do we do...
                 wlog( "${e}", ("e",e.to_detail_string()) ); 
-                _trx_broadcast_mgr.validated( msg.name.name_hash, msg.name, false );
+                _trx_broadcast_mgr.validated( short_id, msg.trx, false );
                 throw;
              }
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg", msg) ) }
@@ -375,10 +383,10 @@ namespace bts { namespace bitname {
 
           }
 
-          void submit_name( const name_trx& new_name_trx )
+          void submit_name( const name_header& new_name_trx )
           { try {
              _name_db.validate_trx( new_name_trx );
-             _trx_broadcast_mgr.validated( new_name_trx.name_hash, new_name_trx, true );
+             _trx_broadcast_mgr.validated( new_name_trx.short_id(), new_name_trx, true );
           } FC_RETHROW_EXCEPTIONS( warn, "error submitting name", ("new_name_trx", new_name_trx) ) }
 
           void submit_block( const name_block& block )
@@ -430,7 +438,7 @@ namespace bts { namespace bitname {
      my->_del = d;
   }
 
-  void name_channel::submit_name( const name_trx& new_name_trx )
+  void name_channel::submit_name( const name_header& new_name_trx )
   { 
      my->submit_name( new_name_trx );
   }

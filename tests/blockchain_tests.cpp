@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE( bitname_db_test )
        trx.utc_sec = block2.utc_sec;
        trx.key = fc::ecc::private_key::generate().get_public_key();
 
-       block2.registered_names.push_back(trx);
+       block2.name_trxs.push_back(trx);
     }
     block2.prev = block1.id();
     block2.trxs_hash = block2.calc_trxs_hash();
@@ -106,9 +106,9 @@ BOOST_AUTO_TEST_CASE( bitname_db_test )
     block2.trxs_hash = block2.calc_trxs_hash();
     BOOST_REQUIRE_THROW( chain.push_block( block2 ), fc::exception );
 
-    for( uint32_t i = 0; i < block2.registered_names.size(); ++i )
+    for( uint32_t i = 0; i < block2.name_trxs.size(); ++i )
     {
-        block2.registered_names[i].repute_points.value++;
+        block2.name_trxs[i].repute_points.value++;
     }
     block2.trxs_hash = block2.calc_trxs_hash();
 
