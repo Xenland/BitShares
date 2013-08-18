@@ -185,6 +185,17 @@ namespace bts { namespace bitname {
      */
     struct name_block_index 
     {
+        name_block_index(){}
+        name_block_index( const name_block& block )
+        :header(block)
+        {
+          for( auto itr = block.registered_names.begin();
+                    itr != block.registered_names.end();
+                    ++itr )
+          {
+            registered_names.push_back( itr->name_hash );
+          }
+        }
         name_header                  header;
         std::vector<name_hash_type>  registered_names;
     };

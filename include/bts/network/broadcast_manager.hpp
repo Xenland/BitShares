@@ -163,6 +163,11 @@ namespace bts { namespace network {
         _new_since_broadcast = s;
       }
 
+      void clear_inventory()
+      {
+         _new_since_broadcast = false;
+         _inventory.clear();
+      }
 
     private:
       struct item_state
