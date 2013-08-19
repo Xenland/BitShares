@@ -95,13 +95,15 @@ namespace bts { namespace rpc {
             {
                 FC_ASSERT( params.size() == 2 );
                 check_login( capture_con );
-                return fc::variant( _bitnamec->sign( params[0].as<fc::sha256>(), params[1].as_string() ) );
+                // TODO: this requires private key access not available to bitname... must come from 
+                // profile..
+                return fc::variant(/* _bitnamec->sign( params[0].as<fc::sha256>(), params[1].as_string() )*/ );
             });
             con->add_method( "register_name", [=]( const fc::variants& params ) -> fc::variant 
             {
                 FC_ASSERT( params.size() == 2 );
                 check_login( capture_con );
-                _bitnamec->register_name( params[0].as_string(), params[1].as<fc::ecc::public_key>() );
+                _bitnamec->mine_name( params[0].as_string(), params[1].as<fc::ecc::public_key>() );
                 return fc::variant();
             });
          }

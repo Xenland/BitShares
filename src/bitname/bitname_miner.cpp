@@ -178,6 +178,13 @@ namespace bts { namespace bitname {
   void name_miner::add_name_trx( const name_header& t )
   {
       FC_ASSERT( t.prev == my->_cur_block.prev );
+      FC_ASSERT( t.name_hash != my->_cur_block.name_hash );
+      for( auto itr = my->_cur_block.name_trxs.begin();
+                itr != my->_cur_block.name_trxs.end();
+                ++itr )
+      {
+          FC_ASSERT( t.name_hash != itr->name_hash );
+      }
       my->_cur_block.name_trxs.push_back(t);
       my->start_new_block();
   }

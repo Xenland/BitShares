@@ -8,7 +8,7 @@
 #include <fc/io/varint.hpp>
 #include <fc/filesystem.hpp>
 
-#include <map>
+#include <unordered_map>
 
 
 namespace bts { namespace bitname {
@@ -57,7 +57,6 @@ namespace bts { namespace bitname {
        fc::optional<name_record>      lookup_name( const std::string& name );
        name_record                    reverse_name_lookup( const fc::ecc::public_key& k );
        fc::ecc::public_key            verify_signature( const fc::sha256& digest, const fc::ecc::compact_signature& sig );
-       fc::ecc::compact_signature     sign( const fc::sha256& digest, const std::string& name );
 
        fc::time_point                 get_current_chain_time()const;
        uint16_t                       get_current_difficulty()const;
@@ -66,9 +65,9 @@ namespace bts { namespace bitname {
         *  Attempts to register the name to the given public key, throws an exception if the name is already
         *  registered on the network.
         */
-       void                                       register_name( const std::string& bitname_id, const fc::ecc::public_key& );
-       std::map<std::string,fc::ecc::public_key>  pending_name_registrations()const;
-       void                                       cancel_name_registration( const std::string& bitname_id );
+       void  mine_name( const std::string& bitname_id, const fc::ecc::public_key& );
+       const std::unordered_map<std::string,fc::ecc::public_key_data>&  actively_mined_names()const;
+       void  stop_mining_name( const std::string& bitname_id );
      private:
        std::unique_ptr<detail::client_impl> my;
   };
@@ -82,11 +81,3 @@ FC_REFLECT( bts::bitname::client::config,
     (max_mining_effort)
     )
 
-#include <fc/ptr.hpp>
-FC_STUB( bts::bitname::client, 
-  (lookup_name)
-  (reverse_name_lookup)
-  (verify_signature)
-  (sign)
-  (register_name)
-  )

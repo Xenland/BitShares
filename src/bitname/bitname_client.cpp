@@ -44,9 +44,12 @@ namespace bts { namespace bitname {
            */
           virtual void name_block_added( const name_block& new_block )
           {
-             // a new block has been added, find the name with least
-             // repute and reset the miner to work on it.
+             // a new block has been added, restart mining 
+             start_mining();
+          }
 
+          void start_mining()
+          {
              fc::optional<name_record> min_repute_record;
              for( auto itr = _names_to_mine.begin(); itr != _names_to_mine.end(); ++itr )
              {
@@ -90,6 +93,7 @@ namespace bts { namespace bitname {
                    /** we found an unregistered name, that is as low as it gets so
                     *  we can go ahead and start mining it 
                     */
+                   //TODO
                    return;
                 }
                 ++itr;
@@ -97,6 +101,7 @@ namespace bts { namespace bitname {
              if( min_repute_record.valid() )
              {
                 // start mining it
+                // TODO
              }
           }
 
@@ -164,8 +169,10 @@ namespace bts { namespace bitname {
      return fc::ecc::public_key( sig, digest );
   }
 
-  void client::register_name( const std::string& bitname_id, const fc::ecc::public_key& name_key)
+  void client::mine_name( const std::string& bitname_id, const fc::ecc::public_key& name_key)
   {
+     my->_names_to_mine[bitname_id] = name_key;
+     my->start_mining();
      /*
      my->_pending_regs.store( bitname_id, name_key );
      my->_miner.set_name( bitname_id, name_key );
@@ -173,20 +180,13 @@ namespace bts { namespace bitname {
      */
   }
 
-  std::map<std::string,fc::ecc::public_key>  client::pending_name_registrations()const
+  const std::unordered_map<std::string,fc::ecc::public_key_data>&  client::actively_mined_names()const
   {
-     std::map<std::string,fc::ecc::public_key> pending_regs;
-     // TODO: load from _pending_regs db
-     return pending_regs;
+    return my->_names_to_mine;
   }
-  void                                       client::cancel_name_registration( const std::string& bitname_id )
+  void                                       client::stop_mining_name( const std::string& bitname_id )
   {
      my->_names_to_mine.erase( bitname_id );
-  }
-
-  fc::ecc::compact_signature client::sign( const fc::sha256& digest, const std::string& bitname_id )
-  {
-    FC_ASSERT( !"Not Implemented" );
   }
 
 } } // bts::bitname

@@ -61,7 +61,7 @@ class bitname_test_del : public bts::bitname::client_delegate
 
           auto next_name = std::string(fc::time_point::now()); 
           ilog( "registering next name ${name}", ("name",next_name));
-           _client->register_name( next_name,
+           _client->mine_name( next_name,
                                    fc::ecc::private_key::generate().get_public_key() );
         }
     };  
@@ -79,7 +79,7 @@ class bitname_test_del : public bts::bitname::client_delegate
 
           auto next_name = std::string(fc::time_point::now()); 
           ilog( "registering next name ${name}", ("name",next_name));
-           _client->register_name( next_name,
+           _client->mine_name( next_name,
                                    fc::ecc::private_key::generate().get_public_key() );
         }
     };  
@@ -203,7 +203,7 @@ int main( int argc, char** argv )
           out << fc::json::to_pretty_string( cfg );
          
           std::cout << "created identity '"<<id.label<<"' with address: "<< std::string( bts::bitchat::address( id.key.get_public_key() ) ) <<"\n";
-          name_cl->register_name( id.label, id.key.get_public_key() );
+          name_cl->mine_name( id.label, id.key.get_public_key() );
        }
        else if( cmd == "set_contact_pay_address" )
        {
