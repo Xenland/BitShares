@@ -54,6 +54,12 @@ namespace bts { namespace bitname {
          */
         fc::optional<name_record> lookup_name( const std::string& name );
 
+        /**
+         *  return the next block number, used to calculate age.
+         */
+        uint32_t                  get_head_block_number()const;
+        name_id_type              get_head_block_id()const;
+
       private:
         std::shared_ptr<detail::name_channel_impl> my;
   };

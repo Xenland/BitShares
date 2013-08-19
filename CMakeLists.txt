@@ -99,6 +99,7 @@ set( sources
      src/bitname/bitname_messages.cpp
      src/bitname/bitname_channel.cpp
      src/bitname/bitname_client.cpp
+     src/bitname/bitname_record.cpp
 
      src/bitchat/bitchat_private_message.cpp
      src/bitchat/bitchat_messages.cpp

@@ -13,6 +13,10 @@ namespace bts { namespace bitname {
      name_record()
      :revoked(false),age(0),repute(0){}
 
+     /** handle to/from hex conversion */
+     uint64_t get_name_hash()const;
+     void     set_name_hash( uint64_t h );
+
      fc::time_point_sec          last_update; ///< the most recent update of this name
      fc::ecc::public_key_data    pub_key;     ///< the public key paired to this name.
      bool                        revoked;     ///< this name has been canceled, by its owner (invalidating the public key)

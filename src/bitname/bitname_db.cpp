@@ -355,6 +355,12 @@ namespace bts { namespace bitname {
       FC_ASSERT( !"TODO: pop_block Not implemented" );
     }
     
+
+    uint32_t   name_db::head_block_num()const
+    {
+      FC_ASSERT( my->_header_ids.size() != 0 );
+      return my->_header_ids.size() - 1;
+    }
     fc::sha224 name_db::head_block_id()const 
     { try { 
       FC_ASSERT( my->_header_ids.size() != 0 ); 

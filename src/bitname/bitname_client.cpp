@@ -1,6 +1,7 @@
 #include <bts/bitname/bitname_client.hpp>
 #include <bts/bitname/bitname_channel.hpp>
 #include <bts/bitname/bitname_miner.hpp>
+#include <bts/bitname/bitname_hash.hpp>
 #include <fc/crypto/hex.hpp>
 #include <fc/filesystem.hpp>
 #include <fc/io/json.hpp>
@@ -51,7 +52,7 @@ namespace bts { namespace bitname {
           void start_mining()
           {
              fc::optional<name_record> min_repute_record;
-             for( auto itr = _names_to_mine.begin(); itr != _names_to_mine.end(); ++itr )
+             for( auto itr = _names_to_mine.begin(); itr != _names_to_mine.end(); /*don't inc cause we may remove*/ )
              {
                 fc::optional<name_record> name_rec = _self->lookup_name( itr->first );
                 if( name_rec.valid() )
@@ -82,10 +83,7 @@ namespace bts { namespace bitname {
                    catch ( const fc::exception& e )
                    {
                        wlog( "${e}", ("e", e.to_detail_string() ) );
-                       // TODO: remove this name from the names_to_mine list
-                       // and report the reason back to the user because either
-                       // their name has been reserved by someone else or their
-                       // private key has been stolen and transfered illegally.
+                       _names_to_mine.erase(itr);
                    }
                 }
                 else
@@ -93,15 +91,33 @@ namespace bts { namespace bitname {
                    /** we found an unregistered name, that is as low as it gets so
                     *  we can go ahead and start mining it 
                     */
-                   //TODO
+                   name_header new_name;
+                   new_name.name_hash     = name_hash( itr->first );
+                   new_name.key           = itr->second;
+                   new_name.repute_points = 1;
+                   new_name.age           = _chan->get_head_block_number() + 1;
+                   new_name.prev          = _chan->get_head_block_id();
+                   _miner.set_name_header(new_name);
+                   _miner.start(); // TODO: set mining effort
                    return;
                 }
                 ++itr;
              }
              if( min_repute_record.valid() )
              {
-                // start mining it
-                // TODO
+                name_header renew_name;
+                renew_name.name_hash     = min_repute_record->get_name_hash();
+                renew_name.key           = min_repute_record->pub_key;
+                renew_name.age           = min_repute_record->age;
+                // TODO: handle repute + num_trxs in case last renewal was a block header
+                renew_name.repute_points = min_repute_record->repute + 1;
+                renew_name.prev            = _chan->get_head_block_id();
+                _miner.set_name_header( renew_name );
+                _miner.start(); // TODO: set mining effort
+             }
+             else
+             {
+                _miner.stop();
              }
           }
 
@@ -187,6 +203,7 @@ namespace bts { namespace bitname {
   void                                       client::stop_mining_name( const std::string& bitname_id )
   {
      my->_names_to_mine.erase( bitname_id );
+     my->start_mining(); // reset mining just incase we are currently mining bitname_id
   }
 
 } } // bts::bitname

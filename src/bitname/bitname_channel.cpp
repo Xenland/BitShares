@@ -478,5 +478,13 @@ namespace bts { namespace bitname {
         }
         return fc::optional<name_record>();
   } FC_RETHROW_EXCEPTIONS( warn, "name: ${name}", ("name",name) ) }
+  uint32_t      name_channel::get_head_block_number()const
+  {
+    return my->_name_db.head_block_num();
+  }
+  name_id_type  name_channel::get_head_block_id()const
+  {
+    return my->_name_db.head_block_id();
+  }
 
 } } // bts::bitname
