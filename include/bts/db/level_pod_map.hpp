@@ -49,6 +49,10 @@ namespace bts { namespace db {
              ldb::Slice ks( (char*)&k, sizeof(k) );
              std::string value;
              auto status = _db->Get( ldb::ReadOptions(), ks, &value );
+             if( status.IsNotFound() )
+             {
+               FC_THROW_EXCEPTION( key_not_found_exception, "unable to find key ${key}", ("key",k) );
+             }
              if( !status.ok() )
              {
                  FC_THROW_EXCEPTION( exception, "database error: ${msg}", ("msg", status.ToString() ) );
@@ -98,6 +102,10 @@ namespace bts { namespace db {
            iterator itr( _db->NewIterator( ldb::ReadOptions() ) );
            itr._it->SeekToFirst();
 
+           if( itr._it->status().IsNotFound() )
+           {
+             FC_THROW_EXCEPTION( key_not_found_exception, "" );
+           }
            if( !itr._it->status().ok() )
            {
                FC_THROW_EXCEPTION( exception, "database error: ${msg}", ("msg", itr._it->status().ToString() ) );
@@ -180,6 +188,11 @@ namespace bts { namespace db {
           {
             ldb::Slice ks( (char*)&k, sizeof(k) );
             auto status = _db->Delete( ldb::WriteOptions(), ks );
+
+            if( status.IsNotFound() )
+            {
+              FC_THROW_EXCEPTION( key_not_found_exception, "unable to find key ${key}", ("key",k) );
+            }
             if( !status.ok() )
             {
                 FC_THROW_EXCEPTION( exception, "database error: ${msg}", ("msg", status.ToString() ) );

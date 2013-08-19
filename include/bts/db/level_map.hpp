@@ -50,6 +50,10 @@ namespace bts { namespace db {
              ldb::Slice ks( kslice.data(), kslice.size() );
              std::string value;
              auto status = _db->Get( ldb::ReadOptions(), ks, &value );
+             if( status.IsNotFound() )
+             {
+               FC_THROW_EXCEPTION( key_not_found_exception, "unable to find key ${key}", ("key",k) );
+             }
              if( !status.ok() )
              {
                  FC_THROW_EXCEPTION( exception, "database error: ${msg}", ("msg", status.ToString() ) );
@@ -170,11 +174,15 @@ namespace bts { namespace db {
           {
              std::vector<char> kslice = fc::raw::pack( k );
              ldb::Slice ks( kslice.data(), kslice.size() );
-            auto status = _db->Delete( ldb::WriteOptions(), ks );
-            if( !status.ok() )
-            {
-                FC_THROW_EXCEPTION( exception, "database error: ${msg}", ("msg", status.ToString() ) );
-            }
+             auto status = _db->Delete( ldb::WriteOptions(), ks );
+             if( status.IsNotFound() )
+             {
+               FC_THROW_EXCEPTION( key_not_found_exception, "unable to find key ${key}", ("key",k) );
+             }
+             if( !status.ok() )
+             {
+                 FC_THROW_EXCEPTION( exception, "database error: ${msg}", ("msg", status.ToString() ) );
+             }
           } FC_RETHROW_EXCEPTIONS( warn, "error removing ${key}", ("key",k) );
         }
         
