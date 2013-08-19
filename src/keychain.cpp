@@ -43,39 +43,39 @@ namespace bts {
     return seed;
   }
 
-  extended_private_key  keychain::get_private_account( uint32_t i )
+  extended_private_key  keychain::get_private_account( const std::string& ident, uint32_t i )
   {
-    return ext_priv_key.child( i, false );
+    return ext_priv_key.child( fc::city_hash64(ident.c_str(),ident.size())).child( i, false );
   }
 
-  extended_public_key   keychain::get_public_account( uint32_t i )
+  extended_public_key   keychain::get_public_account( const std::string& ident, uint32_t i )
   {
-    auto priv_acnt = get_private_account(i);
+    auto priv_acnt = get_private_account(ident,i);
     return extended_public_key( priv_acnt.get_public_key(), priv_acnt.chain_code );
   }
 
-  extended_public_key   keychain::get_public_trx( uint32_t account, uint32_t trx )
+  extended_public_key   keychain::get_public_trx( const std::string& ident, uint32_t account, uint32_t trx )
   {
-    auto r = get_public_account( account ).child( trx );
+    auto r = get_public_account( ident, account ).child( trx );
 //    ilog( "ext pub trx: ${account}/${trx} => ${epk}", ("account",account)("trx",trx)("epk",r) );
     return r;
   }
 
-  fc::ecc::public_key   keychain::get_public_trx_address( uint32_t account, uint32_t trx, uint32_t addr )
+  fc::ecc::public_key   keychain::get_public_trx_address( const std::string& ident, uint32_t account, uint32_t trx, uint32_t addr )
   {
-    return get_public_trx( account, trx ).child(addr);
+    return get_public_trx( ident, account, trx ).child(addr);
   }
 
-  extended_private_key  keychain::get_private_trx( uint32_t account, uint32_t trx )
+  extended_private_key  keychain::get_private_trx( const std::string& ident, uint32_t account, uint32_t trx )
   {
-    auto r =  get_private_account( account ).child( trx, true/*pub deriv*/ );
+    auto r =  get_private_account( ident, account ).child( trx, true/*pub deriv*/ );
  //   ilog( "ext priv trx: ${account}/${trx} => ${epk}", ("account",account)("trx",trx)("epk",r) );
     return r;
   }
 
-  fc::ecc::private_key  keychain::get_private_trx_address( uint32_t account, uint32_t trx, uint32_t addr )
+  fc::ecc::private_key  keychain::get_private_trx_address( const std::string& ident, uint32_t account, uint32_t trx, uint32_t addr )
   {
-    return get_private_trx( account, trx ).child(addr, true /*pub deriv*/);
+    return get_private_trx( ident, account, trx ).child(addr, true /*pub deriv*/);
   }
 
   

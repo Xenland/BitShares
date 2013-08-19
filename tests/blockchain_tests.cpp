@@ -152,14 +152,14 @@ BOOST_AUTO_TEST_CASE( keychain_test )
 
     keychain wal;
     wal.set_seed( fc::sha512::hash( "hello", 5 ) );
-    BOOST_REQUIRE( wal.get_private_account( 1 ).get_public_key() ==
-                   wal.get_public_account( 1 ).pub_key );
+    BOOST_REQUIRE( wal.get_private_account( "test", 1 ).get_public_key() ==
+                   wal.get_public_account( "test", 1 ).pub_key );
 
-    BOOST_REQUIRE( wal.get_private_trx( 1, 2 ).get_public_key() ==
-                   wal.get_public_trx( 1, 2 ).pub_key );
+    BOOST_REQUIRE( wal.get_private_trx( "test", 1, 2 ).get_public_key() ==
+                   wal.get_public_trx( "test", 1, 2 ).pub_key );
 
-    BOOST_REQUIRE( wal.get_private_trx_address( 1, 3, 4 ).get_public_key() ==
-                   wal.get_public_trx_address( 1, 3, 4 ) );
+    BOOST_REQUIRE( wal.get_private_trx_address( "test", 1, 3, 4 ).get_public_key() ==
+                   wal.get_public_trx_address( "test", 1, 3, 4 ) );
 
   }
   catch ( const fc::exception& e )
