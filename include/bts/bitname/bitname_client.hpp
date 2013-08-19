@@ -1,6 +1,7 @@
 #pragma once
 #include <bts/peer/peer_channel.hpp>
 #include <bts/bitname/bitname_block.hpp>
+#include <bts/bitname/bitname_record.hpp>
 #include <fc/reflect/reflect.hpp>
 #include <fc/crypto/elliptic.hpp>
 #include <fc/optional.hpp>
@@ -13,21 +14,6 @@
 namespace bts { namespace bitname {
 
   namespace detail { class client_impl; }
-
-  struct name_record
-  {
-     name_record()
-     :revoked(false),age(0),repute(0){}
-
-     fc::time_point_sec          last_update; ///< the most recent update of this name
-     fc::unsigned_int            num_updates; ///< the number of times the name has been updated/renewed
-     fc::ecc::public_key_data    pub_key;     ///< the public key paired to this name.
-     bool                        revoked;     ///< this name has been canceled, by its owner (invalidating the public key)
-     uint32_t                    age;
-     uint32_t                    repute;
-     std::string                 name_hash;   ///< the unique hash assigned to this name, in hex format
-     fc::optional<std::string>   name;        ///< if we know the name that generated the hash
-  };
 
   class client_delegate 
   {
@@ -91,14 +77,6 @@ namespace bts { namespace bitname {
 
 } } // bts::bitname
 
-FC_REFLECT( bts::bitname::name_record,
-    (last_update)
-    (num_updates)
-    (pub_key)
-    (revoked)
-    (name_hash)
-    (name)
-  )
 FC_REFLECT( bts::bitname::client::config,
     (data_dir)
     (max_mining_effort)
