@@ -24,11 +24,7 @@ namespace bts { namespace bitname {
          _name_trx_target(0),
          _min_name_trx_target(0)
          {
-            fc::sha224 min_name_hash_target;
-            // TODO: remove hardcoded 3
-            memset( ((char*)&min_name_hash_target) + 3, 0xff, sizeof(fc::sha224)-3 );
-
-            _name_trx_target     = difficulty( min_name_hash_target );
+            _name_trx_target     = min_name_difficulty();
             _block_target        = _name_trx_target;
             _min_name_trx_target = _name_trx_target;
 
