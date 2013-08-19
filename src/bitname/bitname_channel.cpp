@@ -2,6 +2,7 @@
 #include <bts/bitname/bitname_messages.hpp>
 #include <bts/bitname/bitname_db.hpp>
 #include <bts/bitname/bitname_hash.hpp>
+#include <bts/difficulty.hpp>
 #include <bts/network/server.hpp>
 #include <bts/network/channel.hpp>
 #include <bts/network/broadcast_manager.hpp>
@@ -449,7 +450,16 @@ namespace bts { namespace bitname {
 
   void name_channel::submit_block( const name_block& block_to_submit )
   {
-     my->submit_block( block_to_submit );
+     auto id = block_to_submit.id();
+     uint64_t block_difficulty = bts::difficulty(id);
+     if( block_difficulty >= my->_name_db.target_difficulty() )
+     {
+         my->submit_block( block_to_submit );
+     }
+     else 
+     {
+         submit_name( block_to_submit ); 
+     }
   }
 
   /**
