@@ -46,9 +46,9 @@ namespace bts { namespace bitname {
     {
        public:
           name_channel_impl()
-          :_del(nullptr){}
+          :_delegate(nullptr){}
 
-          name_channel_delegate*                            _del;
+          name_channel_delegate*                            _delegate;
           bts::peer::peer_channel_ptr                       _peers;
           network::channel_id                               _chan_id;
                                                             
@@ -387,6 +387,7 @@ namespace bts { namespace bitname {
           { try {
              _name_db.validate_trx( new_name_trx );
              _trx_broadcast_mgr.validated( new_name_trx.short_id(), new_name_trx, true );
+             if( _delegate ) _delegate->pending_name_trx( new_name_trx );
           } FC_RETHROW_EXCEPTIONS( warn, "error submitting name", ("new_name_trx", new_name_trx) ) }
 
           void submit_block( const name_block& block )
@@ -396,6 +397,7 @@ namespace bts { namespace bitname {
              _block_index_broadcast_mgr.clear_old_inventory(); // we can clear old inventory
              _trx_broadcast_mgr.clear_old_inventory(); // this inventory no longer matters
              _block_index_broadcast_mgr.validated( block.id(), block, true );
+             if( _delegate ) _delegate->name_block_added( block );
           } FC_RETHROW_EXCEPTIONS( warn, "error submitting block", ("block", block) ) }
     };
 
@@ -413,7 +415,7 @@ namespace bts { namespace bitname {
   name_channel::~name_channel() 
   { 
      my->_peers->unsubscribe_from_channel( my->_chan_id );
-     my->_del = nullptr;
+     my->_delegate = nullptr;
      try {
         my->_fetch_loop.cancel();
         my->_fetch_loop.wait();
@@ -435,7 +437,7 @@ namespace bts { namespace bitname {
   }
   void name_channel::set_delegate( name_channel_delegate* d )
   {
-     my->_del = d;
+     my->_delegate = d;
   }
 
   void name_channel::submit_name( const name_header& new_name_trx )
@@ -443,17 +445,15 @@ namespace bts { namespace bitname {
      my->submit_name( new_name_trx );
   }
 
-  void name_channel::submit_block( const name_block& b )
+  void name_channel::submit_block( const name_block& block_to_submit )
   {
-     // TODO: verify that we have all trx in merkle tree... 
-     // block should be in our DB... 
-     // ... 
+     my->submit_block( block_to_submit );
   }
 
   /**
    *  Performs a lookup in the internal database 
    */
-  name_header name_channel::lookup_name( const std::string& name )
+  fc::optional<name_header> name_channel::lookup_name( const std::string& name )
   {
     FC_ASSERT( !"Not Implemented" );
   }

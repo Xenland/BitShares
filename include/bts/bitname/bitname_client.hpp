@@ -17,12 +17,14 @@ namespace bts { namespace bitname {
   struct name_record
   {
      name_record()
-     :revoked(false){}
+     :revoked(false),age(0),repute(0){}
 
      fc::time_point_sec          last_update; ///< the most recent update of this name
      fc::unsigned_int            num_updates; ///< the number of times the name has been updated/renewed
-     fc::ecc::public_key         pub_key;     ///< the public key paired to this name.
+     fc::ecc::public_key_data    pub_key;     ///< the public key paired to this name.
      bool                        revoked;     ///< this name has been canceled, by its owner (invalidating the public key)
+     uint32_t                    age;
+     uint32_t                    repute;
      std::string                 name_hash;   ///< the unique hash assigned to this name, in hex format
      fc::optional<std::string>   name;        ///< if we know the name that generated the hash
   };
@@ -57,7 +59,7 @@ namespace bts { namespace bitname {
        struct config
        {
           config()
-          :max_mining_effort(0.25){}
+          :max_mining_effort(0.25){} // TODO: remove magic number... 
 
           fc::path data_dir;
           double   max_mining_effort;
@@ -66,7 +68,7 @@ namespace bts { namespace bitname {
        void set_delegate( client_delegate* client_del );
        void configure( const config& client_config );
 
-       name_record                    lookup_name( const std::string& name );
+       fc::optional<name_record>      lookup_name( const std::string& name );
        name_record                    reverse_name_lookup( const fc::ecc::public_key& k );
        fc::ecc::public_key            verify_signature( const fc::sha256& digest, const fc::ecc::compact_signature& sig );
        fc::ecc::compact_signature     sign( const fc::sha256& digest, const std::string& name );

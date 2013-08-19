@@ -18,7 +18,11 @@ namespace bts { namespace bitname {
         name_miner_impl()
         :_callback_thread( fc::thread::current() ),
          _callback_del(nullptr),
-         _cur_effort(0) //DEFAULT_MINING_EFFORT_PERCENT/100.0)
+         _cur_effort(0), //TODO: restore.. DEFAULT_MINING_EFFORT_PERCENT/100.0)
+         _block_ver(0),
+         _block_target(0),
+         _name_trx_target(0),
+         _min_name_trx_target(0)
          {
             fc::sha224 min_name_hash_target;
             // TODO: remove hardcoded 3
@@ -171,25 +175,17 @@ namespace bts { namespace bitname {
     }
   }
 
-  void name_miner::set_prev( const fc::sha224& prev_block_hash )
+  void name_miner::add_name_trx( const name_header& t )
   {
-      my->_cur_block.name_trxs.clear();
-      my->_cur_block.prev = prev_block_hash;
-      my->start_new_block();
-  }
-
-  void name_miner::add_name_trx( const name_trx& t )
-  {
+      FC_ASSERT( t.prev == my->_cur_block.prev );
       my->_cur_block.name_trxs.push_back(t);
       my->start_new_block();
   }
 
-  void name_miner::set_name_trx( const name_trx& name_trx_to_mine )
+  void name_miner::set_name_header( const name_header& name_trx_to_mine )
   {
-     name_trx& cur = my->_cur_block;
-     cur = name_trx_to_mine;
-
-     my->start_new_block();
+      my->_cur_block = name_block(name_trx_to_mine);
+      my->start_new_block();
   }
 
 

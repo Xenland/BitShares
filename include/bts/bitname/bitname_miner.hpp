@@ -48,12 +48,11 @@ namespace bts { namespace bitname {
            *  with a minimum difficulty of about 1 hour per CPU.
            */
           void set_block_target( uint64_t difficulty );
-          void set_name_trx( const name_trx& t );
 
           /**
-           *  This will clear all all names from the trx queue.
+           *  Clears all name_trx that have been added thus far.
            */
-          void set_prev( const fc::sha224& prev_block );
+          void set_name_header( const name_header& header_to_mine );
 
           /**
            *  If another transaction with the same name is already
@@ -63,7 +62,7 @@ namespace bts { namespace bitname {
            *  for duplicates in the same block.  Validation should  be 
            *  performed prior to this call.
            */
-          void add_name_trx( const name_trx& );
+          void add_name_trx( const name_header& );
 
           void start( float effort = 1 );
           void stop();

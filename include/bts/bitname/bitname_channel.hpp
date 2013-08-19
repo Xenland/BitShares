@@ -16,7 +16,7 @@ namespace bts { namespace bitname {
        /**
         *   Called any time a new & valid name reg trx is received
         */
-       virtual void pending_name_registration( const name_trx&  ) = 0;
+       virtual void pending_name_trx( const name_header&  ) = 0;
 
        /**
         *   Called any time a new & valid name block is added to the
@@ -51,7 +51,7 @@ namespace bts { namespace bitname {
          *  Performs a lookup in the internal database and throws
          *  an exception if the name is not found.
          */
-        name_header lookup_name( const std::string& name );
+        fc::optional<name_header> lookup_name( const std::string& name );
 
       private:
         std::shared_ptr<detail::name_channel_impl> my;
