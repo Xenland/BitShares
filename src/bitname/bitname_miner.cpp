@@ -66,16 +66,24 @@ namespace bts { namespace bitname {
             ilog( "thread: ${t}  ver ${ver}", ("t",thread_num)("ver",ver) );
             if( b.name_hash == 0 ) return;
 
-            uint16_t max_nonce(-1);
-            
+            uint16_t max_nonce = uint16_t(-1) - DEFAULT_MINING_THREADS;
+            uint64_t best_diff = 0;    
             while( ver >= _block_ver )
             {
                b.utc_sec = fc::time_point::now();
-               for( uint32_t nonce = 0; nonce < max_nonce; nonce += DEFAULT_MINING_THREADS )
+               for( uint32_t nonce = thread_num; nonce < max_nonce; nonce += DEFAULT_MINING_THREADS )
                {
                    b.nonce   = nonce;
+                   //if( nonce > max_nonce - DEFAULT_MINING_THREADS ) 
+                  // {
+                  // }
                
                    uint64_t header_difficulty = b.difficulty();
+                   if( header_difficulty >= best_diff )
+                   {
+                     best_diff = header_difficulty;
+                     ilog( "new best ${b}   target ${t}   ${id} ${n}", ("b",best_diff)("t",_block_target)("id",b.id())("n",nonce) );
+                   }
                    if( header_difficulty > _name_trx_target )
                    {
                       uint64_t block_difficulty = b.block_difficulty();

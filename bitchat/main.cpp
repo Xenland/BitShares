@@ -28,7 +28,7 @@ struct config
    std::vector<bts::bitchat::identity> ids;
    std::vector<bts::bitchat::contact>  contacts;
 };
-FC_REFLECT( config, (data_dir)(server_config)(rpc_config)(ids)(contacts)(bitname_config) )
+FC_REFLECT( config, (data_dir)(server_config)(bitname_config)(rpc_config)(ids)(contacts) )
 
 class bitchat_del : public bts::bitchat::bitchat_delegate
 {
@@ -103,6 +103,7 @@ int main( int argc, char** argv )
        out << fc::json::to_pretty_string( config() );
     }
     config cfg = fc::json::from_file( fc::path(argv[1]) ).as<config>();
+    ilog( "config\n${cfg}", ("cfg", fc::json::to_pretty_string(cfg) ) );
 
     bts::addressbook::addressbook_ptr  address_book = std::make_shared<bts::addressbook::addressbook>();
     address_book->open( cfg.data_dir / "addressbook" );

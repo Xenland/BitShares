@@ -12,7 +12,7 @@ namespace bts { namespace bitname {
   name_id_type  name_header::id()const
   {
     name_id_type::encoder enc;
-    auto d = fc::raw::pack(*this);
+    fc::raw::pack(enc,*this);
     return enc.result();
   }
 
@@ -71,7 +71,7 @@ namespace bts { namespace bitname {
 
   uint64_t min_name_difficulty() 
   {
-      return 1;
+      return 100000;
   }
 
   name_block create_genesis_block()

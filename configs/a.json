@@ -6,6 +6,10 @@
     "bootstrap_endpoints": [],
     "blacklist": []
   },
+  "bitname_config": {
+    "data_dir": "data/c",
+    "max_mining_effort": 1
+  },
   "rpc_config": {
     "port": 6789,
     "user": "rpc_user",
@@ -22,6 +26,111 @@
       "label": "stan",
       "key": "9a7821bf393904e39999e5cc600d424177680327efc11e7858c29f88ef70a201",
       "broadcast": "34822a38bbdf80af0c72f1ea50f7946fa5c518f780ed804d7c0ab20c96c3d50b",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "fc234e94e0f2021854ff735034d478194b7c999dec92a1ac5a482a788d0f41ce",
+      "broadcast": "5a1eeaaef93ecff3e8eb6bac0a1ec815b8356db92b6eb10a5f46a5543bc6ecef",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "e516afa117f68a420049e26c432ef063a041ba7ef22e5f74d5a9f0798e567702",
+      "broadcast": "23352fae2ed00c0dc5427222e4fa11ed4c571d7572aed68ad86d3bd7817b6054",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "7810eadc71cd96e71061267afde986df4cb19c870c15a99c855e32c0229acf9c",
+      "broadcast": "4e7428f8d1c0eaec1918a24c54a20ef6c2a58741275498e0e742c9fd0aef2872",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "3e8db25be68f47f6f2f25469287d7c34eb9d8de169817f9687a9dc6db72fdd73",
+      "broadcast": "54fbd4a0c14bf81e41071bcbff13a22b78ff5f03a10e0677e8d71cb23ff4ba88",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "6cf5473823199b408acea4b5fda23216011c2d359cccc8bd977d3c6a0404c8fd",
+      "broadcast": "101262fb04847c6a99bd8ba36c3b9df1c59021f12f20ab0fb01a6d137dcc9e1c",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "510e60d92101a94ff87a4dfb919ad0a064968bb897efddecc3dbeb90d8d0d194",
+      "broadcast": "0e1a821b4e12701180abcef6e3f1413e3d58b75b6b95cee131cf61c5754108b5",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "e4cdc7a872cc13b35add3ad5082a3b09f48836bc4b943fa8b0b424c86b9e7342",
+      "broadcast": "e0f84b72e1b70fe18f81e22a39b21218919a33fa117859adcd60d481b525e4dc",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "588f0791f043a8b822c3ebcd59dc6eba9c3e7ea157beb2fa038fca5ae05b3459",
+      "broadcast": "2b3dfca9837e87143844fd278d34eefac5990506224f52847c19aa70cd243098",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "ba4fba63d9cd3213baa47345e33cbeee3b2a58ca7e86fb9d5377ba0c1b085a6d",
+      "broadcast": "78a53eff0588d911b90e58fdd911dbd9819d72125f05a7c7fd629bb6230c394c",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "2b6aa36fd5a7745ef5660456ac732d8fba2bf051419c3c1cf250fbc9902c580f",
+      "broadcast": "0f031f6ae31858c30d93da6d52538d8878cef10e5c0a52485102364ecd28fb8d",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "3b236214773d0d2ab8408af450c7f5f67e1790c82e4ba95430c455b019573104",
+      "broadcast": "c2ef9edf2aa0ccf01630554db683721c9ae259830747d0427df6a72f40357c9d",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam",
+      "key": "4cfd33d0db29e3db69df9ebd3ad3e4925fb4853d099335b0b54bea4c7fd12f75",
+      "broadcast": "0d22118ab764e840d643961d739e945131a3993df6fce1901f9170b3a0e279f7",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam1",
+      "key": "8078bfea143018c7f32d3d65b5d3abf665fbab79a00ecf49c640ae1b1a82b373",
+      "broadcast": "dc38b58bf0bbfc0086d65fba333241d97b8995fac42478dc15ef0a179b680b18",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam2",
+      "key": "43c8a94750a1d4fe260e32e70092f0602423e0fe3c5aaec5ebc0e0fb30561ecc",
+      "broadcast": "768e128589c8c24e5201c85f1832527da3cd04f811c1960b511d520040f9889e",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "pam4",
+      "key": "81d7803430e2ce05cdb838a9ba530b17a64a372a92af0e23dfac91269902e2d4",
+      "broadcast": "d8e4ab4c34cfaf58f41718db8f42a84ca3812ce31ad81f0ad133af3d5728706b",
       "recv_channels": [
         0
       ]
@@ -42,9 +151,5 @@
         0
       ]
     }
-  ],
-  "bitname_config": {
-    "data_dir": "data/c",
-    "max_mining_effort": 1
-  }
+  ]
 }

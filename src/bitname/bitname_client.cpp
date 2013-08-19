@@ -28,6 +28,7 @@ namespace bts { namespace bitname {
               // check to see if it is good enough to solve the block, or just a trx
               // broadcast it accordingly... 
               // move on to the next name... 
+              ilog( "found block\n${s}", ("s", fc::json::to_pretty_string(new_block) ) );
               _chan->submit_block( new_block );
           }
 
@@ -36,6 +37,7 @@ namespace bts { namespace bitname {
            */
           virtual void pending_name_trx( const name_header& pending_trx )
           {
+              ilog( "pending name trx\n${s}", ("s", fc::json::to_pretty_string(pending_trx) ) );
               _miner.add_name_trx( pending_trx );
           }
           
@@ -45,6 +47,7 @@ namespace bts { namespace bitname {
            */
           virtual void name_block_added( const name_block& new_block )
           {
+             ilog( "name block added\n${s}", ("s", fc::json::to_pretty_string(new_block) ) );
              // a new block has been added, restart mining 
              start_mining();
           }
