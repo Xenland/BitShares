@@ -1,5 +1,6 @@
 #pragma once
 #include <bts/bitname/bitname_block.hpp>
+#include <bts/bitname/bitname_record.hpp>
 #include <bts/peer/peer_channel.hpp>
 #include <bts/network/server.hpp>
 #include <fc/filesystem.hpp>
@@ -51,7 +52,7 @@ namespace bts { namespace bitname {
          *  Performs a lookup in the internal database and throws
          *  an exception if the name is not found.
          */
-        fc::optional<name_header> lookup_name( const std::string& name );
+        fc::optional<name_record> lookup_name( const std::string& name );
 
       private:
         std::shared_ptr<detail::name_channel_impl> my;

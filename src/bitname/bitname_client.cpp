@@ -146,23 +146,7 @@ namespace bts { namespace bitname {
 
   fc::optional<name_record> client::lookup_name( const std::string& name )
   { try {
-
-     fc::optional<name_header> head = my->_chan->lookup_name( name );
-     if( !head )
-     {
-        return fc::optional<name_record>();
-     }
-
-     name_record rec;
-     rec.last_update  = head->utc_sec;
-     //rec.num_updates  = head.renewal;
-     //rec.revoked      = !!head.cancel_sig;
-     rec.name_hash    = fc::to_hex( (char*)&head->name_hash, sizeof( head->name_hash)  );
-     rec.name         = name;
-     rec.pub_key      = head->key;
-     
-     return rec;
-
+     return my->_chan->lookup_name( name );
   } FC_RETHROW_EXCEPTIONS( warn, "error looking up name '${name}'", ("name",name) ) }
 
   name_record client::reverse_name_lookup( const fc::ecc::public_key& k )

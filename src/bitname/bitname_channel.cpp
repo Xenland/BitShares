@@ -1,10 +1,12 @@
 #include <bts/bitname/bitname_channel.hpp>
 #include <bts/bitname/bitname_messages.hpp>
 #include <bts/bitname/bitname_db.hpp>
+#include <bts/bitname/bitname_hash.hpp>
 #include <bts/network/server.hpp>
 #include <bts/network/channel.hpp>
 #include <bts/network/broadcast_manager.hpp>
 #include <fc/reflect/variant.hpp>
+#include <fc/crypto/hex.hpp>
 #include <fc/thread/thread.hpp>
 #include <fc/log/logger.hpp>
 
@@ -453,9 +455,28 @@ namespace bts { namespace bitname {
   /**
    *  Performs a lookup in the internal database 
    */
-  fc::optional<name_header> name_channel::lookup_name( const std::string& name )
-  {
-    FC_ASSERT( !"Not Implemented" );
-  }
+  fc::optional<name_record> name_channel::lookup_name( const std::string& name )
+  { try  {
+        try {
+          name_trx     last_trx = my->_name_db.fetch_trx( name_hash( name ) );
+          name_record  name_rec;
+
+          name_rec.last_update = last_trx.utc_sec;
+          name_rec.pub_key     = last_trx.key;
+          name_rec.age         = last_trx.age;
+          name_rec.repute      = last_trx.repute_points;
+          name_rec.revoked     = last_trx.key == fc::ecc::public_key_data();
+          name_rec.name_hash   = fc::to_hex((char*)&last_trx.name_hash, sizeof(last_trx.name_hash));
+          name_rec.name        = name;
+
+          return name_rec;
+        }
+        catch ( const fc::key_not_found_exception& )
+        {
+          // expected, convert to null optional, all other errors should be
+          // thrown up the chain
+        }
+        return fc::optional<name_record>();
+  } FC_RETHROW_EXCEPTIONS( warn, "name: ${name}", ("name",name) ) }
 
 } } // bts::bitname

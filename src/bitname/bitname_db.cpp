@@ -58,7 +58,9 @@ namespace bts { namespace bitname {
 
              name_location find_name( uint64_t name )
              {
-               return name_location(); // TODO: implement this
+               auto name_locs = _name_hash_to_locs.fetch( name );
+               FC_ASSERT( name_locs.size() != 0 );
+               return name_locs.back();
              }
 
              void index_trx( const name_location& loc, uint64_t name_hash )
