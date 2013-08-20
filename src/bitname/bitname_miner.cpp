@@ -63,7 +63,6 @@ namespace bts { namespace bitname {
         void start_mining( name_block b, uint32_t thread_num, uint64_t ver )
         {
           try { 
-            ilog( "---------------------------thread: ${t}  ver ${ver} blockver ${blockver}", ("t",thread_num)("ver",ver)("b",b)("blockver", _block_ver) );
             if( b.name_hash == 0 ) return;
 
             uint16_t max_nonce = uint16_t(-1) - DEFAULT_MINING_THREADS;
@@ -79,7 +78,7 @@ namespace bts { namespace bitname {
 
                    if( header_difficulty > _name_trx_target )
                    {
-                      wlog( "++++   ${ver}  ++++++++++++found: ${f}    ${now}  difficulty: ${diff}", ("f",b)("now", fc::time_point::now())("diff",header_difficulty)("ver",ver)  );
+            //          wlog( "++++   ${ver}  ++++++++++++found: ${f}    ${now}  difficulty: ${diff}", ("f",b)("now", fc::time_point::now())("diff",header_difficulty)("ver",ver)  );
                       if( ver == _block_ver )
                       {
                           ++_block_ver;
@@ -87,13 +86,13 @@ namespace bts { namespace bitname {
                       }
                       else
                       {
-                          elog( "SKIPING OLD" );
+             //             elog( "SKIPING OLD" );
                       }
                       return;
                    }
 
                    // exit if the block has been updated
-                   if( ver < _block_ver ) { ilog( "     EXIT  ${ver}", ("ver",ver) ); return; }
+                   if( ver < _block_ver ) { /*ilog( "     EXIT  ${ver}", ("ver",ver) );*/ return; }
                }
                /*
                do {
@@ -101,7 +100,7 @@ namespace bts { namespace bitname {
                } while ( b.utc_sec == fc::time_point::now() );
                */
             }
-            ilog( "---EXIT  ------------------------thread: ${t}  ver ${ver}  blockver ${blockver}", ("t",thread_num)("ver",ver)("b",b)("blockver", _block_ver) );
+           // ilog( "---EXIT  ------------------------thread: ${t}  ver ${ver}  blockver ${blockver}", ("t",thread_num)("ver",ver)("b",b)("blockver", _block_ver) );
           }
           catch ( const fc::exception& e )
           {
@@ -112,7 +111,7 @@ namespace bts { namespace bitname {
 
         void start_new_block()
         {
-           elog( "-----------------     start_new_block           --------------------" );
+         //  elog( "-----------------     start_new_block           --------------------" );
            FC_ASSERT( _callback_del != nullptr ); // no point in mining if there is no one to tell when we find the result
 
            _cur_block.trxs_hash = _cur_block.calc_trxs_hash();
@@ -122,13 +121,13 @@ namespace bts { namespace bitname {
 
            auto next_blk = ++_block_ver;
 
-          ilog( "wait for complete" );
+        //  ilog( "wait for complete" );
            for( uint32_t i = 0; i < DEFAULT_MINING_THREADS; ++i )
            {
               if( _mining_complete[i].valid() ) _mining_complete[i].wait();
            }
            fc::usleep(fc::seconds(1));
-          ilog( "start next" );
+         // ilog( "start next" );
 
            if( _cur_block.name_hash != 0 )
            {
@@ -160,10 +159,10 @@ namespace bts { namespace bitname {
 
   void name_miner::start( float effort )
   {
-    wlog( "START MINING ${effort}", ("effort",effort) );
+  //  wlog( "START MINING ${effort}", ("effort",effort) );
     bool kickoff = my->_cur_effort <= 0;
     my->_cur_effort = effort;
-    if( kickoff )
+    if( effort  != 0 )
     {
        my->start_new_block();
     }
@@ -186,6 +185,7 @@ namespace bts { namespace bitname {
 
   void name_miner::add_name_trx( const name_header& t )
   {
+      ilog( "add_name_trx: ${t}", ("t",t) );
       FC_ASSERT( t.prev == my->_cur_block.prev );
       if( t.name_hash == my->_cur_block.name_hash ) return;
 
@@ -201,13 +201,14 @@ namespace bts { namespace bitname {
           }
       }
       my->_cur_block.name_trxs.push_back(t);
-      my->start_new_block();
+  //    my->start_new_block();
   }
 
   void name_miner::set_name_header( const name_header& name_trx_to_mine )
   {
+      ilog( "set header: ${h}", ("h",name_trx_to_mine) );
       my->_cur_block = name_block(name_trx_to_mine);
-      my->start_new_block();
+   //   my->start_new_block();
   }
 
 

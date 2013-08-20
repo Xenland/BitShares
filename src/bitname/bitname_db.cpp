@@ -494,10 +494,14 @@ namespace bts { namespace bitname {
           std::cerr<<"time: "<<std::setw(16) << std::string(fc::time_point(blkhead.utc_sec)) <<" ";
           std::cerr<<"age: "<<std::setw(5) << blkhead.age <<" ";
           std::cerr<<"repute: "<<std::setw(5) << blkhead.repute_points.value <<" ";
-          std::cerr<<"key: "<<std::setw(5) << blkhead.repute_points.value <<" ";
           std::cerr<<"prev: "<<std::setw(20) << fc::variant(blkhead.prev).as_string() <<" ";
           std::cerr<<"key: "<<std::setw(66)<<fc::json::to_string(blkhead.key)<<" ";
-          std::cerr<<"next_difficulty: "<<std::setw(16)<<timekeep.next_difficulty();
+          std::cerr<<"next_difficulty: "<<std::setw(16)<<timekeep.next_difficulty()<<" ";
+          std::cerr<<"med_time_err: "<<std::setw(16)<<timekeep.current_time_error() << " sec";
+
+          auto delta = (timekeep.expected_time(i)-blkhead.utc_sec);
+
+          std::cerr<<"cur_time_err: "<<std::setw(16)<< delta.count()/1000000 << " usec";
           std::cerr<<"\n";
           std::vector<name_trx> blktrxs = my->_block_num_to_name_trxs.fetch(i);
           for( uint32_t t = 0; t < blktrxs.size(); ++t )

@@ -134,6 +134,10 @@ time_keeper::time_keeper()
 :my( new detail::time_keeper_impl() )
 {
 }
+int64_t time_keeper::current_time_error()const
+{
+  return my->_median_time_error_sec;
+}
 
 void time_keeper::configure( fc::time_point origin_time, fc::microseconds block_interval, uint32_t window )
 {

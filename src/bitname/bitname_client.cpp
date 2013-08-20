@@ -111,8 +111,8 @@ namespace bts { namespace bitname {
                    new_name.age           = _chan->get_head_block_number() + 1;
                    new_name.prev          = _chan->get_head_block_id();
                    _miner.set_name_header(new_name);
-                   ilog( "start new name reg" );
                    auto pending_trxs = _chan->get_pending_name_trxs();
+                   ilog( "start new name reg: num pending ${n}", ("n",pending_trxs.size())  );
                    for( auto itr = pending_trxs.begin(); itr != pending_trxs.end(); ++itr )
                    {
                       _miner.add_name_trx(*itr);
@@ -133,11 +133,13 @@ namespace bts { namespace bitname {
                 renew_name.repute_points   = min_repute_record->repute + 1;
                 renew_name.prev            = _chan->get_head_block_id();
                 _miner.set_name_header( renew_name );
-                   auto pending_trxs = _chan->get_pending_name_trxs();
-                   for( auto itr = pending_trxs.begin(); itr != pending_trxs.end(); ++itr )
-                   {
-                      _miner.add_name_trx(*itr);
-                   }
+
+                auto pending_trxs = _chan->get_pending_name_trxs();
+                ilog( "start new name reg: num pending ${n}", ("n",pending_trxs.size())  );
+                for( auto itr = pending_trxs.begin(); itr != pending_trxs.end(); ++itr )
+                {
+                   _miner.add_name_trx(*itr);
+                }
                 _miner.start(); // TODO: set mining effort
              }
              else
