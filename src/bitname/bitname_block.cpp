@@ -71,13 +71,13 @@ namespace bts { namespace bitname {
 
   uint64_t min_name_difficulty() 
   {
-      return 100000;
+      return 400000;
   }
 
   name_block create_genesis_block()
   {
      name_block genesis;
-     genesis.utc_sec = fc::time_point_sec(fc::time_point::from_iso_string( "20130814T000000" ));
+     genesis.utc_sec = fc::time_point_sec(fc::time_point::from_iso_string( "20130820T000000" ));
      genesis.name_hash = 0;
      genesis.key = fc::ecc::private_key::regenerate(fc::sha256::hash( "genesis", 7)).get_public_key();
      return genesis;

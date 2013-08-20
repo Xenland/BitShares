@@ -64,6 +64,7 @@ namespace bts { namespace bitname {
         /** the time we expect block_num to be generated */
         fc::time_point_sec expected_time( uint32_t block_num )const;
 
+        void            dump();
       private:
         std::unique_ptr<detail::name_db_impl> my;
   };

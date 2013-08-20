@@ -28,8 +28,15 @@ namespace bts { namespace bitname {
               // check to see if it is good enough to solve the block, or just a trx
               // broadcast it accordingly... 
               // move on to the next name... 
-              ilog( "found block\n${s}", ("s", fc::json::to_pretty_string(new_block) ) );
-              _chan->submit_block( new_block );
+              try {
+                 ilog( "found block ${id}  ${difficulty} \n${s}", ("id",new_block.id())("difficulty",new_block.difficulty())("s", fc::json::to_pretty_string(new_block) ) );
+                 _chan->submit_block( new_block );
+              } 
+              catch ( const fc::exception& e )
+              {
+                 wlog( "\n${e}", ("e",e.to_detail_string()) );
+              }
+              start_mining();
           }
 
           /**
@@ -57,6 +64,7 @@ namespace bts { namespace bitname {
              fc::optional<name_record> min_repute_record;
              for( auto itr = _names_to_mine.begin(); itr != _names_to_mine.end(); /*don't inc cause we may remove*/ )
              {
+                ilog( "lookup name ${n}", ("n",itr->first) );
                 fc::optional<name_record> name_rec = _self->lookup_name( itr->first );
                 if( name_rec.valid() )
                 {
@@ -65,7 +73,7 @@ namespace bts { namespace bitname {
                     *  raise any errors if we are unable to mine a name.
                     */
                    try {
-                     FC_ASSERT( name_rec->pub_key == itr->second );
+                     FC_ASSERT( name_rec->pub_key == itr->second, "attempt to renew name with different public key" );
                      FC_ASSERT( name_rec->revoked == false );
                      if( !min_repute_record.valid() )
                      {
@@ -86,7 +94,8 @@ namespace bts { namespace bitname {
                    catch ( const fc::exception& e )
                    {
                        wlog( "${e}", ("e", e.to_detail_string() ) );
-                       _names_to_mine.erase(itr);
+                       itr = _names_to_mine.erase(itr);
+                       continue;
                    }
                 }
                 else
@@ -101,6 +110,12 @@ namespace bts { namespace bitname {
                    new_name.age           = _chan->get_head_block_number() + 1;
                    new_name.prev          = _chan->get_head_block_id();
                    _miner.set_name_header(new_name);
+                   ilog( "start new name reg" );
+                   auto pending_trxs = _chan->get_pending_name_trxs();
+                   for( auto itr = pending_trxs.begin(); itr != pending_trxs.end(); ++itr )
+                   {
+                      _miner.add_name_trx(*itr);
+                   }
                    _miner.start(); // TODO: set mining effort
                    return;
                 }
@@ -108,6 +123,7 @@ namespace bts { namespace bitname {
              }
              if( min_repute_record.valid() )
              {
+                ilog( "update name reg" );
                 name_header renew_name;
                 renew_name.name_hash     = min_repute_record->get_name_hash();
                 renew_name.key           = min_repute_record->pub_key;
@@ -116,6 +132,11 @@ namespace bts { namespace bitname {
                 renew_name.repute_points = min_repute_record->repute + 1;
                 renew_name.prev            = _chan->get_head_block_id();
                 _miner.set_name_header( renew_name );
+                   auto pending_trxs = _chan->get_pending_name_trxs();
+                   for( auto itr = pending_trxs.begin(); itr != pending_trxs.end(); ++itr )
+                   {
+                      _miner.add_name_trx(*itr);
+                   }
                 _miner.start(); // TODO: set mining effort
              }
              else

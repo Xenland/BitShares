@@ -121,7 +121,7 @@ namespace bts { namespace network {
       void validated( const Key& key, const Value& value, bool is_ok )
       {
          item_state& state = _inventory[key];
-         FC_ASSERT( !state.value, "duplicate value received", ("value",value) );
+         FC_ASSERT( !state.value, "duplicate value received", ("value",value)("current",*state.value)("key",key) );
          state.recv_time = fc::time_point::now();
          state.value     = value;
          state.valid     = is_ok;
@@ -167,6 +167,20 @@ namespace bts { namespace network {
                {
                   unique_items.push_back( itr->first ); 
                }
+           }
+         }
+         return unique_items;
+      }
+      std::vector<Value> get_inventory_values()const
+      {
+         std::vector<Value> unique_items; 
+         unique_items.reserve( _inventory.size() );
+
+         for( auto itr = _inventory.begin(); itr != _inventory.end(); ++itr )
+         {
+           if( itr->second.value && itr->second.valid )
+           {
+               unique_items.push_back( *itr->second.value ); 
            }
          }
          return unique_items;

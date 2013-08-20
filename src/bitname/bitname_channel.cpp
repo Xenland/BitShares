@@ -400,6 +400,8 @@ namespace bts { namespace bitname {
              _block_index_broadcast_mgr.clear_old_inventory(); // we can clear old inventory
              _trx_broadcast_mgr.clear_old_inventory(); // this inventory no longer matters
              _block_index_broadcast_mgr.validated( block.id(), block, true );
+
+             _name_db.dump(); // DEBUG
              if( _delegate ) _delegate->name_block_added( block );
           } FC_RETHROW_EXCEPTIONS( warn, "error submitting block", ("block", block) ) }
     };
@@ -451,13 +453,16 @@ namespace bts { namespace bitname {
   void name_channel::submit_block( const name_block& block_to_submit )
   {
      auto id = block_to_submit.id();
-     uint64_t block_difficulty = bts::difficulty(id);
+     uint64_t block_difficulty = block_to_submit.difficulty();
+     ilog( "target: ${target}  block ${block}", ("target",my->_name_db.target_difficulty())("block",block_difficulty) );
      if( block_difficulty >= my->_name_db.target_difficulty() )
      {
+         wlog( "submit block... " );
          my->submit_block( block_to_submit );
      }
      else 
      {
+         wlog( "submit name" );
          submit_name( block_to_submit ); 
      }
   }
@@ -495,6 +500,11 @@ namespace bts { namespace bitname {
   name_id_type  name_channel::get_head_block_id()const
   {
     return my->_name_db.head_block_id();
+  }
+
+  std::vector<name_header>  name_channel::get_pending_name_trxs()const
+  {
+    return my->_trx_broadcast_mgr.get_inventory_values();
   }
 
 } } // bts::bitname

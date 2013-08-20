@@ -60,6 +60,8 @@ namespace bts { namespace bitname {
         uint32_t                  get_head_block_number()const;
         name_id_type              get_head_block_id()const;
 
+        std::vector<name_header>  get_pending_name_trxs()const;
+
       private:
         std::shared_ptr<detail::name_channel_impl> my;
   };

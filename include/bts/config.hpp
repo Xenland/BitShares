@@ -40,7 +40,7 @@
 
 #define BITNAME_BLOCK_INTERVAL_SEC         (60*5)  // 5 minutes
 #define BITNAME_TIMEKEEPER_WINDOW          (4096)  // blocks used for estimating time
-#define BLOCKCHAIN_TIMEKEEPER_MIN_BACK_SEC (60*10) // 10 minutes
-#define BITNAME_TIME_TOLLERANCE_SEC        (60*10)
+#define BLOCKCHAIN_TIMEKEEPER_MIN_BACK_SEC (60*60) // 60 minutes
+#define BITNAME_TIME_TOLLERANCE_SEC        (60*60) // 60 minutes
 #define BITNAME_BLOCKS_BEFORE_TRANSFER     (288*7) // 1 week before a transfer is complete 
 #define BITNAME_BLOCKS_PER_YEAR            (288*365)

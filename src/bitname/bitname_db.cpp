@@ -9,13 +9,18 @@
 #include <fc/reflect/variant.hpp>
 #include <unordered_map>
 
+#include <iostream> // TODO: remove dep
+#include <iomanip> // TODO: remove dep
+#include <fc/io/json.hpp>
+
+static const uint16_t max_trx_num = uint16_t(-1);
 struct name_location 
 {
     name_location( uint32_t block_num= 0, uint16_t tx_num = 0)
     :block_num(block_num),trx_num(tx_num){}
 
     uint32_t block_num;
-    uint16_t trx_num; /// trx_num -1 == header name
+    uint16_t trx_num; /// trx_num max_trx_num == header name
 };
 FC_REFLECT( name_location, (block_num)(trx_num) )
 
@@ -80,11 +85,12 @@ namespace bts { namespace bitname {
 
              void load_indexes( const fc::path& db_dir )
              {
+                ilog( "load indexes" );
                  bool rebuild_header_ids = true;
                  if( fc::exists( db_dir / "header_ids" ) )
                  {
-                     fc::ifstream in( db_dir / "header_ids", fc::ifstream::binary );
-                     fc::raw::unpack( in, _header_ids );
+                   //  fc::ifstream in( db_dir / "header_ids", fc::ifstream::binary );
+                    // fc::raw::unpack( in, _header_ids );
                  
                      // TODO: validate integrety
                  
@@ -93,9 +99,11 @@ namespace bts { namespace bitname {
                  
                  if( rebuild_header_ids )
                  {
+                    ilog( "load indexes" );
                     auto itr = _block_num_to_header.begin();
                     while( itr.valid() )
                     {
+                      ilog( "push back ${id}", ("id",itr.value().id()) );
                       _header_ids.push_back( itr.value().id() );
                       _id_to_block_num[_header_ids.back()] = _header_ids.size()-1;
                       ++itr;
@@ -117,7 +125,8 @@ namespace bts { namespace bitname {
                  if( _header_ids.size() == 0 )
                  {
                     _block_num_to_header.store( 0, genesis );
-                    index_trx( name_location( 0, -1 ), genesis.name_hash );
+                    _block_num_to_name_trxs.store( 0, std::vector<name_trx>() );
+                    index_trx( name_location( 0, max_trx_num ), genesis.name_hash );
                     push_header_id( genesis.id() );
                  }
              }
@@ -182,6 +191,7 @@ namespace bts { namespace bitname {
        my->load_genesis();
        my->init_timekeeper();
 
+       dump(); // DEBUG
     } FC_RETHROW_EXCEPTIONS( warn, "unable to open name db at path ${path}", ("path", db_dir)("create",create) ) }
 
     void name_db::close()
@@ -255,6 +265,7 @@ namespace bts { namespace bitname {
        {
           my->index_trx( name_location( next_num, trx_idx ), next_block.name_trxs[trx_idx].name_hash );
        }
+       my->index_trx( name_location( next_num, max_trx_num ), next_block.name_hash );
        my->_timekeeper.push( next_num, next_block.utc_sec, bts::difficulty( next_id ) );
     } FC_RETHROW_EXCEPTIONS( warn, "unable to push block ${next_block}", ("next_block", next_block) ) } 
 
@@ -266,7 +277,11 @@ namespace bts { namespace bitname {
     void name_db::validate_trx( const name_trx& trx, bool is_header )const
     { try {
        fc::sha224 chain_head_id = my->_header_ids.back();
-       FC_ASSERT( trx.utc_sec > (fc::time_point(chain_time()) - fc::seconds( BITNAME_TIME_TOLLERANCE_SEC ) ) );
+       FC_ASSERT( trx.utc_sec > (fc::time_point(chain_time()) - fc::seconds( BITNAME_TIME_TOLLERANCE_SEC ) ),
+                  "trx.utc_sec: ${trx_time}   chain_time: ${chain_time}", 
+                  ("trx_time",trx.utc_sec)
+                  ("expected",my->_timekeeper.expected_time(head_block_num()+1))
+                  ("chain_time",chain_time()));
        FC_ASSERT( trx.difficulty( chain_head_id ) >= target_name_difficulty() );
 
        auto prev_reg_itr = my->_name_hash_to_locs.find( trx.name_hash );
@@ -281,7 +296,7 @@ namespace bts { namespace bitname {
           name_trx  prev_trx;
           
           uint32_t repute = 1;
-          if( prev_loc.trx_num == -1 ) // then the last block earned me points!
+          if( prev_loc.trx_num == max_trx_num ) // then the last block earned me points!
           {
              repute += prev_block_trxs.size();
              prev_trx = my->_block_num_to_header.fetch( prev_loc.block_num );
@@ -315,7 +330,7 @@ namespace bts { namespace bitname {
                  {
                      FC_ASSERT( name_locs.size() > 2 );
                      auto prev_prev_update_loc = name_locs[name_locs.size()-2];
-                     if( prev_prev_update_loc.trx_num == -1 )
+                     if( prev_prev_update_loc.trx_num == max_trx_num )
                      {
                         auto prev_prev_header =  my->_block_num_to_header.fetch( prev_prev_update_loc.block_num );
                         FC_ASSERT( prev_prev_header.key == signed_key );
@@ -376,10 +391,19 @@ namespace bts { namespace bitname {
     name_trx   name_db::fetch_trx( uint64_t name_hash )const
     { try {
         auto name_loc  = my->find_name( name_hash );
-        auto name_trxs = my->_block_num_to_name_trxs.fetch( name_loc.block_num );
-        FC_ASSERT( name_trxs.size() > name_loc.trx_num );
-        FC_ASSERT( name_trxs[name_loc.trx_num].name_hash == name_hash );
-        return name_trxs[name_loc.trx_num];
+        if( name_loc.trx_num != max_trx_num )
+        {
+          auto name_trxs = my->_block_num_to_name_trxs.fetch( name_loc.block_num );
+          FC_ASSERT( name_trxs.size() > name_loc.trx_num, "trx_num: ${num}", ("num",name_loc.trx_num) );
+          FC_ASSERT( name_trxs[name_loc.trx_num].name_hash == name_hash );
+          return name_trxs[name_loc.trx_num];
+        }
+        else
+        {
+          auto name_head = my->_block_num_to_header.fetch( name_loc.block_num );
+          FC_ASSERT( name_head.name_hash == name_hash );
+          return name_head;
+        }
     } FC_RETHROW_EXCEPTIONS( warn, "unable to fetch trx for name hash ${name_hash}", ("name_hash", name_hash ) ) }
 
 
@@ -431,5 +455,52 @@ namespace bts { namespace bitname {
         FC_ASSERT( block_num_itr != my->_id_to_block_num.end() );
         return block_num_itr->second;
     } FC_RETHROW_EXCEPTIONS( warn, "unable to fetch block num for id ${block_id}", ("block_id",block_id) ) }
+
+    void name_db::dump()
+    {
+       auto genesis = create_genesis_block(); 
+       blockchain::time_keeper timekeep;
+       timekeep.configure( genesis.utc_sec, 
+                              fc::seconds( BITNAME_BLOCK_INTERVAL_SEC ),
+                              BITNAME_TIMEKEEPER_WINDOW );
+       timekeep.push_init( 0, genesis.utc_sec, genesis.difficulty() );
+       timekeep.init_stats();
+
+       for( uint32_t i = 0; i < my->_header_ids.size(); ++i )
+       {
+          std::cerr<<std::setw(3)  << i                                           <<"] "
+                   <<std::setw(20) << fc::variant(my->_header_ids[i]).as_string() <<" ";
+          auto blkhead = my->_block_num_to_header.fetch(i); 
+          
+          std::cerr<<"name: "<<std::setw(24) << blkhead.name_hash << " ";
+          std::cerr<<"time: "<<std::setw(16) << std::string(fc::time_point(blkhead.utc_sec)) <<" ";
+          std::cerr<<"age: "<<std::setw(5) << blkhead.age <<" ";
+          std::cerr<<"repute: "<<std::setw(5) << blkhead.repute_points.value <<" ";
+          std::cerr<<"key: "<<std::setw(5) << blkhead.repute_points.value <<" ";
+          std::cerr<<"prev: "<<std::setw(20) << fc::variant(blkhead.prev).as_string() <<" ";
+          std::cerr<<"key: "<<std::setw(66)<<fc::json::to_string(blkhead.key)<<" ";
+          std::cerr<<"next_difficulty: "<<std::setw(16)<<timekeep.next_difficulty();
+          std::cerr<<"\n";
+          std::vector<name_trx> blktrxs = my->_block_num_to_name_trxs.fetch(i);
+          for( uint32_t t = 0; t < blktrxs.size(); ++t )
+          {
+             std::cerr<<"\t\t"<<std::setw(3)<<t<<") ";
+             std::cerr<<std::setw(24)<<blktrxs[t].name_hash<<" ";
+             std::cerr<<"time: "<<std::setw(16)<<std::string( fc::time_point(blktrxs[t].utc_sec))<<" ";
+             std::cerr<<"age: "<<std::setw(3)<<blktrxs[t].age<<" ";
+             std::cerr<<"repute: "<<std::setw(3)<<blktrxs[t].repute_points.value<<" ";
+             std::cerr<<"key: "<<std::setw(66)<<fc::json::to_string(blktrxs[t].key)<<" ";
+             std::cerr<<"\n";
+          }
+          if( i > 0 )
+          {
+            timekeep.push( i, blkhead.utc_sec, blkhead.difficulty() );
+          }
+       }
+       std::cerr<<"chain time: "<<std::string( fc::time_point(chain_time()) )<<"\n";
+       std::cerr<<"expected time: "<<std::string( fc::time_point(expected_time( my->_header_ids.size()-1)) )<<"\n";
+       std::cerr<<"target difficulty: "<<target_difficulty()<<"\n";
+       std::cerr<<"target name difficulty: "<<target_name_difficulty()<<"\n";
+    }
 
 } } // bts::bitname

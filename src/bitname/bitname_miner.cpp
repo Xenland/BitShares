@@ -79,24 +79,17 @@ namespace bts { namespace bitname {
                   // }
                
                    uint64_t header_difficulty = b.difficulty();
+                   /*
                    if( header_difficulty >= best_diff )
                    {
                      best_diff = header_difficulty;
                      ilog( "new best ${b}   target ${t}   ${id} ${n}", ("b",best_diff)("t",_block_target)("id",b.id())("n",nonce) );
                    }
+                   */
                    if( header_difficulty > _name_trx_target )
                    {
-                      uint64_t block_difficulty = b.block_difficulty();
-                      if( block_difficulty > _block_target )
-                      {
-                         ++_block_ver;
-                         _callback_thread.async( [=](){ _callback_del->found_name_block( b ); } );
-                      }
-                      else
-                      {
-                        name_trx ntrx = b; // avoid capturing the entire block!
-                         _callback_thread.async( [=](){ _callback_del->found_name_trx( ntrx ); } );
-                      }
+                      ++_block_ver;
+                      _callback_thread.async( [=](){ _callback_del->found_name_block( b ); } );
                    }
                    // exit if the block has been updated
                    if( ver < _block_ver ) { return; }
@@ -149,7 +142,7 @@ namespace bts { namespace bitname {
      // TODO: remove hard coded 10000... define why whe chose 10000... because it should
      // result keeping the trx registration rate in line.. with 10000 per block (about 1MB)
      // TODO: perhaps keep this limit lower until the hashing power grows enough...?
-     my->_name_trx_target = std::max( my->_min_name_trx_target, my->_block_target / 10000 );
+     my->_name_trx_target = std::max( min_name_difficulty(), my->_block_target / 10000 );
      my->start_new_block();
   }
 
@@ -182,12 +175,18 @@ namespace bts { namespace bitname {
   void name_miner::add_name_trx( const name_header& t )
   {
       FC_ASSERT( t.prev == my->_cur_block.prev );
-      FC_ASSERT( t.name_hash != my->_cur_block.name_hash );
+      if( t.name_hash == my->_cur_block.name_hash ) return;
+
+      //FC_ASSERT( t.name_hash != my->_cur_block.name_hash );
       for( auto itr = my->_cur_block.name_trxs.begin();
                 itr != my->_cur_block.name_trxs.end();
                 ++itr )
       {
-          FC_ASSERT( t.name_hash != itr->name_hash );
+          if( t.name_hash == itr->name_hash )
+          {
+             *itr = t;
+             return;
+          }
       }
       my->_cur_block.name_trxs.push_back(t);
       my->start_new_block();
