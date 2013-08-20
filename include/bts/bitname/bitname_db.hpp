@@ -52,6 +52,7 @@ namespace bts { namespace bitname {
 
         /** fetches the most recent registration of name_hash */
         name_trx        fetch_trx( uint64_t name_hash )const;
+        uint32_t        fetch_repute( uint64_t name_hash )const;
 
         /** get a block by its block_id */
         name_block      fetch_block( const name_id_type& block_id )const;

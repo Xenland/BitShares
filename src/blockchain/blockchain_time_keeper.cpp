@@ -118,8 +118,8 @@ namespace bts { namespace blockchain {
                 _median_time_error_sec = _records[index[median_pos]].time_error_sec;
 
                 _cur_time = expected_time( head_block_num() ) + fc::seconds(_median_time_error_sec);
-                ilog( "expected time: ${time}       current time: ${cur}   error: ${err}",
-                      ("time",expected_time(head_block_num()))( "cur", _cur_time )("err",_median_time_error_sec) );
+                //ilog( "expected time: ${time}       current time: ${cur}   error: ${err}",
+                 //     ("time",expected_time(head_block_num()))( "cur", _cur_time )("err",_median_time_error_sec) );
             }
 
             uint32_t head_block_num()const

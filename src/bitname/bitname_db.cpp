@@ -308,7 +308,7 @@ namespace bts { namespace bitname {
 
           if( trx.repute_points != 0 ) // this is an update
           {
-             FC_ASSERT( trx.repute_points.value == prev_trx.repute_points.value + repute );
+             FC_ASSERT( trx.repute_points.value == prev_trx.repute_points.value + repute, "", ("prev_trx", prev_trx)("repute",repute) );
              FC_ASSERT( trx.key  == prev_trx.key );
              FC_ASSERT( trx.age  == prev_trx.age );
           }
@@ -405,6 +405,24 @@ namespace bts { namespace bitname {
           return name_head;
         }
     } FC_RETHROW_EXCEPTIONS( warn, "unable to fetch trx for name hash ${name_hash}", ("name_hash", name_hash ) ) }
+
+    uint32_t name_db::fetch_repute( uint64_t name_hash )const
+    {
+        auto name_loc  = my->find_name( name_hash );
+        if( name_loc.trx_num != max_trx_num )
+        {
+          auto name_trxs = my->_block_num_to_name_trxs.fetch( name_loc.block_num );
+          FC_ASSERT( name_trxs.size() > name_loc.trx_num, "trx_num: ${num}", ("num",name_loc.trx_num) );
+          FC_ASSERT( name_trxs[name_loc.trx_num].name_hash == name_hash );
+          return name_trxs[name_loc.trx_num].repute_points.value;
+        }
+        else
+        {
+          auto name_head = my->_block_num_to_header.fetch( name_loc.block_num );
+          FC_ASSERT( name_head.name_hash == name_hash );
+          return name_head.repute_points.value + my->_block_num_to_name_trxs.fetch( name_loc.block_num ).size();
+        }
+    }
 
 
     name_header name_db::fetch_block_header( const fc::sha224& block_id )const

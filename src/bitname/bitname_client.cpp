@@ -35,6 +35,7 @@ namespace bts { namespace bitname {
               catch ( const fc::exception& e )
               {
                  wlog( "\n${e}", ("e",e.to_detail_string()) );
+                 fc::usleep( fc::seconds(3) );
               }
               start_mining();
           }
@@ -125,11 +126,11 @@ namespace bts { namespace bitname {
              {
                 ilog( "update name reg" );
                 name_header renew_name;
-                renew_name.name_hash     = min_repute_record->get_name_hash();
-                renew_name.key           = min_repute_record->pub_key;
-                renew_name.age           = min_repute_record->age;
+                renew_name.name_hash       = min_repute_record->get_name_hash();
+                renew_name.key             = min_repute_record->pub_key;
+                renew_name.age             = min_repute_record->age;
                 // TODO: handle repute + num_trxs in case last renewal was a block header
-                renew_name.repute_points = min_repute_record->repute + 1;
+                renew_name.repute_points   = min_repute_record->repute + 1;
                 renew_name.prev            = _chan->get_head_block_id();
                 _miner.set_name_header( renew_name );
                    auto pending_trxs = _chan->get_pending_name_trxs();

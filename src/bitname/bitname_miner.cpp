@@ -52,7 +52,7 @@ namespace bts { namespace bitname {
         float                 _cur_effort;
         name_block            _cur_block;
 
-        uint64_t              _block_ver; // incremented anytime block state changes
+        volatile uint64_t     _block_ver; // incremented anytime block state changes
         uint64_t              _block_target;
         uint64_t              _name_trx_target;
         uint64_t              _min_name_trx_target;
@@ -63,7 +63,7 @@ namespace bts { namespace bitname {
         void start_mining( name_block b, uint32_t thread_num, uint64_t ver )
         {
           try { 
-            ilog( "thread: ${t}  ver ${ver}", ("t",thread_num)("ver",ver) );
+            ilog( "---------------------------thread: ${t}  ver ${ver} blockver ${blockver}", ("t",thread_num)("ver",ver)("b",b)("blockver", _block_ver) );
             if( b.name_hash == 0 ) return;
 
             uint16_t max_nonce = uint16_t(-1) - DEFAULT_MINING_THREADS;
@@ -71,44 +71,48 @@ namespace bts { namespace bitname {
             while( ver >= _block_ver )
             {
                b.utc_sec = fc::time_point::now();
-               for( uint32_t nonce = thread_num; nonce < max_nonce; nonce += DEFAULT_MINING_THREADS )
+               for( uint32_t nonce = thread_num; ver >= _block_ver && nonce < max_nonce; nonce += DEFAULT_MINING_THREADS )
                {
                    b.nonce   = nonce;
-                   //if( nonce > max_nonce - DEFAULT_MINING_THREADS ) 
-                  // {
-                  // }
                
                    uint64_t header_difficulty = b.difficulty();
-                   /*
-                   if( header_difficulty >= best_diff )
-                   {
-                     best_diff = header_difficulty;
-                     ilog( "new best ${b}   target ${t}   ${id} ${n}", ("b",best_diff)("t",_block_target)("id",b.id())("n",nonce) );
-                   }
-                   */
+
                    if( header_difficulty > _name_trx_target )
                    {
-                      ++_block_ver;
-                      _callback_thread.async( [=](){ _callback_del->found_name_block( b ); } );
+                      wlog( "++++   ${ver}  ++++++++++++found: ${f}    ${now}  difficulty: ${diff}", ("f",b)("now", fc::time_point::now())("diff",header_difficulty)("ver",ver)  );
+                      if( ver == _block_ver )
+                      {
+                          ++_block_ver;
+                          _callback_thread.async( [=](){ _callback_del->found_name_block( b ); } );
+                      }
+                      else
+                      {
+                          elog( "SKIPING OLD" );
+                      }
+                      return;
                    }
+
                    // exit if the block has been updated
-                   if( ver < _block_ver ) { return; }
+                   if( ver < _block_ver ) { ilog( "     EXIT  ${ver}", ("ver",ver) ); return; }
                }
+               /*
                do {
                    fc::usleep( fc::microseconds( 100 + 1000000 * (1-_cur_effort) ) );
                } while ( b.utc_sec == fc::time_point::now() );
+               */
             }
+            ilog( "---EXIT  ------------------------thread: ${t}  ver ${ver}  blockver ${blockver}", ("t",thread_num)("ver",ver)("b",b)("blockver", _block_ver) );
           }
           catch ( const fc::exception& e )
           {
-            wlog( "${e}\n ${block}", ("e", e.to_detail_string() )("block",b) );
+            elog( "?????????   ${e}\n ${block}", ("e", e.to_detail_string() )("block",b) );
             // TODO: do something smart with this exception!
           }
         }
 
         void start_new_block()
         {
-           ilog( "start_new_block" );
+           elog( "-----------------     start_new_block           --------------------" );
            FC_ASSERT( _callback_del != nullptr ); // no point in mining if there is no one to tell when we find the result
 
            _cur_block.trxs_hash = _cur_block.calc_trxs_hash();
@@ -117,6 +121,15 @@ namespace bts { namespace bitname {
            //name_pow_target = mini_pow_difficulty(min_name_pow);
 
            auto next_blk = ++_block_ver;
+
+          ilog( "wait for complete" );
+           for( uint32_t i = 0; i < DEFAULT_MINING_THREADS; ++i )
+           {
+              if( _mining_complete[i].valid() ) _mining_complete[i].wait();
+           }
+           fc::usleep(fc::seconds(1));
+          ilog( "start next" );
+
            if( _cur_block.name_hash != 0 )
            {
               for( uint32_t i = 0; i < DEFAULT_MINING_THREADS; ++i )
@@ -143,12 +156,11 @@ namespace bts { namespace bitname {
      // result keeping the trx registration rate in line.. with 10000 per block (about 1MB)
      // TODO: perhaps keep this limit lower until the hashing power grows enough...?
      my->_name_trx_target = std::max( min_name_difficulty(), my->_block_target / 10000 );
-     my->start_new_block();
   }
 
   void name_miner::start( float effort )
   {
-    ilog( "${effort}", ("effort",effort) );
+    wlog( "START MINING ${effort}", ("effort",effort) );
     bool kickoff = my->_cur_effort <= 0;
     my->_cur_effort = effort;
     if( kickoff )
