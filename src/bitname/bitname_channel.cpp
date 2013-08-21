@@ -64,6 +64,7 @@ namespace bts { namespace bitname {
           fc::future<void>                                  _fetch_loop;
            
           blockchain::fork_tree<name_id_type>               _fork_tree; 
+          fc::optional<name_id_type>                        _pending_block_fetch;
                                                             
           broadcast_manager<short_name_id_type,name_header> _trx_broadcast_mgr;
           broadcast_manager<name_id_type,name_block_index>  _block_index_broadcast_mgr;
@@ -146,6 +147,17 @@ namespace bts { namespace bitname {
                 while( !_fetch_loop.canceled() )
                 {
                    broadcast_inv();
+
+                   if( !_pending_block_fetch )
+                   {
+                      _pending_block_fetch = _fork_tree.get_best_fork_for_height( _name_db.head_block_num()+1 );
+                      if( _pending_block_fetch )
+                      {
+                         auto cons = _peers->get_connections( _chan_id );
+                         fetch_block_from_best_connection( cons, *_pending_block_fetch );
+                      }
+                   }
+                   
 
                    uint64_t trx_query = 0;
                    if( _trx_broadcast_mgr.find_next_query( trx_query ) )
@@ -251,6 +263,28 @@ namespace bts { namespace bitname {
                     cons[i]->send( network::message( request, _chan_id ) );
                     return;
                  }
+             }
+          } FC_RETHROW_EXCEPTIONS( warn, "error fetching name ${name_hash}", ("name_hash",id) ) }
+
+          void fetch_block_from_best_connection( const std::vector<connection_ptr>& cons,  const name_id_type& id )
+          { try {
+              ilog( "${id}", ("id",id) );
+             // if request is made, move id from unknown_names to requested_msgs 
+             // TODO: update this algorithm to be something better. 
+             for( uint32_t i = 0; i < cons.size(); ++i )
+             {
+                 ilog( "con ${i}", ("i",i) );
+                 chan_data& chan_data = get_channel_data(cons[i]); 
+                 /*
+                 if( chan_data.trxs_mgr.knows( id ) && !chan_data.trxs_mgr.has_pending_request() )
+                 {
+                    chan_data.trxs_mgr.requested(id);
+                    get_name_header_message request( id );
+                    ilog( "request ${msg}", ("msg",request) );
+                    cons[i]->send( network::message( request, _chan_id ) );
+                    return;
+                 }
+                 */
              }
           } FC_RETHROW_EXCEPTIONS( warn, "error fetching name ${name_hash}", ("name_hash",id) ) }
 

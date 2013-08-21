@@ -128,7 +128,7 @@ namespace bts { namespace blockchain {
             {
               return fc::optional<Key>();
             }
-            std::vector<typename node_data::ptr>& nodes_at_height = nodes_at_height->second;
+            std::vector<typename node_data::ptr>& nodes_at_height = nodes_at_height_itr->second;
             if( nodes_at_height.size() == 0 )
             {
               return fc::optional<Key>();
