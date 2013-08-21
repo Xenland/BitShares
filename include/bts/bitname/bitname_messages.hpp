@@ -131,6 +131,7 @@ FC_REFLECT_ENUM( bts::bitname::message_type,
     (get_name_header_msg)
     (name_header_msg)
     (block_msg)
+    (block_index_msg)
     (headers_msg)
 )
 

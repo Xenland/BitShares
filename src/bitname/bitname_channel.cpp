@@ -300,6 +300,9 @@ namespace bts { namespace bitname {
                     cons[i]->send( network::message( get_block_message(id), _chan_id ) );
                     return;
                  }
+                 else
+                 {
+                 }
              }
           } FC_RETHROW_EXCEPTIONS( warn, "error fetching name ${name_hash}", ("name_hash",id) ) }
 
@@ -312,9 +315,10 @@ namespace bts { namespace bitname {
              {
                  ilog( "con ${i}", ("i",i) );
                  chan_data& chan_data = get_channel_data(cons[i]); 
-                 if( chan_data.available_blocks.find(id) != chan_data.available_blocks.end() )
+                 if( chan_data.block_mgr.knows(id) && !chan_data.block_mgr.has_pending_request() )
                  {
                     ilog( "request ${msg}", ("msg",get_block_index_message(id)) );
+                    chan_data.block_mgr.requested(id);
                     // TODO: track how many blocks I have requested from this connection... 
                     // and perform soem load balancing...
                     cons[i]->send( network::message( get_block_index_message(id), _chan_id ) );
@@ -382,6 +386,9 @@ namespace bts { namespace bitname {
                    break;
                  case name_header_msg:
                    handle_name( con, cdat, m.as<name_header_message>() );
+                   break;
+                 case block_index_msg:
+                   handle_block_index( con, cdat, m.as<block_index_message>() );
                    break;
                  case block_msg:
                    handle_block( con, cdat, m.as<block_message>() );
@@ -514,6 +521,12 @@ namespace bts { namespace bitname {
              }
           }
    
+          void handle_block_index( const connection_ptr& con,  chan_data& cdat, const block_index_message& msg )
+          {
+             ilog( "${msg}", ("msg",msg) );
+             cdat.block_mgr.received_response( msg.index.header.id() );
+             elog( "TODO:  implement the rest of fetching the block..." );
+          }
           void handle_name( const connection_ptr& con,  chan_data& cdat, const name_header_message& msg )
           { try {
              ilog( "${msg}", ("msg",msg) );
@@ -527,9 +540,11 @@ namespace bts { namespace bitname {
              } 
              catch ( fc::exception& e )
              {
-                // TODO: connection just sent us an invalid trx... what do we do...
+               // TODO: connection just sent us an invalid trx... what do we do...
+               // log it and ignore it because it was probably for the prior
+               // block that they haven't received yet...  we should note it though.
                 _trx_broadcast_mgr.validated( short_id, msg.trx, false );
-                FC_RETHROW_EXCEPTION( e, warn, "" );
+               // FC_RETHROW_EXCEPTION( e, warn, "" );
              }
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg", msg) ) }
 

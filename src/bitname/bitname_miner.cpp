@@ -185,6 +185,11 @@ namespace bts { namespace bitname {
 
   void name_miner::add_name_trx( const name_header& t )
   {
+      if( my->_cur_block.name_hash == 0 )
+      {
+        ilog( "not currently mining, ignoring name trx" );
+        return;
+      }
       ilog( "add_name_trx: ${t}", ("t",t) );
       FC_ASSERT( t.prev == my->_cur_block.prev );
       if( t.name_hash == my->_cur_block.name_hash ) return;
