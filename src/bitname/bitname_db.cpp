@@ -527,5 +527,9 @@ namespace bts { namespace bitname {
        std::cerr<<"target difficulty: "<<target_difficulty()<<"\n";
        std::cerr<<"target name difficulty: "<<target_name_difficulty()<<"\n";
     }
+    const std::vector<name_id_type>&  name_db::get_header_ids()const
+    {
+      return my->_header_ids;
+    }
 
 } } // bts::bitname

@@ -2,10 +2,11 @@
 #include <bts/bitname/bitname_messages.hpp>
 #include <bts/bitname/bitname_db.hpp>
 #include <bts/bitname/bitname_hash.hpp>
-#include <bts/difficulty.hpp>
+#include <bts/blockchain/fork_tree.hpp>
 #include <bts/network/server.hpp>
 #include <bts/network/channel.hpp>
 #include <bts/network/broadcast_manager.hpp>
+#include <bts/difficulty.hpp>
 #include <fc/reflect/variant.hpp>
 #include <fc/crypto/hex.hpp>
 #include <fc/thread/thread.hpp>
@@ -24,6 +25,10 @@ namespace bts { namespace bitname {
       public:
         broadcast_manager<name_hash_type,name_header>::channel_data      trxs_mgr;
         broadcast_manager<name_id_type,name_block_index>::channel_data   block_mgr;
+        /// the head block as reported by the remote node
+        name_id_type                                                     recv_head_block_id;
+        /// the head block as we have reported to the remote node
+        name_id_type                                                     sent_head_block_id;
     };
 
     struct block_index_download_manager
@@ -57,6 +62,8 @@ namespace bts { namespace bitname {
                                                             
           name_db                                           _name_db;
           fc::future<void>                                  _fetch_loop;
+           
+          blockchain::fork_tree<name_id_type>               _fork_tree; 
                                                             
           broadcast_manager<short_name_id_type,name_header> _trx_broadcast_mgr;
           broadcast_manager<name_id_type,name_block_index>  _block_index_broadcast_mgr;
@@ -162,6 +169,15 @@ namespace bts { namespace bitname {
              {
                wlog( "${e}", ("e", e.to_detail_string()) );
              }
+          }
+
+          void request_latest_blocks()
+          {
+              auto cons = _peers->get_connections( _chan_id );
+              for( auto c = cons.begin(); c != cons.end(); ++c )
+              {
+                 request_block_headers( *c );  
+              }
           }
 
 
@@ -296,6 +312,21 @@ namespace bts { namespace bitname {
              }
           } // handle_message
 
+          void request_block_headers( const connection_ptr& con )
+          {
+              ilog( "requesting block headers from ${ep}", ("ep",con->remote_endpoint() ));
+              get_headers_message  request;
+              const std::vector<name_id_type>& ids = _name_db.get_header_ids();
+              uint32_t delta = 1;
+              for( int32_t i = ids.size() - 1; i >= 0;  )
+              {
+                 request.locator_hashes.push_back(ids[i]);
+                 i -= delta;
+                 delta *= 2;
+              }
+              con->send( network::message(request,_chan_id) );
+          }
+
           void handle_name_inv( const connection_ptr& con,  chan_data& cdat, const name_inv_message& msg )
           {
               ilog( "inv: ${msg}", ("msg",msg) );
@@ -325,9 +356,39 @@ namespace bts { namespace bitname {
           }
    
           void handle_get_headers( const connection_ptr& con,  chan_data& cdat, const get_headers_message& msg )
-          {
-         //     _name_db->get_header_ids
-          }
+          { try {
+              // TODO: prevent abuse of this message... only allow it at a limited rate and take notice
+              // when the remote node starts abusing it.
+
+              uint32_t start_block = 0;
+              for( uint32_t i = 0; i < msg.locator_hashes.size(); ++i )
+              {
+                try {
+                 start_block = _name_db.get_block_num( msg.locator_hashes[i] ); 
+                 break;
+                } 
+                catch ( const fc::exception& e )
+                {
+                  // TODO: should I do something other than log this exception?
+                  wlog( "apparently this node is on a different fork, error fetching ${id}\n${e}", 
+                        ("id", msg.locator_hashes[i] )("e",e.to_detail_string()) );
+                }
+              }
+              const std::vector<name_id_type>& ids = _name_db.get_header_ids();
+              uint32_t end = std::min<uint32_t>(start_block+2000, ids.size() );
+
+              headers_message         reply;
+              reply.first_block_num = start_block;
+              reply.header_ids.reserve( end - start_block );
+              for( auto i = start_block; i < end; ++i )
+              {
+                reply.header_ids.push_back( ids[i] );
+              }
+              reply.head_block_num = ids.size() - 1;
+              reply.head_block_id  = ids.back();
+              con->send( network::message( reply, _chan_id ) );
+
+          } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) }
    
 
           void handle_get_block( const connection_ptr& con,  chan_data& cdat, const get_block_message& msg )
@@ -386,9 +447,20 @@ namespace bts { namespace bitname {
           } FC_RETHROW_EXCEPTIONS( warn,"handling block ${block}", ("block",msg) ) }
    
           void handle_headers( const connection_ptr& con,  chan_data& cdat, const headers_message& msg )
-          {
-
-          }
+          { try {
+              // TODO: figure out how to prevent abuse by sending a bunch of bogus hashes... that
+              // will polute our fork tree.   Perhaps track the sender, punish them.
+              
+              // TODO: verify that we did request these headers, no unrequested headers should be
+              //       processed.
+              ilog( "received ${msg}", ("msg",msg) );
+              FC_ASSERT( msg.header_ids.size() != 0 );
+              _fork_tree.check_node( msg.first_block_num, msg.header_ids[0] );
+              for( uint32_t i = 1; i < msg.header_ids.size(); ++i )
+              {
+                 _fork_tree.add_node( msg.first_block_num + i, msg.header_ids[i], msg.header_ids[i-1] );
+              }
+          } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } 
 
           void submit_name( const name_header& new_name_trx )
           { try {
@@ -438,7 +510,8 @@ namespace bts { namespace bitname {
   void name_channel::configure( const name_channel::config& c )
   {
       my->_name_db.open( c.name_db_dir, true/*create*/ );
-
+      my->_fork_tree.add_node( my->_name_db.head_block_num(), my->_name_db.head_block_id(), name_id_type() );
+      my->request_latest_blocks();
       // TODO: connect to the network and attempt to download the chain...
       //      *  what if no peers on on the name channel ??  * 
       //         I guess when I do connect to a peer on this channel they will
