@@ -42,6 +42,7 @@ namespace bts { namespace blockchain {
 
             int64_t                  _interval_sec;
             int64_t                  _median_time_error_sec;
+            int64_t                  _median_interval_sec;
 
             void update_stats()
             {
@@ -53,6 +54,7 @@ namespace bts { namespace blockchain {
 
                update_current_time(index);
                update_current_difficulty(index);
+               update_median_interval(index);
                update_next_difficulty();
             }
 
@@ -61,6 +63,23 @@ namespace bts { namespace blockchain {
                return _origin_time + fc::seconds(block_num * _interval_sec);
             }
 
+            int64_t interval( uint32_t p )
+            {
+              if( p > 0 && p < _records.size() )
+              {
+                return (_records[p].block_time - _records[p-1].block_time).count()/1000000;
+              }
+              return _interval_sec;
+            }
+
+            void update_median_interval( std::vector<uint32_t>& index )
+            {
+                uint32_t median_pos = index.size() / 2;
+                std::nth_element( index.begin(), index.begin()+median_pos, index.end(), 
+                   [&](int32_t a, int32_t b) { return interval(a) < interval(b); } );
+                _median_interval_sec = interval( index[median_pos] );
+            }
+           
             void update_current_difficulty( std::vector<uint32_t>& index )
             {
                 uint32_t median_pos = index.size() / 2;
@@ -72,41 +91,22 @@ namespace bts { namespace blockchain {
 
             void update_next_difficulty()
             {
-                int64_t time_error_percent = 0;
-
-                int64_t current_interval = _interval_sec + _median_time_error_sec; 
-
-                if( current_interval <= 0 )
+                if( _median_interval_sec == 0 )
                 {
-                  current_interval = 1; // prevent divide by 0 below 
+                  _median_interval_sec = 1;
                 }
-                
-                // note: if you have an investment that loses 50% of its value, you must
-                //       see a 100% gain to get back to your original value.  Therefore, 
-                //       if our interval is 50% of the target rate, we need to make the
-                //       difficulty 2x as easy, but if our interval is 150% of the target
-                //       rate we only need to increase difficulty 33%.
-                //
-                //       if the current interval is less than the target, our difficulty
-                //       adjustment needs to be made relative to the current_interval, but
-                //       if it is above the target, then it should be made relative to the
-                //       target interval.
-                //
-                if( current_interval < _interval_sec )
-                    time_error_percent = (_median_time_error_sec * 1000000) / current_interval;
-                else
-                    time_error_percent = (_median_time_error_sec * 1000000) / _interval_sec;
-
-                if( time_error_percent > 10000000 )
+                int64_t target_interval_sec = _interval_sec;
+                if( _median_time_error_sec > _interval_sec/64 )
                 {
-                    time_error_percent = 9999999;
+                   target_interval_sec *= 630;
+                   target_interval_sec /= 640;
                 }
-                  
-             //   ilog( "_cur_difficulty: ${c}   time_error_percent: ${tep}", 
-             //         ("c", _cur_difficulty)("tep",time_error_percent) );
-                _next_difficulty = _cur_difficulty;
-                _next_difficulty *= 10000000 - time_error_percent;
-                _next_difficulty /= 10000000; 
+                else if( _median_time_error_sec < -_interval_sec/64 )
+                {
+                   target_interval_sec *= 640;
+                   target_interval_sec /= 630;
+                }
+                _next_difficulty = (_cur_difficulty * target_interval_sec) / _median_interval_sec;
             }
 
             void update_current_time( std::vector<uint32_t>& index )

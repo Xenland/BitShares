@@ -3,6 +3,7 @@
 #include <fc/uint128.hpp>
 #include <fc/time.hpp>
 #include <fc/exception/exception.hpp>
+#include <fc/log/logger.hpp>
 #include <sstream>
 #include <iomanip>
 
@@ -12,7 +13,7 @@
 int main( int argc, char** argv )
 {
    try {
-      int window = 1024;
+      int window = 64;
       fc::time_point_sec origin   = fc::time_point::now();
       fc::microseconds   interval = fc::seconds( 60*5 );
       std::cout << "origin: "<< std::string(fc::time_point(origin)) <<" \n";
@@ -23,11 +24,11 @@ int main( int argc, char** argv )
       tk.configure( origin, interval, window );
 
 
-      uint64_t base_diff = 100000;
+      uint64_t base_diff = 1000000;
 
       uint32_t block_num = 0;
       
-      for( uint32_t i = 0; i < window; ++i )
+      for( uint32_t i = 0; i < 1; ++i )
       {
          tk.push_init( block_num, 
                   fc::time_point(origin) + fc::microseconds(interval.count() * i),
@@ -36,40 +37,63 @@ int main( int argc, char** argv )
       }
       tk.init_stats();
 
+      fc::time_point sim_time = tk.next_time();
+      auto next_diff = tk.next_difficulty();
+      if( next_diff < 5*60*1000000 ) next_diff = 5*60*1000000;
+
+      int64_t maxerr = 0;
+      int64_t minerr = 0;
+
       // randomly find blocks +/- 2 hours from expected time... 
       //   at the expected difficulty... this should result in
       //   an average difficulty that is about the same.
-      for( uint32_t i = 0; i < 100000; ++i )
+      for( uint64_t i = 0; true || i < 10000000; ++i )
       {
-         uint64_t range = 60*1000ll*60ll; // 1hr
-         range /= 6; // 2*5 minute block interval
-         int64_t error_usec = ((uint64_t(rand())) % (2*range)) -  range; // +/-1hr 
-         error_usec *= 1000;
-         auto next_diff = tk.next_difficulty();
-//         next_diff++;
-         next_diff += rand() % 3;
 
-         auto next_time = tk.next_time();
-         tk.push( block_num, 
-                    next_time + fc::microseconds(error_usec), 
-                    next_diff  );
+         tk.push( block_num, sim_time, next_diff  );
+         next_diff = tk.next_difficulty();
+    //     if( next_diff < 60*1000000 ) next_diff = 60*1000000;
+         if( next_diff <= 0 ) next_diff = 1;
          ++block_num;
-         auto block_time = next_time + fc::microseconds(error_usec);
 
-         if( block_num % 1000 == 0 )
+   //      if( block_num % 100 == 0 )
          {
-           std::cerr<<" "<<(tk.current_time() - origin).count()/1000000<<", ";
-           std::cerr<<" "<<(block_time - origin).count()/1000000<<"\n";
+      //     std::cerr<<" "<<(tk.current_time() - origin).count()/1000000<<", ";
+       //    std::cerr<<" "<<(sim_time - origin).count()/1000000<<"\n";
            
            std::cout<< "block_num: "<<std::setw(10)<<block_num;
            std::cout<<"  cur_time:  "<<std::setw(11)<<std::string(tk.current_time());
            std::cout<<"  next_time: "<<std::setw(11)<<std::string(tk.next_time());
            std::cout<<"  delta_time: "<<std::right<<std::setw(14)<<(tk.next_time()-tk.current_time()-interval).count()/1000000<<" sec";
            std::cout<<"  cur_diff:  "<<std::right<<std::setw(14)<<tk.current_difficulty();
-           std::cout<<"  next_diff: "<<std::right<<std::setw(14)<<tk.next_difficulty();
-           std::cout<<"  delta: "<<std::right<<std::setw(14)<<int64_t(tk.next_difficulty()-tk.current_difficulty());
+           std::cout<<"  next_diff: "<<std::right<<std::setw(14)<<next_diff;
+           std::cout<<"  delta: "<<std::right<<std::setw(14)<<int64_t(next_diff-tk.current_difficulty());
+           std::cout<<"  sim_time: "<<std::right<<std::setw(14)<<std::string(sim_time)<<" ";
+           std::cout<<"  sim-cur:  "<<std::right<<std::setw(14)<<(sim_time-tk.current_time()).count()/1000000<<" ";
+           std::cout<<"  timeerr:  "<<std::right<<std::setw(14)<<tk.current_time_error()<<"  ";
            std::cout<<"\n";
+           if( tk.current_time_error() < minerr ) 
+           {
+             minerr = tk.current_time_error();
+             ilog( "               MIN: ${m}", ("m",minerr) );
+           }
+           if( tk.current_time_error() > maxerr )
+           {
+             maxerr = tk.current_time_error();
+             ilog( "MAX: ${m}", ("m",maxerr) );
+           }
          }
+         if( block_num == 10000 )
+         {  
+            std::cout<<"\n.... skip 4 hours ... \n";
+            sim_time += fc::seconds(4*60*60); // off by 1 hour...
+         }
+         
+         uint64_t a = rand();
+         uint64_t b = rand();
+         auto sample_1 = uint64_t(a*rand()) % next_diff;
+         auto sample_2 = uint64_t(b*rand()) % next_diff;
+         sim_time += fc::microseconds( sample_1 + sample_2 );
       }
 
 

@@ -486,33 +486,36 @@ namespace bts { namespace bitname {
 
        for( uint32_t i = 0; i < my->_header_ids.size(); ++i )
        {
-          std::cerr<<std::setw(3)  << i                                           <<"] "
-                   <<std::setw(20) << fc::variant(my->_header_ids[i]).as_string() <<" ";
-          auto blkhead = my->_block_num_to_header.fetch(i); 
-          
-          std::cerr<<"name: "<<std::setw(24) << blkhead.name_hash << " ";
-          std::cerr<<"time: "<<std::setw(16) << std::string(fc::time_point(blkhead.utc_sec)) <<" ";
-          std::cerr<<"age: "<<std::setw(5) << blkhead.age <<" ";
-          std::cerr<<"repute: "<<std::setw(5) << blkhead.repute_points.value <<" ";
-          std::cerr<<"prev: "<<std::setw(20) << fc::variant(blkhead.prev).as_string() <<" ";
-          std::cerr<<"key: "<<std::setw(66)<<fc::json::to_string(blkhead.key)<<" ";
-          std::cerr<<"next_difficulty: "<<std::setw(16)<<timekeep.next_difficulty()<<" ";
-          std::cerr<<"med_time_err: "<<std::setw(16)<<timekeep.current_time_error() << " sec";
-
-          auto delta = (timekeep.expected_time(i)-blkhead.utc_sec);
-
-          std::cerr<<"cur_time_err: "<<std::setw(16)<< delta.count()/1000000 << " usec";
-          std::cerr<<"\n";
-          std::vector<name_trx> blktrxs = my->_block_num_to_name_trxs.fetch(i);
-          for( uint32_t t = 0; t < blktrxs.size(); ++t )
+             auto blkhead = my->_block_num_to_header.fetch(i); 
+        //  if( i > 1000 )
           {
-             std::cerr<<"\t\t"<<std::setw(3)<<t<<") ";
-             std::cerr<<std::setw(24)<<blktrxs[t].name_hash<<" ";
-             std::cerr<<"time: "<<std::setw(16)<<std::string( fc::time_point(blktrxs[t].utc_sec))<<" ";
-             std::cerr<<"age: "<<std::setw(3)<<blktrxs[t].age<<" ";
-             std::cerr<<"repute: "<<std::setw(3)<<blktrxs[t].repute_points.value<<" ";
-             std::cerr<<"key: "<<std::setw(66)<<fc::json::to_string(blktrxs[t].key)<<" ";
+             std::cerr<<std::setw(3)  << i                                           <<"] "
+                      <<std::setw(20) << fc::variant(my->_header_ids[i]).as_string() <<" ";
+             
+             std::cerr<<"name: "<<std::setw(24) << blkhead.name_hash << " ";
+             std::cerr<<"time: "<<std::setw(16) << std::string(fc::time_point(blkhead.utc_sec)) <<" ";
+             std::cerr<<"age: "<<std::setw(5) << blkhead.age <<" ";
+             std::cerr<<"repute: "<<std::setw(5) << blkhead.repute_points.value <<" ";
+             std::cerr<<"prev: "<<std::setw(20) << fc::variant(blkhead.prev).as_string() <<" ";
+             std::cerr<<"key: "<<std::setw(66)<<fc::json::to_string(blkhead.key)<<" ";
+             std::cerr<<"next_difficulty: "<<std::setw(16)<<timekeep.next_difficulty()<<" ";
+             std::cerr<<"med_time_err: "<<std::setw(16)<<timekeep.current_time_error() << " sec";
+             
+             auto delta = (timekeep.expected_time(i)-blkhead.utc_sec);
+             
+             std::cerr<<"cur_time_err: "<<std::setw(16)<< delta.count()/1000000 << " usec";
              std::cerr<<"\n";
+             std::vector<name_trx> blktrxs = my->_block_num_to_name_trxs.fetch(i);
+             for( uint32_t t = 0; t < blktrxs.size(); ++t )
+             {
+                std::cerr<<"\t\t"<<std::setw(3)<<t<<") ";
+                std::cerr<<std::setw(24)<<blktrxs[t].name_hash<<" ";
+                std::cerr<<"time: "<<std::setw(16)<<std::string( fc::time_point(blktrxs[t].utc_sec))<<" ";
+                std::cerr<<"age: "<<std::setw(3)<<blktrxs[t].age<<" ";
+                std::cerr<<"repute: "<<std::setw(3)<<blktrxs[t].repute_points.value<<" ";
+                std::cerr<<"key: "<<std::setw(66)<<fc::json::to_string(blktrxs[t].key)<<" ";
+                std::cerr<<"\n";
+             }
           }
           if( i > 0 )
           {
