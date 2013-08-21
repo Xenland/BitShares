@@ -220,15 +220,19 @@ namespace bts { namespace bitname {
            */
           void fetch_name_from_best_connection( const std::vector<connection_ptr>& cons, uint64_t id )
           { try {
+              ilog( "${id}", ("id",id) );
              // if request is made, move id from unknown_names to requested_msgs 
              // TODO: update this algorithm to be something better. 
              for( uint32_t i = 0; i < cons.size(); ++i )
              {
+                 ilog( "con ${i}", ("i",i) );
                  chan_data& chan_data = get_channel_data(cons[i]); 
-                 if( !chan_data.trxs_mgr.knows( id ) && !chan_data.trxs_mgr.has_pending_request() )
+                 if( chan_data.trxs_mgr.knows( id ) && !chan_data.trxs_mgr.has_pending_request() )
                  {
                     chan_data.trxs_mgr.requested(id);
-                    cons[i]->send( network::message( get_name_header_message( id ), _chan_id ) );
+                    get_name_header_message request( id );
+                    ilog( "request ${msg}", ("msg",request) );
+                    cons[i]->send( network::message( request, _chan_id ) );
                     return;
                  }
              }
@@ -339,7 +343,8 @@ namespace bts { namespace bitname {
              const fc::optional<name_header>& trx = _trx_broadcast_mgr.get_value( msg.name_trx_id );
              if( !trx ) // must be a db
              {
-               FC_ASSERT( !"Name transaction not in broadcast cache" );
+               auto debug_str = _trx_broadcast_mgr.debug();
+               FC_ASSERT( !"Name transaction not in broadcast cache", "${str}", ("str",debug_str) );
               /*
                 ... we should not allow fetching of individual name trx from our db...
                 this would require a huge index
@@ -368,7 +373,6 @@ namespace bts { namespace bitname {
              catch ( const fc::exception& e )
              {
                 // TODO: connection just sent us an invalid trx... what do we do...
-                wlog( "${e}", ("e",e.to_detail_string()) ); 
                 _trx_broadcast_mgr.validated( short_id, msg.trx, false );
                 throw;
              }

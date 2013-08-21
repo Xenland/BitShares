@@ -3,6 +3,8 @@
 #include <unordered_map>
 #include <fc/exception/exception.hpp>
 #include <fc/reflect/variant.hpp>
+#include <fc/io/json.hpp>
+#include <sstream>
 
 namespace bts { namespace network {
 
@@ -109,7 +111,7 @@ namespace bts { namespace network {
       const fc::optional<Value>& get_value( const Key& key )
       {
           auto itr = _inventory.find(key);  
-          if( itr != _inventory.end() )
+          if( itr == _inventory.end() )
             return _unknown_value;
           return itr->second.value;
       }
@@ -231,6 +233,17 @@ namespace bts { namespace network {
          }
       }
 
+      std::string debug()
+      {
+        std::stringstream ss;
+        for( auto itr = _inventory.begin(); itr != _inventory.end(); ++itr )
+        {
+            ss<< fc::variant(itr->first).as_string() <<" => ";
+            ss<< fc::json::to_string(itr->second.value) <<"\n";
+        }
+        return ss.str();
+      }
+
     private:
       struct item_state
       {
@@ -251,3 +264,4 @@ namespace bts { namespace network {
   };
 
 } } 
+

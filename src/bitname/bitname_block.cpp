@@ -77,7 +77,7 @@ namespace bts { namespace bitname {
   name_block create_genesis_block()
   {
      name_block genesis;
-     genesis.utc_sec = fc::time_point_sec(fc::time_point::from_iso_string( "20130820T200809" ));
+     genesis.utc_sec = fc::time_point_sec(fc::time_point::from_iso_string( "20130821T015504" ));
      genesis.name_hash = 0;
      genesis.key = fc::ecc::private_key::regenerate(fc::sha256::hash( "genesis", 7)).get_public_key();
      return genesis;

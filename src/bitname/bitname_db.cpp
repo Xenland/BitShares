@@ -282,7 +282,7 @@ namespace bts { namespace bitname {
                   ("trx_time",trx.utc_sec)
                   ("expected",my->_timekeeper.expected_time(head_block_num()+1))
                   ("chain_time",chain_time()));
-       FC_ASSERT( trx.difficulty( chain_head_id ) >= target_name_difficulty() );
+       FC_ASSERT( trx.difficulty( chain_head_id ) >= target_name_difficulty(), "perhaps wrong previous node?" );
 
        auto prev_reg_itr = my->_name_hash_to_locs.find( trx.name_hash );
 

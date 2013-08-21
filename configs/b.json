@@ -1,9 +1,14 @@
 {
+  "data_dir": "data/bb",
   "server_config": {
     "port": 9877,
     "chain": "",
     "bootstrap_endpoints": [],
     "blacklist": []
+  },
+  "bitname_config": {
+    "data_dir": "data/bb",
+    "max_mining_effort": 1
   },
   "ids": [{
       "label": "scott",
