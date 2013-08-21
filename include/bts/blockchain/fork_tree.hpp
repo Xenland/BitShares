@@ -2,6 +2,8 @@
 #include <fc/exception/exception.hpp>
 #include <fc/optional.hpp>
 
+#include <fc/log/logger.hpp>
+
 #include <vector>
 #include <map>
 
@@ -79,6 +81,7 @@ namespace bts { namespace blockchain {
          
          void add_node( uint32_t height, const Key& node_id, const Key& prev_id )
          {
+            ilog( "${height}   node: ${node}  prev: ${prev}", ("height",height)("node",node_id)("prev",prev_id) );
             std::vector<typename node_data::ptr>& nodes_at_height = _nodes[height];
             for( uint32_t i = 0; i < nodes_at_height.size(); ++i )
             {
@@ -88,6 +91,7 @@ namespace bts { namespace blockchain {
                  return;
                }
             }
+
             auto new_node = std::make_shared<node_data>( node_id, prev_id );
             nodes_at_height.push_back( new_node );
             
@@ -124,7 +128,7 @@ namespace bts { namespace blockchain {
          fc::optional<Key> get_best_fork_for_height( uint32_t height )
          {
             auto nodes_at_height_itr = _nodes.find(height);
-            if( nodes_at_height_itr != _nodes.end() ) 
+            if( nodes_at_height_itr == _nodes.end() ) 
             {
               return fc::optional<Key>();
             }

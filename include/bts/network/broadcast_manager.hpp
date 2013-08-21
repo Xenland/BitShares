@@ -122,6 +122,7 @@ namespace bts { namespace network {
        */
       void validated( const Key& key, const Value& value, bool is_ok )
       {
+         wlog( "${key}   ${value}   ${ok}", ("key",key)("value",value)("ok",is_ok) );
          item_state& state = _inventory[key];
          FC_ASSERT( !state.value, "duplicate value received", ("value",value)("current",*state.value)("key",key) );
          state.recv_time = fc::time_point::now();
@@ -248,7 +249,7 @@ namespace bts { namespace network {
       struct item_state
       {
         item_state()
-        :inv_count(0),valid(false){}
+        :inv_count(0),valid(false){ assert(!value); }
 
         int32_t               inv_count; ///< how many inventory msgs have I received
         fc::time_point        recv_time;

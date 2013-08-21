@@ -68,6 +68,9 @@ namespace bts { namespace network {
         void subscribe_to_channel( const channel_id& chan, const channel_ptr& c );
         void unsubscribe_from_channel( const channel_id& chan );
 
+        /** if chan has been subscribed to return it, may return nullptr */
+        channel_ptr get_channel( const channel_id& chan )const;
+
         /**
          *  @note del must out live this server and the server does not
          *        take ownership of the delegate.

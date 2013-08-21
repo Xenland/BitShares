@@ -7,9 +7,11 @@ const message_type block_inv_message::type       = block_inv_msg;
 const message_type get_name_inv_message::type    = get_name_inv_msg;
 const message_type get_headers_message::type     = get_headers_msg;
 const message_type get_block_message::type       = get_block_msg;
+const message_type get_block_index_message::type = get_block_index_msg;
 const message_type get_name_header_message::type = get_name_header_msg;
 const message_type name_header_message::type     = name_header_msg;
 const message_type block_message::type           = block_msg;
+const message_type block_index_message::type     = block_index_msg;
 const message_type headers_message::type         = headers_msg;
 
 } } // bts::bitname

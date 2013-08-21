@@ -134,6 +134,12 @@ namespace bts { namespace peer {
                }
            }
            
+           virtual void handle_subscribe( const connection_ptr& c )
+           {
+           }
+           virtual void handle_unsubscribe( const connection_ptr& c )
+           {
+           }
            virtual void handle_message( const connection_ptr& c, const message& m )
            {
                if( m.msg_type == subscribe_msg::type )
@@ -227,6 +233,12 @@ namespace bts { namespace peer {
                       // TODO: validate ID is an acceptable / supported channel to prevent
                       // remote hosts from sending us a ton of bogus channels
                       cons_by_channel[itr->id()].add_connection(c.get());
+
+                      auto chan_ptr = netw->get_channel( channel_id(itr->id()) );
+                      if( chan_ptr != nullptr )
+                      {
+                         chan_ptr->handle_subscribe( c );
+                      }
                    }
                }
            }
@@ -241,6 +253,12 @@ namespace bts { namespace peer {
                       // TODO: validate ID is an acceptable / supported channel to prevent
                       // remote hosts from sending us a ton of bogus channels
                       cons_by_channel[itr->id()].remove_connection(c.get());
+
+                      auto chan_ptr = netw->get_channel( channel_id(itr->id()) );
+                      if( chan_ptr != nullptr )
+                      {
+                         chan_ptr->handle_unsubscribe( c );
+                      }
                    }
                }
            }

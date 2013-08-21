@@ -55,6 +55,14 @@ namespace bts { namespace bitchat {
               return cdat;
           }
 
+          virtual void handle_subscribe( const connection_ptr& c )
+          {
+              chan_data& cdat = get_channel_data(c);
+          }
+          virtual void handle_unsubscribe( const connection_ptr& c )
+          {
+              c->set_channel_data( chan_id, nullptr );
+          }
           virtual void handle_message( const connection_ptr& c, const bts::network::message& m )
           {
               chan_data& cdat = get_channel_data(c);

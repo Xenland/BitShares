@@ -255,6 +255,16 @@ namespace bts { namespace network {
      } FC_RETHROW_EXCEPTIONS( warn, "error closing server socket" );
    }
 
+   channel_ptr server::get_channel( const channel_id& chan )const
+   {
+      auto itr = my->channels.find(chan.id());
+      if( itr == my->channels.end() )
+      {
+         return nullptr;
+      }
+      return itr->second;
+   }
+
 
 
 } } // namespace bts::network
