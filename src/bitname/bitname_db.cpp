@@ -224,10 +224,47 @@ namespace bts { namespace bitname {
       return next_dif;
     } FC_RETHROW_EXCEPTIONS( warn, "" ) }
 
+
+
     void name_db::push_block( const name_block& next_block )
     { try {
        fc::sha224 next_id = next_block.id();
        FC_ASSERT( bts::difficulty(next_id) == next_block.difficulty() ); // TODO... don't check here
+
+       if( next_block.prev != my->_header_ids.back() )
+       {
+          FC_ASSERT( next_id < my->_header_ids.back() );
+          if( my->_header_ids.size() > 1 )
+          {
+            FC_ASSERT( next_block.prev == my->_header_ids[ my->_header_ids.size() - 2 ] );
+
+            // we have a potential canidate for replacing the head block.
+            wlog( "potential canidate for replacing head block found" );
+            wlog( "save and then pop the current head" );
+
+            auto head_num = head_block_num();
+            auto old_head = fetch_block( head_num );
+            try {
+                /* TODO: unindex trx 
+                   for( uint16_t trx_idx = 0; trx_idx < num_trx; ++trx_idx )
+                   {
+                      my->unindex_trx( name_location( next_num, trx_idx ), next_block.name_trxs[trx_idx].name_hash );
+                   }
+                */
+                my->_block_num_to_header.remove( head_num );
+                my->_block_num_to_name_trxs.remove( head_num );
+                my->_timekeeper.pop( head_num );
+                my->_header_ids.pop_back();
+
+                push_block( next_block );
+            } 
+            catch ( const fc::exception& e )
+            {
+                push_block( old_head );
+                throw;
+            }
+          }
+       }
 
        FC_ASSERT( next_block.prev            == my->_header_ids.back(), "", ("head_block_id",my->_header_ids.back()) );
        FC_ASSERT( next_block.trxs_hash       == next_block.calc_trxs_hash() );
