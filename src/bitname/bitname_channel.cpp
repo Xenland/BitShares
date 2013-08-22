@@ -499,6 +499,7 @@ namespace bts { namespace bitname {
               con->send( network::message( block_message( std::move(block) ), _chan_id ) );
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) }
    
+
           void handle_get_name( const connection_ptr& con,  chan_data& cdat, const get_name_header_message& msg )
           {
              ilog( "${msg}", ("msg",msg) );
@@ -525,8 +526,41 @@ namespace bts { namespace bitname {
           {
              ilog( "${msg}", ("msg",msg) );
              cdat.block_mgr.received_response( msg.index.header.id() );
-             elog( "TODO:  implement the rest of fetching the block..." );
+             if( msg.index.name_trxs.size() == 0 )
+             {
+                submit_block( msg.index.header );
+             }
+             else
+             {
+                _block_downloads.push_back( block_index_download_manager() );
+                block_index_download_manager& dlmgr = _block_downloads.back();
+                dlmgr.incomplete = name_block(msg.index.header);
+                dlmgr.index      = msg.index;
+                dlmgr.incomplete.name_trxs.resize( msg.index.name_trxs.size() );
+
+                for( uint32_t i = 0; i < msg.index.name_trxs.size(); ++i )
+                {
+                    auto opt_trx = _trx_broadcast_mgr.get_value( msg.index.name_trxs[i] );                    
+                    if( opt_trx )
+                    {
+                       dlmgr.incomplete.name_trxs[i] = *opt_trx;
+                    }
+                    else
+                    {
+                       dlmgr.unknown[msg.index.name_trxs[i]] = i;
+                       _trx_broadcast_mgr.received_inventory_notice( msg.index.name_trxs[i] ); 
+                       cdat.trxs_mgr.update_known( msg.index.name_trxs[i] );
+                    }
+                }
+                if( dlmgr.unknown.size() == 0 )
+                {
+                  submit_block( dlmgr.incomplete );
+                  _block_downloads.pop_back();
+                }
+             }
           }
+
+
           void handle_name( const connection_ptr& con,  chan_data& cdat, const name_header_message& msg )
           { try {
              ilog( "${msg}", ("msg",msg) );

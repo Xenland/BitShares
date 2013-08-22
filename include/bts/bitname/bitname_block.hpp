@@ -197,11 +197,11 @@ namespace bts { namespace bitname {
                     itr != block.name_trxs.end();
                     ++itr )
           {
-            name_trxs.push_back( itr->name_hash );
+            name_trxs.push_back( itr->short_id(block.prev) );
           }
         }
         name_header                  header;
-        std::vector<name_hash_type>  name_trxs;
+        std::vector<short_name_id_type>  name_trxs;
     };
 
 

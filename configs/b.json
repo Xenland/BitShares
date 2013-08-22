@@ -22,15 +22,8 @@
       "recv_channels": [
         0
       ]
-    },{
-      "label": "funnymoney",
-      "key": "70aafa35153487152f30ce4a4536048c1b80a064195135e5e87cf24db27e18d7",
-      "broadcast": "2672419a3d1000dfeb1715ae00d9c17758ebf9cdd610fcd5866ec5177fdd5e86",
-      "recv_channels": [
-        0
-      ]
     }
-  ],
+    ],
   "contacts": [{
       "label": "dan",
       "key": "03ad7290bace92ee96d05cd3e2b1049c6dfe078fa603dc12aa17bad23cc125803f",

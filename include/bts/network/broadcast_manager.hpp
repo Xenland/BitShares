@@ -23,6 +23,10 @@ namespace bts { namespace network {
       class channel_data 
       {
          public:
+           void update_known( const Key& known )
+           {
+              _known_keys[known] = fc::time_point::now();
+           }
            void update_known( const std::vector<Key>& known )
            {
              for( auto itr = known.begin(); itr != known.end(); ++itr )
