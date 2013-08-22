@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE( bitname_db_test )
        trx.utc_sec = block2.utc_sec;
        trx.key = fc::ecc::private_key::generate().get_public_key();
 
-       block2.registered_names.push_back(trx);
+       block2.name_trxs.push_back(trx);
     }
     block2.prev = block1.id();
     block2.trxs_hash = block2.calc_trxs_hash();
@@ -106,9 +106,9 @@ BOOST_AUTO_TEST_CASE( bitname_db_test )
     block2.trxs_hash = block2.calc_trxs_hash();
     BOOST_REQUIRE_THROW( chain.push_block( block2 ), fc::exception );
 
-    for( uint32_t i = 0; i < block2.registered_names.size(); ++i )
+    for( uint32_t i = 0; i < block2.name_trxs.size(); ++i )
     {
-        block2.registered_names[i].repute_points.value++;
+        block2.name_trxs[i].repute_points.value++;
     }
     block2.trxs_hash = block2.calc_trxs_hash();
 
@@ -152,14 +152,14 @@ BOOST_AUTO_TEST_CASE( keychain_test )
 
     keychain wal;
     wal.set_seed( fc::sha512::hash( "hello", 5 ) );
-    BOOST_REQUIRE( wal.get_private_account( 1 ).get_public_key() ==
-                   wal.get_public_account( 1 ).pub_key );
+    BOOST_REQUIRE( wal.get_private_account( "test", 1 ).get_public_key() ==
+                   wal.get_public_account( "test", 1 ).pub_key );
 
-    BOOST_REQUIRE( wal.get_private_trx( 1, 2 ).get_public_key() ==
-                   wal.get_public_trx( 1, 2 ).pub_key );
+    BOOST_REQUIRE( wal.get_private_trx( "test", 1, 2 ).get_public_key() ==
+                   wal.get_public_trx( "test", 1, 2 ).pub_key );
 
-    BOOST_REQUIRE( wal.get_private_trx_address( 1, 3, 4 ).get_public_key() ==
-                   wal.get_public_trx_address( 1, 3, 4 ) );
+    BOOST_REQUIRE( wal.get_private_trx_address( "test", 1, 3, 4 ).get_public_key() ==
+                   wal.get_public_trx_address( "test", 1, 3, 4 ) );
 
   }
   catch ( const fc::exception& e )

@@ -96,6 +96,18 @@ namespace bts { namespace blockchain {
               _db->push_block( trx_block( _block_download.full_blk, std::move( _block_download.trxs) ) );
           } FC_RETHROW_EXCEPTIONS( warn, "" ) }
 
+
+          virtual void handle_subscribe( const connection_ptr& c )
+          {
+              get_channel_data(c); // creates it... 
+          //    request_latest_blocks();
+          }
+
+          virtual void handle_unsubscribe( const connection_ptr& c )
+          {
+              c->set_channel_data( _chan_id, nullptr );
+          }
+
           virtual void handle_message( const connection_ptr& c, const bts::network::message& m )
           { 
             try { 

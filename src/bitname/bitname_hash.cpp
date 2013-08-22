@@ -95,7 +95,7 @@ uint64_t  name_hash( const std::string& n )
 {
   std::locale loc = std::locale::classic();
   std::string up(n);
-  int length =n.length();
+  int length  = n.size();
   for(int i=0;i<length;++i)
     up[i] = std::toupper( n[i], loc );
   for( auto itr = up.begin(); itr != up.end(); ++itr )

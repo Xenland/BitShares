@@ -33,7 +33,8 @@ namespace bts { namespace bitname {
 
         void pop_block(); // pops the most recent block
 
-        fc::sha224           head_block_id()const;
+        uint32_t             head_block_num()const;
+        name_id_type         head_block_id()const;
         uint64_t             target_difficulty()const;
         uint64_t             target_name_difficulty()const;
         fc::time_point_sec   chain_time()const;
@@ -42,7 +43,7 @@ namespace bts { namespace bitname {
          * Tracks the ID of all headers for rapid query by new nodes
          * connecting and attempting to sync.
          */
-        const std::vector<fc::sha224>&  get_header_ids()const;
+        const std::vector<name_id_type>&  get_header_ids()const;
 
         /** Returns the number of blocks that have confirmed the
          *  most recent name.
@@ -51,18 +52,20 @@ namespace bts { namespace bitname {
 
         /** fetches the most recent registration of name_hash */
         name_trx        fetch_trx( uint64_t name_hash )const;
+        uint32_t        fetch_repute( uint64_t name_hash )const;
 
         /** get a block by its block_id */
-        name_block      fetch_block( const fc::sha224& block_id )const;
+        name_block      fetch_block( const name_id_type& block_id )const;
         name_block      fetch_block( uint32_t block_num )const;
 
-        name_header     fetch_block_header( const fc::sha224& block_id )const;
+        name_header     fetch_block_header( const name_id_type& block_id )const;
         name_header     fetch_block_header( uint32_t block_num )const;
-        uint32_t        get_block_num( const fc::sha224& block_id )const;
+        uint32_t        get_block_num( const name_id_type& block_id )const;
 
         /** the time we expect block_num to be generated */
         fc::time_point_sec expected_time( uint32_t block_num )const;
 
+        void            dump();
       private:
         std::unique_ptr<detail::name_db_impl> my;
   };

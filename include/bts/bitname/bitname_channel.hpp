@@ -1,5 +1,6 @@
 #pragma once
 #include <bts/bitname/bitname_block.hpp>
+#include <bts/bitname/bitname_record.hpp>
 #include <bts/peer/peer_channel.hpp>
 #include <bts/network/server.hpp>
 #include <fc/filesystem.hpp>
@@ -16,7 +17,7 @@ namespace bts { namespace bitname {
        /**
         *   Called any time a new & valid name reg trx is received
         */
-       virtual void pending_name_registration( const name_trx&  ) = 0;
+       virtual void pending_name_trx( const name_header&  ) = 0;
 
        /**
         *   Called any time a new & valid name block is added to the
@@ -44,14 +45,22 @@ namespace bts { namespace bitname {
         void configure( const name_channel::config& c );
         void set_delegate( name_channel_delegate* d );
 
-        void submit_name( const name_trx& t );
+        void submit_name( const name_header& t );
         void submit_block( const name_block& b );
 
         /**
          *  Performs a lookup in the internal database and throws
          *  an exception if the name is not found.
          */
-        name_header lookup_name( const std::string& name );
+        fc::optional<name_record> lookup_name( const std::string& name );
+
+        /**
+         *  return the next block number, used to calculate age.
+         */
+        uint32_t                  get_head_block_number()const;
+        name_id_type              get_head_block_id()const;
+
+        std::vector<name_header>  get_pending_name_trxs()const;
 
       private:
         std::shared_ptr<detail::name_channel_impl> my;

@@ -6,6 +6,11 @@
 
 namespace bts { namespace bitname {
 
+    typedef uint64_t      name_hash_type;
+    typedef fc::uint128   name_trxs_hash_type; // consider making fc::uint128
+    typedef fc::sha224    name_id_type;        // full crypto-secure name id
+    typedef uint64_t      short_name_id_type;  // short, bandwidth effecient, collision resitant name type
+
     /**
      *  Every name registration requires its own proof of work, this proof of work
      *  is designed to take about 1 hour on a home PC.  The process of mining
@@ -39,8 +44,10 @@ namespace bts { namespace bitname {
          * but the there is no need to construct a name_header to simply 
          * calculate the id.
          */
-        fc::sha224 id( const fc::sha224& prev )const;
-        uint64_t   difficulty( const fc::sha224& prev )const;
+        name_id_type         id( const name_id_type& prev )const;
+        /** short id == city64(id()) */
+        short_name_id_type   short_id( const name_id_type& prev )const;
+        uint64_t             difficulty( const name_id_type& prev )const;
 
         /** Increment to find proof of work, intentionally small to slow down mining rate
          *  to 65K/hash sec without adding new trxs (with valid proof of work) or generating
@@ -86,7 +93,7 @@ namespace bts { namespace bitname {
         * be found a couple of times per year and the cost per hash is billions of times
         * less.
         */
-       uint64_t                                 trxs_hash;        
+       name_trxs_hash_type                       trxs_hash;        
 
        /**
         *  64 bit hash of name, the entire world could have a name with a 50% chance of a single collision
@@ -100,7 +107,7 @@ namespace bts { namespace bitname {
         *    for gensis block, the rest can be used to indicate additional data that may be
         *    serialized as part of the name_trx for future growth.
         */
-       uint64_t                                 name_hash;         
+       name_hash_type                           name_hash;         
 
        /**
         *  If the key is changing or being canceled, renewal_points must be 0 
@@ -134,12 +141,13 @@ namespace bts { namespace bitname {
     struct name_header : public name_trx
     {
        name_header(){}
-       name_header( const name_trx& b, const fc::sha224& p )
+       name_header( const name_trx& b, const name_id_type& p )
        :name_trx(b),prev(p){}
 
        uint64_t   difficulty()const;
-       fc::sha224 id()const;
-       fc::sha224 prev;    ///< previous block
+       name_id_type       id()const;
+       short_name_id_type short_id()const;
+       name_id_type       prev;    ///< previous block
     };
 
     
@@ -154,10 +162,10 @@ namespace bts { namespace bitname {
         name_block( const name_header& h )
         :name_header(h){}
 
-        uint64_t            calc_trxs_hash()const; 
+        name_trxs_hash_type  calc_trxs_hash()const; 
 
         /**
-         *   Assuming all registered_names meet the current 
+         *   Assuming all name_trxs meet the current 
          *   target difficulty / 10K and are all greater than
          *   the minimum difficulty, simply multiple the
          *   number of registered names * name target difficulty
@@ -168,8 +176,10 @@ namespace bts { namespace bitname {
         /**
          *  Each name requires target_difficulty / 10K or Min
          *  POW.
+         *  
+         *  TODO: verify name_trx are all unique!
          */
-        std::vector<name_trx> registered_names;
+        std::vector<name_trx> name_trxs;
     };
 
     /**
@@ -179,8 +189,19 @@ namespace bts { namespace bitname {
      */
     struct name_block_index 
     {
-        fc::sha224                prev_block;
-        std::vector<uint64_t>     registered_names;
+        name_block_index(){}
+        name_block_index( const name_block& block )
+        :header(block)
+        {
+          for( auto itr = block.name_trxs.begin();
+                    itr != block.name_trxs.end();
+                    ++itr )
+          {
+            name_trxs.push_back( itr->short_id(block.prev) );
+          }
+        }
+        name_header                  header;
+        std::vector<short_name_id_type>  name_trxs;
     };
 
 
@@ -201,8 +222,8 @@ FC_REFLECT( bts::bitname::name_trx,
     (change_sig)
 )
 FC_REFLECT_DERIVED( bts::bitname::name_header, (bts::bitname::name_trx), (prev) )
-FC_REFLECT_DERIVED( bts::bitname::name_block, (bts::bitname::name_header), (registered_names) )
-FC_REFLECT( bts::bitname::name_block_index, (prev_block)(registered_names) )
+FC_REFLECT_DERIVED( bts::bitname::name_block, (bts::bitname::name_header), (name_trxs) )
+FC_REFLECT( bts::bitname::name_block_index, (header)(name_trxs) )
 
 
 /**

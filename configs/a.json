@@ -1,10 +1,14 @@
 {
-  "data_dir": "data/c",
+  "data_dir": "data/aa",
   "server_config": {
     "port": 9876,
     "chain": "",
     "bootstrap_endpoints": [],
     "blacklist": []
+  },
+  "bitname_config": {
+    "data_dir": "data/aa",
+    "max_mining_effort": 1
   },
   "rpc_config": {
     "port": 6789,
@@ -26,7 +30,7 @@
         0
       ]
     }
-  ],
+    ],
   "contacts": [{
       "label": "scott",
       "key": "02ee9f61b6c3f71d6887efb0678aa0cd2c73bb825ab5197649b98d80d5c6022ccc",
@@ -42,9 +46,5 @@
         0
       ]
     }
-  ],
-  "bitname_config": {
-    "data_dir": "data/c",
-    "max_mining_effort": 1
-  }
+  ]
 }

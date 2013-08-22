@@ -48,14 +48,14 @@ namespace bts {
         void                  set_seed( const fc::sha512& stretched_seed );
         fc::sha512            get_seed()const;
 
-        extended_private_key  get_private_account( uint32_t i );
-        extended_public_key   get_public_account( uint32_t i );
+        extended_private_key  get_private_account( const std::string& ident, uint32_t i );
+        extended_public_key   get_public_account( const std::string& ident, uint32_t i );
 
-        extended_public_key   get_public_trx( uint32_t account, uint32_t trx );
-        fc::ecc::public_key   get_public_trx_address( uint32_t account, uint32_t trx, uint32_t addr );
+        extended_public_key   get_public_trx( const std::string& ident, uint32_t account, uint32_t trx );
+        fc::ecc::public_key   get_public_trx_address( const std::string& ident, uint32_t account, uint32_t trx, uint32_t addr );
 
-        extended_private_key  get_private_trx( uint32_t account, uint32_t trx );
-        fc::ecc::private_key  get_private_trx_address( uint32_t account, uint32_t trx, uint32_t addr );
+        extended_private_key  get_private_trx( const std::string& ident, uint32_t account, uint32_t trx );
+        fc::ecc::private_key  get_private_trx_address( const std::string& ident, uint32_t account, uint32_t trx, uint32_t addr );
 
      private:
        extended_private_key  ext_priv_key;

@@ -14,22 +14,24 @@ namespace bts { namespace bitname {
      get_name_inv_msg,
      get_headers_msg,
      get_block_msg,
-     get_name_msg,
-     name_msg,
+     get_block_index_msg,
+     get_name_header_msg,
+     name_header_msg,
      block_msg,
+     block_index_msg,
      headers_msg
   };
 
   struct name_inv_message
   {
-    static const message_type type;
-    std::vector<uint64_t>  names;
+    static const message_type        type;
+    std::vector<short_name_id_type>  name_trxs;
   };
 
   struct block_inv_message
   {
     static const message_type type;
-    std::vector<fc::sha224>  block_ids;
+    std::vector<name_id_type>  block_ids;
   };
 
   struct get_name_inv_message
@@ -40,32 +42,45 @@ namespace bts { namespace bitname {
   struct get_headers_message
   {
     static const message_type type;
-    std::vector<fc::sha224>  locator_hashes;
+    std::vector<name_id_type>  locator_hashes;
   };
 
   struct get_block_message
   {
     static const message_type type;
-    fc::sha224 block_id;
-  };
+    get_block_message( const name_id_type& id )
+    :block_id(id){}
+    get_block_message(){}
 
-  struct get_name_message
+    name_id_type block_id;
+  };
+  struct get_block_index_message
   {
     static const message_type type;
-    get_name_message(uint64_t name = 0)
-    :name_hash(name){}
+    get_block_index_message( const name_id_type& id )
+    :block_id(id){}
+    get_block_index_message(){}
 
-    uint64_t name_hash;
+    name_id_type block_id;
   };
 
-  struct name_message
+  struct get_name_header_message
   {
     static const message_type type;
-    name_message(){}
-    name_message( const name_trx& cpy )
-    :name(cpy){}
+    get_name_header_message(short_name_id_type trx_id = 0)
+    :name_trx_id(trx_id){}
 
-    name_trx name;
+    short_name_id_type name_trx_id;
+  };
+
+  struct name_header_message
+  {
+    static const message_type type;
+    name_header_message(){}
+    name_header_message( const name_header& cpy )
+    :trx(cpy){}
+
+    name_header trx;
   };
 
   struct block_message
@@ -81,6 +96,9 @@ namespace bts { namespace bitname {
   struct block_index_message
   {
     static const message_type type;
+    block_index_message(){}
+    block_index_message( const name_block_index& nbi )
+    :index(nbi){}
     name_block_index index; 
   };
 
@@ -88,10 +106,15 @@ namespace bts { namespace bitname {
   {
     static const message_type type;
     headers_message()
-    :first_block_num(0){}
+    :first_block_num(0),head_block_num(0){}
 
-    uint32_t                 first_block_num;
-    std::vector<fc::sha224>  header_ids;
+    uint32_t                   first_block_num;
+    std::vector<name_id_type>  header_ids;
+    // in the event that there are more than 2000 header_ids,
+    // this will tell the client there are more and what the
+    // current head is, so they can request more
+    uint32_t                   head_block_num;
+    name_id_type               head_block_id;
   };
 
 
@@ -104,20 +127,24 @@ FC_REFLECT_ENUM( bts::bitname::message_type,
     (get_name_inv_msg)
     (get_headers_msg)
     (get_block_msg)
-    (get_name_msg)
-    (name_msg)
+    (get_block_index_msg)
+    (get_name_header_msg)
+    (name_header_msg)
     (block_msg)
+    (block_index_msg)
     (headers_msg)
 )
 
 #include <fc/reflect/reflect.hpp>
-FC_REFLECT( bts::bitname::name_inv_message, (names))
+FC_REFLECT( bts::bitname::name_inv_message, (name_trxs))
 FC_REFLECT( bts::bitname::block_inv_message, (block_ids))
 FC_REFLECT( bts::bitname::get_name_inv_message, BOOST_PP_SEQ_NIL )
 FC_REFLECT( bts::bitname::get_headers_message, (locator_hashes) )
 FC_REFLECT( bts::bitname::get_block_message, (block_id))
-FC_REFLECT( bts::bitname::get_name_message, (name_hash))
-FC_REFLECT( bts::bitname::name_message, (name))
+FC_REFLECT( bts::bitname::get_block_index_message, (block_id))
+FC_REFLECT( bts::bitname::get_name_header_message, (name_trx_id))
+FC_REFLECT( bts::bitname::name_header_message, (trx))
 FC_REFLECT( bts::bitname::block_message,(block) )
-FC_REFLECT( bts::bitname::headers_message, (first_block_num)(header_ids))
+FC_REFLECT( bts::bitname::block_index_message,(index) )
+FC_REFLECT( bts::bitname::headers_message, (first_block_num)(header_ids)(head_block_num)(head_block_id))
 
