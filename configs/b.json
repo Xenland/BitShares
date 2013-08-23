@@ -22,8 +22,57 @@
       "recv_channels": [
         0
       ]
+    },{
+      "label": "nodeb_miner",
+      "key": "a49526fdc5f7fe19b2d75ef6751a76a512f7d7509eb6bc610cbe8a960b768a5e",
+      "broadcast": "8baf21153e3a33985514e517d56bece757bcf9d6d437d6a85b780178f1335103",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "again",
+      "key": "d9901b0b0bf7cd63b5d458a50c20904e8c9a8dc7eb5f22a2b0cf2f10a5ade948",
+      "broadcast": "1511e1f3061268bd49871bd98311dea05e7e0554313a939959f31c5415b596bd",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "twoatonce",
+      "key": "b6f4153fb4da5440097b0a9edf7259765fa0137bf8cccf6b3682a85096c8629a",
+      "broadcast": "cb041be3de7b0ce8f6475b596d45be58ce5bd4ae5a60d83034f7db2953e81800",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "moreforeme",
+      "key": "b290789c41ed78d9cc1b152d1975bfbec11221b2bada62bc9d9abc35f4303fe7",
+      "broadcast": "78b0ff3c4df208d8596ab3d33e706fd2285ba11d9939aaf768f4e33d8b50b537",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "moreforme",
+      "key": "a75116a4cd674360d24527975efa733af712963f52ec7258a94fb0e59e25128a",
+      "broadcast": "8042a9c40a28c5821bb5ab4a12acc07902d21c01b4b84c2eb4ad3b379668605a",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "modsa",
+      "key": "350f173f12335b4b9e6642b2e7c66c9c420f13c35806550835c1b82064714afe",
+      "broadcast": "77e2bf67ffe21a4198575e285809e1a3178b52603de0fcef68aedae98c55e076",
+      "recv_channels": [
+        0
+      ]
+    },{
+      "label": "dsdfs",
+      "key": "d5bd6ced82fe9f4ff6833a12b7184d5f0e511dae8a6eecd5b41f8e330540cc99",
+      "broadcast": "9aa6f2c94974d48ef5053fd14680434876b71a983b39e36446d03520bab6fe61",
+      "recv_channels": [
+        0
+      ]
     }
-    ],
+  ],
   "contacts": [{
       "label": "dan",
       "key": "03ad7290bace92ee96d05cd3e2b1049c6dfe078fa603dc12aa17bad23cc125803f",

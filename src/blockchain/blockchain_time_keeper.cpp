@@ -43,15 +43,12 @@ namespace bts { namespace blockchain {
             int64_t                  _interval_sec;
             int64_t                  _median_time_error_sec;
             int64_t                  _median_interval_sec;
+            int64_t                  _target_interval_sec;
 
             void update_stats()
             {
-                std::vector<uint32_t> index(_records.size());
-                for( uint32_t i = 0; i < _records.size(); ++i )
-                {
-                   index[i] = i;
-                }
-
+               std::vector<uint32_t> index(_records.size());
+               for( uint32_t i = 0; i < _records.size(); ++i ) { index[i] = i; }
                update_current_time(index);
                update_current_difficulty(index);
                update_median_interval(index);
@@ -85,7 +82,6 @@ namespace bts { namespace blockchain {
                 uint32_t median_pos = index.size() / 2;
                 std::nth_element( index.begin(), index.begin()+median_pos, index.end(), 
                    [&](int32_t a, int32_t b) { return _records[a].block_difficulty < _records[b].block_difficulty; } );
-                
                 _cur_difficulty = _records[index[median_pos]].block_difficulty;
             }
 
@@ -95,18 +91,18 @@ namespace bts { namespace blockchain {
                 {
                   _median_interval_sec = 1;
                 }
-                int64_t target_interval_sec = _interval_sec;
+                _target_interval_sec = _interval_sec;
                 if( _median_time_error_sec > _interval_sec/64 )
                 {
-                   target_interval_sec *= 630;
-                   target_interval_sec /= 640;
+                   _target_interval_sec *= 630;
+                   _target_interval_sec /= 640;
                 }
                 else if( _median_time_error_sec < -_interval_sec/64 )
                 {
-                   target_interval_sec *= 640;
-                   target_interval_sec /= 630;
+                   _target_interval_sec *= 640;
+                   _target_interval_sec /= 630;
                 }
-                _next_difficulty = (_cur_difficulty * target_interval_sec) / _median_interval_sec;
+                _next_difficulty = (_cur_difficulty * _target_interval_sec) / _median_interval_sec;
             }
 
             void update_current_time( std::vector<uint32_t>& index )
@@ -144,6 +140,7 @@ void time_keeper::configure( fc::time_point origin_time, fc::microseconds block_
    my->_origin_time    = origin_time;
    my->_block_interval = block_interval;
    my->_interval_sec   = block_interval.count() / 1000000;
+   my->_target_interval_sec = my->_interval_sec;
    my->_window         = window;
 }
 
@@ -152,6 +149,7 @@ time_keeper::~time_keeper() { }
 
 void time_keeper::push_init( uint32_t block_num, fc::time_point block_time, uint64_t block_difficulty )
 {
+//   ilog( "records.size: ${s}", ("s", my->_records.size() ) );
     int64_t error_sec = (block_time - my->expected_time(block_num)).count() / 1000000;
     my->_records.emplace_back( detail::time_record( block_num, block_time, block_difficulty, error_sec ) );
 
@@ -169,7 +167,8 @@ void time_keeper::init_stats()
 void time_keeper::push( uint32_t block_num, fc::time_point block_time, uint64_t block_difficulty )
 {
    FC_ASSERT( my->_records.size() > 0 );
-   FC_ASSERT( my->_records.back().block_num + 1 == block_num );
+ //  ilog( "records.size: ${s}", ("s", my->_records.size() ) );
+   FC_ASSERT( my->_records.back().block_num + 1 == block_num, "${block_num}", ("block_num", block_num)("records.back.blocknum",my->_records.back().block_num) );
    FC_ASSERT( block_difficulty >= my->_next_difficulty        ); // we set a difficulty for a reason!
    FC_ASSERT( block_time >= (my->_cur_time - fc::seconds(BLOCKCHAIN_TIMEKEEPER_MIN_BACK_SEC) ),
               "block_time: ${block_time} _cur_time: ${cur_time}", 
@@ -192,7 +191,11 @@ void time_keeper::push( uint32_t block_num, fc::time_point block_time, uint64_t 
  */
 void time_keeper::pop( uint32_t block_num )
 {
-   FC_ASSERT( !"Not tested" );
+   // TODO: this could probably be done more effeciently
+   while( my->_records.size() && my->_records.back().block_num >= block_num )
+   {
+      my->_records.pop_back();
+   }
 }
 
 
@@ -227,6 +230,15 @@ uint64_t time_keeper::current_difficulty()const
 fc::time_point time_keeper::current_time()const
 {
    return my->_cur_time;
+}
+
+int64_t time_keeper::median_interval()const
+{
+  return my->_median_interval_sec;
+}
+int64_t time_keeper::target_interval()const
+{
+  return my->_target_interval_sec;
 }
 
 /**

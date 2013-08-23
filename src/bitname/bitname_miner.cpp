@@ -56,6 +56,7 @@ namespace bts { namespace bitname {
         uint64_t              _block_target;
         uint64_t              _name_trx_target;
         uint64_t              _min_name_trx_target;
+        fc::time_point_sec    _mine_time[DEFAULT_MINING_THREADS];
 
         /**
          *  Called from mining thread
@@ -66,10 +67,13 @@ namespace bts { namespace bitname {
             if( b.name_hash == 0 ) return;
 
             uint16_t max_nonce = uint16_t(-1) - DEFAULT_MINING_THREADS;
-            uint64_t best_diff = 0;    
             while( ver >= _block_ver )
             {
-               b.utc_sec = fc::time_point::now();
+               if( (fc::time_point::now() - _mine_time[thread_num]) > fc::seconds( 10 ) )
+               {
+                 _mine_time[thread_num] = fc::time_point::now() - fc::seconds(10);
+               }
+               b.utc_sec = _mine_time[thread_num];
                for( uint32_t nonce = thread_num; ver >= _block_ver && nonce < max_nonce; nonce += DEFAULT_MINING_THREADS )
                {
                    b.nonce   = nonce;
@@ -79,6 +83,7 @@ namespace bts { namespace bitname {
                    if( header_difficulty > _name_trx_target )
                    {
             //          wlog( "++++   ${ver}  ++++++++++++found: ${f}    ${now}  difficulty: ${diff}", ("f",b)("now", fc::time_point::now())("diff",header_difficulty)("ver",ver)  );
+                      _mine_time[thread_num] += 1;
                       if( ver == _block_ver )
                       {
                           ++_block_ver;
@@ -94,11 +99,13 @@ namespace bts { namespace bitname {
                    // exit if the block has been updated
                    if( ver < _block_ver ) { /*ilog( "     EXIT  ${ver}", ("ver",ver) );*/ return; }
                }
-               /*
+               _mine_time[thread_num] += 1;
+               b.utc_sec = _mine_time[thread_num];
+
                do {
-                   fc::usleep( fc::microseconds( 100 + 1000000 * (1-_cur_effort) ) );
-               } while ( b.utc_sec == fc::time_point::now() );
-               */
+                   fc::usleep( fc::microseconds( 5000 + 1000000 * (1-_cur_effort) ) );
+               } while ( b.utc_sec > fc::time_point::now() );
+               
             }
            // ilog( "---EXIT  ------------------------thread: ${t}  ver ${ver}  blockver ${blockver}", ("t",thread_num)("ver",ver)("b",b)("blockver", _block_ver) );
           }
@@ -126,7 +133,6 @@ namespace bts { namespace bitname {
            {
               if( _mining_complete[i].valid() ) _mining_complete[i].wait();
            }
-           fc::usleep(fc::seconds(1));
          // ilog( "start next" );
 
            if( _cur_block.name_hash != 0 )
@@ -190,7 +196,6 @@ namespace bts { namespace bitname {
         ilog( "not currently mining, ignoring name trx" );
         return;
       }
-      ilog( "add_name_trx: ${t}", ("t",t) );
       FC_ASSERT( t.prev == my->_cur_block.prev );
       if( t.name_hash == my->_cur_block.name_hash ) return;
 
@@ -201,7 +206,11 @@ namespace bts { namespace bitname {
       {
           if( t.name_hash == itr->name_hash )
           {
-             *itr = t;
+             if( t.difficulty() > itr->difficulty(my->_cur_block.prev) )
+             {
+       //         ilog( "add_name_trx: ${t}", ("t",t) );
+                *itr = t;
+             }
              return;
           }
       }
@@ -211,7 +220,7 @@ namespace bts { namespace bitname {
 
   void name_miner::set_name_header( const name_header& name_trx_to_mine )
   {
-      ilog( "set header: ${h}", ("h",name_trx_to_mine) );
+      //ilog( "set header: ${h}", ("h",name_trx_to_mine) );
       my->_cur_block = name_block(name_trx_to_mine);
    //   my->start_new_block();
   }

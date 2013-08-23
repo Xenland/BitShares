@@ -85,6 +85,8 @@ namespace bts { namespace blockchain {
         uint64_t current_difficulty()const;
 
         int64_t current_time_error()const;
+        int64_t median_interval()const;
+        int64_t target_interval()const;
         
         fc::time_point expected_time( uint32_t block_num )const;
      private:

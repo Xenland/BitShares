@@ -19,7 +19,7 @@
 #define BITCHAT_BANDWIDTH_WINDOW_US   (5*60*1000*1000ll)  // 5 minutes
 #define BITCHAT_INVENTORY_WINDOW_SEC  (60)                // seconds to keep inventory items around
 #define DEFAULT_MINING_EFFORT_PERCENT (50)                // percent of CPU to use for mining
-#define DEFAULT_MINING_THREADS        (8)                 // number of mining threads to use
+#define DEFAULT_MINING_THREADS        (1)                 // number of mining threads to use
 #define MIN_NAME_DIFFICULTY           (24)              // number if leeding 0 bits in double sha512 required to register a name
 //#define MIN_NAME_DIFFICULTY           (16)                // number if leeding 0 bits in double sha512 required to register a name
 #define PEER_HOST_CACHE_QUERY_LIMIT   (1000)              // number of ip/ports that we will cache
@@ -39,7 +39,7 @@
 
 
 #define BITNAME_BLOCK_INTERVAL_SEC         (30*1)  // 5 minutes
-#define BITNAME_TIMEKEEPER_WINDOW          (4096)  // blocks used for estimating time
+#define BITNAME_TIMEKEEPER_WINDOW          (64)    // blocks used for estimating time
 #define BLOCKCHAIN_TIMEKEEPER_MIN_BACK_SEC (60*60) // 60 minutes
 #define BITNAME_TIME_TOLLERANCE_SEC        (60*60) // 60 minutes
 #define BITNAME_BLOCKS_BEFORE_TRANSFER     (288*7) // 1 week before a transfer is complete 

@@ -356,7 +356,7 @@ namespace bts { namespace bitname {
               c->set_channel_data( _chan_id, nullptr );
           }
           void handle_message( const connection_ptr& con, const message& m )
-          {
+          { try {
              chan_data& cdat = get_channel_data(con);
    
              ilog( "${msg_type}", ("msg_type", (bitname::message_type)m.msg_type ) );
@@ -397,9 +397,9 @@ namespace bts { namespace bitname {
                    handle_headers( con, cdat, m.as<headers_message>() );
                    break;
                  default:
-                   wlog( "unknown bitname message type ${msg_type}", ("msg_type", m.msg_type ) );
+                   FC_THROW_EXCEPTION( exception, "unknown bitname message type ${msg_type}", ("msg_type", m.msg_type ) );
              }
-          } // handle_message
+          } FC_RETHROW_EXCEPTIONS( warn, "${from} - ${msg}", ("from",con->remote_endpoint())("msg",m) ) } // handle_message
 
           void request_block_headers( const connection_ptr& con )
           {
@@ -703,7 +703,7 @@ namespace bts { namespace bitname {
      }
      else 
      {
-         wlog( "submit name" );
+       //  wlog( "submit name" );
          submit_name( block_to_submit ); 
      }
   }
