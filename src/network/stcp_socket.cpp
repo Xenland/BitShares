@@ -47,7 +47,7 @@ size_t   stcp_socket::readsome( char* buffer, size_t max )
         _sock.read( buffer + s, 8 - s );
         s = 8;
     }
-    _recv_bf.decrypt( (unsigned char*)buffer, s );
+    //_recv_bf.decrypt( (unsigned char*)buffer, s );
     return s;
 }
 
@@ -60,10 +60,17 @@ size_t   stcp_socket::writesome( const char* buffer, size_t len )
 {
     assert( len % 8 == 0 );
     assert( len > 0 );
-    unsigned char crypt_buf[1024];
+    unsigned char crypt_buf[2048];
     len = std::min<size_t>(sizeof(crypt_buf),len);
-    _send_bf.encrypt( (const unsigned char*)buffer, crypt_buf, len );
-    _sock.write( (char*)crypt_buf, len );
+    memcpy( crypt_buf, buffer, len );
+    /**
+     * every sizeof(crypt_buf) bytes the blowfish channel
+     * has an error and doesn't decrypt properly...  disable
+     * for now because we are going to upgrade to something
+     * better.
+     */
+    //_send_bf.encrypt( (unsigned char*)crypt_buf, len );
+    _sock.write( (char*)buffer, len );
     return len;
 }
 
