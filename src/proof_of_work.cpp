@@ -1,8 +1,9 @@
 #include <bts/proof_of_work.hpp>
 #include <fc/crypto/sha512.hpp>
+#include <fc/crypto/sha256.hpp>
+#include <fc/crypto/aes.hpp>
 #include <fc/crypto/city.hpp>
 #include <string.h>
-#include <SFMT.h>
 
 #include <fc/io/raw.hpp>
 #include <utility>
@@ -56,14 +57,17 @@ fc::uint128 proof_of_work( const fc::sha256& in)
  *  instruction alone is likely to give the CPU an order of magnitude advantage
  *  over the GPUs.
  */
-fc::uint128 proof_of_work( const fc::sha256& in, unsigned char* buffer_128m )
+fc::uint128 proof_of_work( const fc::sha256& iv, unsigned char* buffer_128m )
 {
+   auto key = fc::sha256(iv);
    const uint64_t  s = MB128/sizeof(uint64_t);
    uint64_t* buf = (uint64_t*)buffer_128m;
-
-   sfmt_t gen;
-   sfmt_init_by_array( &gen, (uint32_t*)&in, sizeof(in)/sizeof(uint32_t) );
-   sfmt_fill_array64( &gen, buf, s );
+   memset( buffer_128m, 0, MB128/2 );
+   fc::aes_encrypt( buffer_128m, MB128/2, (unsigned char*)&key, (unsigned char*)&iv,
+                    buffer_128m + MB128/2 );
+                    
+   fc::aes_encrypt( buffer_128m + MB128/2, MB128/2, (unsigned char*)&iv, (unsigned char*)&key,
+                    buffer_128m  );
 
    // use the last number generated in the sequence as the seed to
    // determine which numbers must be randomly swapped
