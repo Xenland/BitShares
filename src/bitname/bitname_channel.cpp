@@ -538,7 +538,6 @@ namespace bts { namespace bitname {
                 name_header trx = _name_db.fetch_trx_header( msg.name_trx_id );
                 con->send( network::message( name_header_message( trx ), _chan_id ) );
               */
-
              }
              else
              {
@@ -632,7 +631,7 @@ namespace bts { namespace bitname {
               //       processed.
               ilog( "received ${msg}", ("msg",msg) );
               FC_ASSERT( msg.header_ids.size() != 0 );
-           //   _fork_tree.check_node( msg.first_block_num, msg.header_ids[0] );
+              _fork_tree.check_node( msg.first_block_num, msg.header_ids[0] );
               for( uint32_t i = 1; i < msg.header_ids.size(); ++i )
               {
                  _fork_tree.add_node( msg.first_block_num + i, msg.header_ids[i], msg.header_ids[i-1] );

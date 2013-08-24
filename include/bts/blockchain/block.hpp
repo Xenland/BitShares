@@ -45,7 +45,7 @@ namespace bts { namespace blockchain {
        */
       fc::sha224   id()const;
 
-      fc::uint128  proof_of_work()const;
+      pow_hash  proof_of_work()const;
       proof        pow; ///< contains the merkle branch + nonce
    };
 

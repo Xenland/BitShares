@@ -2,10 +2,12 @@
 #include <fc/crypto/sha512.hpp>
 #include <fc/crypto/sha256.hpp>
 #include <fc/crypto/aes.hpp>
+#include <fc/crypto/salsa20.hpp>
 #include <fc/crypto/city.hpp>
 #include <string.h>
 
 #include <fc/io/raw.hpp>
+#include <fc/crypto/ripemd160.hpp>
 #include <utility>
 #include <fc/log/logger.hpp>
 
@@ -13,10 +15,10 @@
 
 namespace bts  {
 
-fc::uint128 proof_of_work( const fc::sha256& in)
+pow_hash proof_of_work( const fc::sha256& in)
 {
    unsigned char* buf = new unsigned char[MB128];
-   fc::uint128 out;
+   pow_hash out;
    try {
      out = proof_of_work( in, buf );
    } catch ( ... )
@@ -57,30 +59,25 @@ fc::uint128 proof_of_work( const fc::sha256& in)
  *  instruction alone is likely to give the CPU an order of magnitude advantage
  *  over the GPUs.
  */
-fc::uint128 proof_of_work( const fc::sha256& iv, unsigned char* buffer_128m )
+pow_hash proof_of_work( const fc::sha256& iv, unsigned char* buffer_128m )
 {
    auto key = fc::sha256(iv);
    const uint64_t  s = MB128/sizeof(uint64_t);
    uint64_t* buf = (uint64_t*)buffer_128m;
    memset( buffer_128m, 0, MB128/2 );
+   
    fc::aes_encrypt( buffer_128m, MB128/2, (unsigned char*)&key, (unsigned char*)&iv,
                     buffer_128m + MB128/2 );
+   
+   uint64_t offset = buf[s-1] % ((MB128/2)-1024);
+   fc::sha512 new_key = fc::sha512::hash( (char*)(buffer_128m + offset + MB128/2), 1024 );
                     
-   fc::aes_encrypt( buffer_128m + MB128/2, MB128/2, (unsigned char*)&iv, (unsigned char*)&key,
+   fc::aes_encrypt( buffer_128m + MB128/2, MB128/2, (unsigned char*)&new_key,
+                                                    ((unsigned char*)&new_key) + 32,
                     buffer_128m  );
 
-   // use the last number generated in the sequence as the seed to
-   // determine which numbers must be randomly swapped
-   uint64_t data = (buf+s)[-1];
-   for( uint32_t x = 0; x < 1024; ++x )
-   {
-      uint64_t d = data%s;
-      uint64_t tmp = data ^ buf[d];
-      std::swap( buf[tmp%s], buf[d] );
-      data = tmp * (x+17);
-   }
-
-   return fc::city_hash_crc_128( (char*)buffer_128m, MB128 ); 
+   auto midstate =  fc::city_hash_crc_256( (char*)buffer_128m, MB128 ); 
+   return fc::ripemd160::hash((char*)&midstate, sizeof(midstate) );
 }
 
 
