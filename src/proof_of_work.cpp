@@ -11,7 +11,7 @@
 #include <utility>
 #include <fc/log/logger.hpp>
 
-#define MB128 (128*1024*1024)
+#define MB128 (32*1024*1024)
 
 namespace bts  {
 
@@ -62,13 +62,13 @@ pow_hash proof_of_work( const fc::sha256& in)
 pow_hash proof_of_work( const fc::sha256& iv, unsigned char* buffer_128m )
 {
    auto key = fc::sha256(iv);
-   const uint64_t  s = MB128/sizeof(uint64_t);
-   uint64_t* buf = (uint64_t*)buffer_128m;
    memset( buffer_128m, 0, MB128/2 );
    
    fc::aes_encrypt( buffer_128m, MB128/2, (unsigned char*)&key, (unsigned char*)&iv,
                     buffer_128m + MB128/2 );
    
+   const uint64_t  s = MB128/sizeof(uint64_t);
+   uint64_t* buf = (uint64_t*)buffer_128m;
    uint64_t offset = buf[s-1] % ((MB128/2)-1024);
    fc::sha512 new_key = fc::sha512::hash( (char*)(buffer_128m + offset + MB128/2), 1024 );
                     
