@@ -17,7 +17,7 @@ namespace bts { namespace bitchat {
      class chan_data : public network::channel_data
      {
         public:
-          std::unordered_set<mini_pow> known_inv;
+          std::unordered_set<fc::uint128> known_inv;
      };
 
 
@@ -28,14 +28,14 @@ namespace bts { namespace bitchat {
           channel_delegate*        del;
           peer::peer_channel_ptr   peers;
 
-          std::map<fc::time_point, mini_pow>              msg_time_index;
-          std::unordered_map<mini_pow,encrypted_message>  priv_msgs;
+          std::map<fc::time_point, fc::uint128>              msg_time_index;
+          std::unordered_map<fc::uint128,encrypted_message>  priv_msgs;
 
           /// messages that we have recieved inv for, but have not requested the data for
-          std::unordered_set<mini_pow>                  unknown_msgs; 
-          std::unordered_map<mini_pow,fc::time_point>   requested_msgs; // messages that we have requested but not yet received
+          std::unordered_set<fc::uint128>                  unknown_msgs; 
+          std::unordered_map<fc::uint128,fc::time_point>   requested_msgs; // messages that we have requested but not yet received
 
-          std::vector<mini_pow>                         new_msgs;  // messages received since last inv broadcast
+          std::vector<fc::uint128>                         new_msgs;  // messages received since last inv broadcast
 
           fc::future<void>                              fetch_loop_complete;
 
@@ -124,7 +124,7 @@ namespace bts { namespace bitchat {
            *   is the host that we have fetched the least from and that has fetched the most from us.
            *
            */
-          void fetch_from_best_connection( const std::vector<connection_ptr>& cons, const mini_pow& id )
+          void fetch_from_best_connection( const std::vector<connection_ptr>& cons, const fc::uint128& id )
           {
              // if request is made, move id from unknown_msgs to requested_msgs 
              // TODO: update this algorithm to be something better. 

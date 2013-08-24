@@ -34,6 +34,7 @@ namespace bts { namespace bitname {
        {
           public:
              name_db_impl()
+             :_chain_difficulty(0)
              {
              }
 
@@ -54,6 +55,7 @@ namespace bts { namespace bitname {
               * any corruption on load.
               **/
              std::vector<fc::sha224>                    _header_ids;
+             uint64_t                                   _chain_difficulty;
 
              /** rapid lookup of block_num from block_id, this can be built
               * from _header_ids
@@ -95,6 +97,7 @@ namespace bts { namespace bitname {
                      // TODO: validate integrety
                  
                      // rebuild_header_ids = false;
+                     // TODO: load chain difficulty here as well.
                  }
                  
                  if( rebuild_header_ids )
@@ -104,8 +107,12 @@ namespace bts { namespace bitname {
                     while( itr.valid() )
                     {
                       ilog( "push back ${id}", ("id",itr.value().id()) );
+                      /*
                       _header_ids.push_back( itr.value().id() );
                       _id_to_block_num[_header_ids.back()] = _header_ids.size()-1;
+                      _chain_difficulty += bts::difficulty( _header_ids.back() );
+                      */
+                      push_header_id( itr.value().id() );
                       ++itr;
                     }
                  
@@ -135,16 +142,19 @@ namespace bts { namespace bitname {
              {
                 // TODO: consider using boost::multiindex 
                 _header_ids.push_back(id);
+                _chain_difficulty += bts::difficulty(id);
                 _id_to_block_num[id] = _header_ids.size()-1;
              }
 
              void init_timekeeper()
              {
                 uint32_t window_start = 0;
+                /*
                 if( _header_ids.size() > BITNAME_TIMEKEEPER_WINDOW )
                 {
                     window_start = _header_ids.size() - BITNAME_TIMEKEEPER_WINDOW;
                 }
+                */
 
                 for( uint32_t window_pos = window_start; 
                      window_pos < _header_ids.size(); ++window_pos )
@@ -152,7 +162,8 @@ namespace bts { namespace bitname {
                    ilog( "window_pow: ${p}", ("p",window_pos) );
                    auto head = fetch_block_header( window_pos );
                    FC_ASSERT( head.id() == _header_ids[window_pos] ); // sanity check
-                   _timekeeper.push_init( window_pos, head.utc_sec, head.difficulty() );
+                   auto dif           = head.difficulty();
+                   _timekeeper.push_init( window_pos, head.utc_sec, dif );
                 }
                ilog( "...init stats..." );
                 _timekeeper.init_stats();
@@ -603,6 +614,10 @@ namespace bts { namespace bitname {
     const std::vector<name_id_type>&  name_db::get_header_ids()const
     {
       return my->_header_ids;
+    }
+    uint64_t name_db::chain_difficulty()const
+    {
+      return my->_chain_difficulty;
     }
 
 } } // bts::bitname

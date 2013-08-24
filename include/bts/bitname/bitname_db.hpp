@@ -40,6 +40,11 @@ namespace bts { namespace bitname {
         fc::time_point_sec   chain_time()const;
 
         /**
+         *   The cumulative difficulty of the chain
+         */
+        uint64_t             chain_difficulty()const;
+
+        /**
          * Tracks the ID of all headers for rapid query by new nodes
          * connecting and attempting to sync.
          */

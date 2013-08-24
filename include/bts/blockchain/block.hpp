@@ -1,9 +1,9 @@
 #pragma once
 #include <bts/small_hash.hpp>
-#include <bts/mini_pow.hpp>
 #include <bts/blockchain/proof.hpp>
 #include <bts/blockchain/transaction.hpp>
 #include <bts/blockchain/asset.hpp>
+#include <fc/uint128.hpp>
 
 namespace bts { namespace blockchain {
 
@@ -45,7 +45,7 @@ namespace bts { namespace blockchain {
        */
       fc::sha224   id()const;
 
-      mini_pow     proof_of_work()const;
+      fc::uint128  proof_of_work()const;
       proof        pow; ///< contains the merkle branch + nonce
    };
 

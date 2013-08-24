@@ -29,6 +29,13 @@
       "recv_channels": [
         0
       ]
+    },{
+      "label": "mkdali",
+      "key": "08cd0cef10069d250343884aa5fd4b55c03ca1dd14e22e56376c62b6ad190efd",
+      "broadcast": "9ad09e5a5f7f8bb13b90cd3a46d71b389a9b3a9585eac88c9c48614ec810f39a",
+      "recv_channels": [
+        0
+      ]
     }
   ],
   "contacts": [{

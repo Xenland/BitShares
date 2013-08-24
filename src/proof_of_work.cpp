@@ -1,5 +1,4 @@
 #include <bts/proof_of_work.hpp>
-#include <bts/mini_pow.hpp>
 #include <fc/crypto/sha512.hpp>
 #include <fc/crypto/city.hpp>
 #include <string.h>
@@ -13,10 +12,10 @@
 
 namespace bts  {
 
-mini_pow proof_of_work( const fc::sha256& in)
+fc::uint128 proof_of_work( const fc::sha256& in)
 {
    unsigned char* buf = new unsigned char[MB128];
-   mini_pow out;
+   fc::uint128 out;
    try {
      out = proof_of_work( in, buf );
    } catch ( ... )
@@ -57,7 +56,7 @@ mini_pow proof_of_work( const fc::sha256& in)
  *  instruction alone is likely to give the CPU an order of magnitude advantage
  *  over the GPUs.
  */
-mini_pow proof_of_work( const fc::sha256& in, unsigned char* buffer_128m )
+fc::uint128 proof_of_work( const fc::sha256& in, unsigned char* buffer_128m )
 {
    const uint64_t  s = MB128/sizeof(uint64_t);
    uint64_t* buf = (uint64_t*)buffer_128m;
@@ -77,8 +76,7 @@ mini_pow proof_of_work( const fc::sha256& in, unsigned char* buffer_128m )
       data = tmp * (x+17);
    }
 
-   auto  out  = fc::city_hash_crc_128( (char*)buffer_128m, MB128 ); 
-   return mini_pow_hash( (char*)&out, sizeof(out) );
+   return fc::city_hash_crc_128( (char*)buffer_128m, MB128 ); 
 }
 
 

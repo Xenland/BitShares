@@ -71,6 +71,13 @@
       "recv_channels": [
         0
       ]
+    },{
+      "label": "twoatonce",
+      "key": "2bc17281700c1c11503d98573e50510fabc58c99c761a2a5de176725d9db9656",
+      "broadcast": "a36d09f2478f7055fc7d5bce60cf0eb0cfdc6130f6f63884836533b1e8cfb73c",
+      "recv_channels": [
+        0
+      ]
     }
   ],
   "contacts": [{

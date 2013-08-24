@@ -1,5 +1,4 @@
 #pragma once
-#include <bts/mini_pow.hpp>
 #include <bts/network/channel_id.hpp>
 #include <fc/io/raw.hpp>
 #include <fc/thread/future.hpp>
@@ -54,14 +53,14 @@ namespace bts { namespace bitchat {
         uint32_t                                      dh_check;
         std::vector<char>                             data;
 
-        mini_pow           id()const;
+        fc::uint128        id()const;
 
         /**
-         *  This method will increment the nonce or timestamp until id() < tar_per_kb/(data.size()/1024).
+         *  This method will increment the nonce or timestamp until bts::difficulty(id()) > tar_per_kb*(data.size()/1024).
          *
          *  @return a future object that can be used to cancel the proof of work, result true if target found.
          */
-        fc::future<bool>   do_proof_work( const mini_pow& tar_per_kb );
+        fc::future<bool>   do_proof_work( uint64_t tar_per_kb );
         bool               decrypt( const fc::ecc::private_key& with, decrypted_message& m )const;
     };
 
@@ -148,7 +147,7 @@ namespace bts { namespace bitchat {
        static const private_message_type  type;
 
        std::string                        auth_text;         ///< "sorry, ok, ..."
-       mini_pow                           min_work;          ///< how much work is required to contact this individual
+       fc::uint128                        min_work;          ///< how much work is required to contact this individual
        fc::time_point_sec                 expires;           ///< specifies when the channel list and broadcast key will expire.
        std::vector<network::channel_id>   listen_channels;   ///< channel where from_name can be contacted
        fc::optional<fc::ecc::private_key> broadcast_key;     ///< key used by this contact for broadcasting updates, updates

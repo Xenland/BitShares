@@ -55,6 +55,11 @@ namespace bts { namespace bitname {
        }
     };
 
+    struct fetch_loop_state
+    {
+       bool synchronizing;
+    };
+
     class name_channel_impl : public bts::network::channel
     {
        public:
@@ -66,6 +71,7 @@ namespace bts { namespace bitname {
           network::channel_id                               _chan_id;
                                                             
           name_db                                           _name_db;
+          fetch_loop_state                                  _fetch_state;                          
           fc::future<void>                                  _fetch_loop;
            
           blockchain::fork_tree<name_id_type>               _fork_tree; 
@@ -145,14 +151,29 @@ namespace bts { namespace bitname {
              }
           }
 
+          /**
+           *  The fetch loop has several modes:
+           *    1) synchronize mode.
+           *    2) maitenance mode.
+           *
+           *  In Synchronize mode the client is not conserned with inventory
+           *  notices from other nodes.  In fact, other nodes probably shouldn't
+           *  bother broadcasting inv notices to us until we have finished sync.
+           *
+           *  The client stays in synchronize mode until it has determined that it
+           *  is on the proper chain.  When a client first connects it sends a request
+           *  for new block headers and it will get a response that may include 
+           *  a potential chain reorganization though this should be relatively
+           *  rare.
+           *
+           *  
+           */
           void fetch_loop()
           {
              try 
              {
                 while( !_fetch_loop.canceled() )
                 {
-                   broadcast_inv();
-
                    if( !_pending_block_fetch )
                    {
                       _pending_block_fetch = _fork_tree.get_best_fork_for_height( _name_db.head_block_num()+1 );
@@ -167,23 +188,26 @@ namespace bts { namespace bitname {
                       //   ilog( "nothing to fetch at height ${i}", ("i", _name_db.head_block_num()+1));
                       }
                    }
-
-                   uint64_t trx_query = 0;
-                   if( _trx_broadcast_mgr.find_next_query( trx_query ) )
+                   else
                    {
-                      auto cons = _peers->get_connections( _chan_id );
-                      fetch_name_from_best_connection( cons, trx_query );
-                      _trx_broadcast_mgr.item_queried( trx_query );
-                   }
-
-                   name_id_type blk_idx_query;
-                   if( _block_index_broadcast_mgr.find_next_query( blk_idx_query ) )
-                   {
-                      auto cons = _peers->get_connections( _chan_id );
-                      fetch_block_idx_from_best_connection( cons, blk_idx_query );
-                      _block_index_broadcast_mgr.item_queried( blk_idx_query );
-                   }
-                   
+                      broadcast_inv();
+                      
+                      uint64_t trx_query = 0;
+                      if( _trx_broadcast_mgr.find_next_query( trx_query ) )
+                      {
+                         auto cons = _peers->get_connections( _chan_id );
+                         fetch_name_from_best_connection( cons, trx_query );
+                         _trx_broadcast_mgr.item_queried( trx_query );
+                      }
+                      
+                      name_id_type blk_idx_query;
+                      if( _block_index_broadcast_mgr.find_next_query( blk_idx_query ) )
+                      {
+                         auto cons = _peers->get_connections( _chan_id );
+                         fetch_block_idx_from_best_connection( cons, blk_idx_query );
+                         _block_index_broadcast_mgr.item_queried( blk_idx_query );
+                      }
+                   } 
                    /* By using a random sleep we give other peers the oppotunity to find
                     * out about messages before we pick who to fetch from.
                     * TODO: move constants to config.hpp

@@ -124,7 +124,6 @@ set( sources
 
      src/extended_address.cpp
      src/small_hash.cpp
-     src/mini_pow.cpp 
      src/merkle_tree.cpp
      src/address.cpp
      src/wallet.cpp

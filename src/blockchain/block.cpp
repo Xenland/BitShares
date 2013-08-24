@@ -127,7 +127,7 @@ namespace bts { namespace blockchain  {
   /**
    *  Calculate the proof of work hash from the merkle root + nonce
    */
-  mini_pow block_proof::proof_of_work()const
+  fc::uint128 block_proof::proof_of_work()const
   {
      FC_ASSERT( pow.branch_path.mid_states.size() > 0 );
      FC_ASSERT( pow.branch_path.mid_states[0] == block_header::digest() );

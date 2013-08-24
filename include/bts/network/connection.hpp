@@ -1,7 +1,6 @@
 #pragma once
 #include <bts/network/stcp_socket.hpp>
 #include <bts/network/message.hpp>
-#include <bts/mini_pow.hpp>
 #include <fc/exception/exception.hpp>
 
 namespace bts { namespace network {
