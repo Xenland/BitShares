@@ -4,7 +4,7 @@
 #include <fc/thread/thread.hpp>
 #include <fc/log/logger.hpp>
 
-#define THREADS 5
+#define THREADS 1
 #define ROUNDS  30
 int main( int argc, char** argv )
 {

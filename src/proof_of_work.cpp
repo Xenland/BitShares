@@ -11,7 +11,7 @@
 #include <utility>
 #include <fc/log/logger.hpp>
 
-#define BUF_SIZE (16*1024*1024)
+#define BUF_SIZE (8*1024*1024)
 #define BLOCK_SIZE (32) // bytes
 
 namespace bts  {
