@@ -96,6 +96,7 @@ set( sources
      src/bitname/bitname_hash.cpp
      src/bitname/bitname_miner.cpp
      src/bitname/bitname_db.cpp
+     src/bitname/bitname_fork_db.cpp
      src/bitname/bitname_messages.cpp
      src/bitname/bitname_channel.cpp
      src/bitname/bitname_client.cpp
