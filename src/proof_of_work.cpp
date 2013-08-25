@@ -11,13 +11,14 @@
 #include <utility>
 #include <fc/log/logger.hpp>
 
-#define MB128 (32*1024*1024)
+#define BUF_SIZE (16*1024*1024)
+#define BLOCK_SIZE (32) // bytes
 
 namespace bts  {
 
 pow_hash proof_of_work( const fc::sha256& in)
 {
-   unsigned char* buf = new unsigned char[MB128];
+   unsigned char* buf = new unsigned char[BUF_SIZE];
    pow_hash out;
    try {
      out = proof_of_work( in, buf );
@@ -59,24 +60,24 @@ pow_hash proof_of_work( const fc::sha256& in)
  *  instruction alone is likely to give the CPU an order of magnitude advantage
  *  over the GPUs.
  */
-pow_hash proof_of_work( const fc::sha256& iv, unsigned char* buffer_128m )
+pow_hash proof_of_work( const fc::sha256& seed, unsigned char* buffer )
 {
-   auto key = fc::sha256(iv);
-   memset( buffer_128m, 0, MB128/2 );
-   
-   fc::aes_encrypt( buffer_128m, MB128/2, (unsigned char*)&key, (unsigned char*)&iv,
-                    buffer_128m + MB128/2 );
-   
-   const uint64_t  s = MB128/sizeof(uint64_t);
-   uint64_t* buf = (uint64_t*)buffer_128m;
-   uint64_t offset = buf[s-1] % ((MB128/2)-1024);
-   fc::sha512 new_key = fc::sha512::hash( (char*)(buffer_128m + offset + MB128/2), 1024 );
-                    
-   fc::aes_encrypt( buffer_128m + MB128/2, MB128/2, (unsigned char*)&new_key,
-                                                    ((unsigned char*)&new_key) + 32,
-                    buffer_128m  );
+   auto key = fc::sha256(seed);
+   auto iv  = fc::city_hash128((char*)&seed,sizeof(seed));
+   memset( buffer, 0, BUF_SIZE );
 
-   auto midstate =  fc::city_hash_crc_256( (char*)buffer_128m, MB128 ); 
+   uint64_t* read_pos  = (uint64_t*)(buffer);
+   uint64_t* write_pos = (uint64_t*)(buffer+32);
+
+   fc::aes_encoder enc( key, iv );
+   for( uint32_t i = 0; i < BUF_SIZE / (BLOCK_SIZE/2); ++i )
+   {
+      uint64_t wrote = enc.encode( (char*)read_pos, BLOCK_SIZE, (char*)write_pos ); 
+      FC_ASSERT( wrote == BLOCK_SIZE );
+      read_pos  =  (uint64_t*)( buffer + (write_pos[0]) % ( BUF_SIZE - BLOCK_SIZE ) );
+      write_pos =  (uint64_t*)( buffer + (write_pos[1]) % ( BUF_SIZE - BLOCK_SIZE ) );
+   }
+   auto midstate =  fc::city_hash_crc_256( (char*)buffer, BUF_SIZE ); 
    return fc::ripemd160::hash((char*)&midstate, sizeof(midstate) );
 }
 
