@@ -58,13 +58,17 @@ namespace bts { namespace bitname {
   fork_db::~fork_db()
   {}
 
-  void fork_db::open( const fc::path& db_dir )
+  void fork_db::open( const fc::path& db_dir, bool create )
   { try {
-     my->_headers.open( db_dir / "headers" );
-     my->_blocks.open( db_dir / "blocks" );
-     my->_forks.open( db_dir / "forks" );
-     my->_nexts.open( db_dir / "nexts" );
-     my->_unknown.open( db_dir / "unknown" );
+     if( create ) 
+     {
+        fc::create_directories( db_dir );
+     }
+     my->_headers.open( db_dir / "headers", create );
+     my->_blocks.open( db_dir / "blocks", create );
+     my->_forks.open( db_dir / "forks", create );
+     my->_nexts.open( db_dir / "nexts", create );
+     my->_unknown.open( db_dir / "unknown", create );
   } FC_RETHROW_EXCEPTIONS( warn, "unable to open fork database ${path}", ("path",db_dir) ) }
 
 

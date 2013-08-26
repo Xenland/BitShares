@@ -1,6 +1,7 @@
 #include <bts/bitname/bitname_channel.hpp>
 #include <bts/bitname/bitname_messages.hpp>
 #include <bts/bitname/bitname_db.hpp>
+#include <bts/bitname/bitname_fork_db.hpp>
 #include <bts/bitname/bitname_hash.hpp>
 #include <bts/blockchain/fork_tree.hpp>
 #include <bts/network/server.hpp>
@@ -71,6 +72,9 @@ namespace bts { namespace bitname {
           network::channel_id                               _chan_id;
                                                             
           name_db                                           _name_db;
+          fork_db                                           _fork_db;
+
+
           fetch_loop_state                                  _fetch_state;                          
           fc::future<void>                                  _fetch_loop;
            
@@ -188,7 +192,7 @@ namespace bts { namespace bitname {
                       //   ilog( "nothing to fetch at height ${i}", ("i", _name_db.head_block_num()+1));
                       }
                    }
-                   else
+                  // else
                    {
                       broadcast_inv();
                       
@@ -487,6 +491,8 @@ namespace bts { namespace bitname {
                         ("id", msg.locator_hashes[i] )("e",e.to_detail_string()) );
                 }
               }
+
+              #if 0 // TODO: update how this works
               const std::vector<name_id_type>& ids = _name_db.get_header_ids();
               uint32_t end = std::min<uint32_t>(start_block+2000, ids.size() );
 
@@ -500,6 +506,7 @@ namespace bts { namespace bitname {
               reply.head_block_num = ids.size() - 1;
               reply.head_block_id  = ids.back();
               con->send( network::message( reply, _chan_id ) );
+              #endif
 
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) }
    
@@ -549,6 +556,9 @@ namespace bts { namespace bitname {
           {
              ilog( "${msg}", ("msg",msg) );
              cdat.block_mgr.received_response( msg.index.header.id() );
+
+             _fork_db.cache_header( msg.index.header );
+
              if( msg.index.name_trxs.size() == 0 )
              {
                 submit_block( msg.index.header );
@@ -610,6 +620,9 @@ namespace bts { namespace bitname {
           { try {
                // TODO: make sure that I requrested this block... 
                FC_ASSERT( !!_pending_block_fetch && *_pending_block_fetch == msg.block.id() ); 
+
+               _fork_db.cache_header( msg.block );
+
                _pending_block_fetch = fc::optional<name_id_type>(); // reset this...
                try {
                   _name_db.push_block( msg.block ); 
@@ -630,15 +643,8 @@ namespace bts { namespace bitname {
               // TODO: verify that we did request these headers, no unrequested headers should be
               //       processed.
               ilog( "received ${msg}", ("msg",msg) );
-              FC_ASSERT( msg.header_ids.size() != 0 );
-              _fork_tree.check_node( msg.first_block_num, msg.header_ids[0] );
-              for( uint32_t i = 1; i < msg.header_ids.size(); ++i )
-              {
-                 _fork_tree.add_node( msg.first_block_num + i, msg.header_ids[i], msg.header_ids[i-1] );
-                 auto tmp = _fork_tree.get_best_fork_for_height( msg.first_block_num + i );
-                 FC_ASSERT( !!tmp );
-                 cdat.available_blocks.insert( msg.header_ids[i] );
-              }
+              //FC_ASSERT( msg.header_ids.size() != 0 );
+              // TODO: implement this method
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } 
 
           void submit_name( const name_header& new_name_trx )
@@ -659,6 +665,7 @@ namespace bts { namespace bitname {
 
           void submit_block( const name_block& block )
           { try {
+             _fork_db.cache_block( block );
              _name_db.push_block( block ); // this throws on error
              _trx_broadcast_mgr.invalidate_all(); // current inventory is now invalid
              _block_index_broadcast_mgr.clear_old_inventory(); // we can clear old inventory
@@ -698,6 +705,7 @@ namespace bts { namespace bitname {
   void name_channel::configure( const name_channel::config& c )
   {
       my->_name_db.open( c.name_db_dir, true/*create*/ );
+      my->_fork_db.open( c.name_db_dir / "forks" , true/*create*/ );
       my->_fork_tree.add_node( my->_name_db.head_block_num(), my->_name_db.head_block_id(), name_id_type() );
       // TODO: connect to the network and attempt to download the chain...
       //      *  what if no peers on on the name channel ??  * 

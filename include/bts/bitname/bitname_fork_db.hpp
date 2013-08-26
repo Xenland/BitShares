@@ -29,7 +29,7 @@ namespace bts { namespace bitname {
        fork_db();
        ~fork_db();
 
-       void open( const fc::path& db_dir );
+       void open( const fc::path& db_dir, bool create );
 
        void cache_header( const name_header& head );
        void cache_block( const name_block& blk );
