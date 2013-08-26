@@ -1,0 +1,27 @@
+/** 
+
+  @defgroup bit_id BitID 
+  @brief Provides a name/key block chain.
+
+  @section bit_id_protocol  Bit ID Protocol 
+
+  BitID uses the standard inventory / fetch broadcast system as
+  everything else in the BitShares system.  When a node first 
+  connects it will send a request for any new valid blocks since
+  its last connection.  The remote node will respond with up to
+  1000 headers and an indication of how many more there are.
+
+  These headers will be added to the fork database and any additional
+  headers will be requested.  When the remote node reports that
+  there are no more new headers, then the client will consult the
+  fork tree and start downloading and verifing the blocks on the
+  longest fork and pushing them into the name_db.  
+
+  If an error occurs on the name_db push, then the next fork in
+  the fork_db chain is attempted provided its difficulty is 
+  greater than the current name_db head.
+
+  While we are synchronizing with the network we do not participate
+  in the broadcast of new names because we are unable to validate
+  them. 
+*/
