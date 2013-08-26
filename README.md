@@ -21,11 +21,12 @@ cmake 2.8.11.2
 
 Installation
 --------------------
-git clone https://github.com/InvictusInnovations/BitShares.git
-cd BitShares
-git clone https://github.com/InvictusInnovations/fc.git
-cmake .
-make 
+
+	git clone https://github.com/InvictusInnovations/BitShares.git
+	cd BitShares
+	git clone https://github.com/InvictusInnovations/fc.git
+	cmake .
+	make 
 
 Coding Standards
 ----------------
