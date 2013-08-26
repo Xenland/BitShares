@@ -13,13 +13,13 @@ github or bytemaster on bitcointalk.org
 
 Dependencies
 -------------------
-g++ 4.6, VC2010 
-boost 1.54
-Open SSL
-Qt 5.1 (for GUI only)
-cmake 2.8.11.2
+	g++ 4.6, VC2010 
+	boost 1.54
+	OpenSSL
+	Qt 5.1 (for GUI only)
+	cmake 2.8.11.2
 
-Installation
+Build
 --------------------
 
 	git clone https://github.com/InvictusInnovations/BitShares.git
