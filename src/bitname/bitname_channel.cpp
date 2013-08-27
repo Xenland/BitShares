@@ -492,21 +492,19 @@ namespace bts { namespace bitname {
                 }
               }
 
-              #if 0 // TODO: update how this works
               const std::vector<name_id_type>& ids = _name_db.get_header_ids();
               uint32_t end = std::min<uint32_t>(start_block+2000, ids.size() );
 
               headers_message         reply;
               reply.first_block_num = start_block;
-              reply.header_ids.reserve( end - start_block );
-              for( auto i = start_block; i < end; ++i )
+              reply.headers.reserve( end - start_block - 1 );
+              for( auto i = start_block+1; i < end; ++i )
               {
-                reply.header_ids.push_back( ids[i] );
+                reply.headers.push_back( _name_db.fetch_block_header(ids[i]) );
               }
               reply.head_block_num = ids.size() - 1;
               reply.head_block_id  = ids.back();
               con->send( network::message( reply, _chan_id ) );
-              #endif
 
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) }
    
@@ -587,8 +585,8 @@ namespace bts { namespace bitname {
                 }
                 if( dlmgr.unknown.size() == 0 )
                 {
-                  submit_block( dlmgr.incomplete );
-                  _block_downloads.pop_back();
+                    submit_block( dlmgr.incomplete );
+                    _block_downloads.pop_back();
                 }
              }
           }
@@ -637,12 +635,19 @@ namespace bts { namespace bitname {
    
           void handle_headers( const connection_ptr& con,  chan_data& cdat, const headers_message& msg )
           { try {
-              // TODO: figure out how to prevent abuse by sending a bunch of bogus hashes... that
-              // will polute our fork tree.   Perhaps track the sender, punish them.
+              // TODO: validate that all ids reported have the min proof of work for a name.
               
               // TODO: verify that we did request these headers, no unrequested headers should be
               //       processed.
               ilog( "received ${msg}", ("msg",msg) );
+              _fork_db.cache_header( msg.first );
+              name_id_type prev_id = msg.first.id();
+              for( auto itr = msg.headers.begin(); itr != msg.headers.end(); ++itr )
+              {
+                 name_header next_head( *itr, prev_id );
+                 _fork_db.cache_header( next_head );
+                 prev_id = next_head.id();
+              }
               //FC_ASSERT( msg.header_ids.size() != 0 );
               // TODO: implement this method
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } 
