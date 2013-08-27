@@ -14,8 +14,8 @@ SET( ALL_OPENSSL_LIBRARIES
        ${LIB_EAY_RELEASE}
    )
 
-include( VersionMacros )
-include( SetupTargetMacros )
+#include( VersionMacros )
+#include( SetupTargetMacros )
 
 IF( WIN32 )
   MESSAGE(status "Compiling on WIN32")
