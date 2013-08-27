@@ -1,8 +1,11 @@
+#define __STDC_CONSTANT_MACROS
 #include <bts/blockchain/asset.hpp>
 #include <fc/exception/exception.hpp>
 #include <fc/crypto/bigint.hpp>
 #include <fc/log/logger.hpp>
 #include <cstdint>
+
+
 
 /** more base 10 digits is beyond the precision of 64 bits */
 #define BASE10_PRECISION  UINT64_C(100000000000000)
