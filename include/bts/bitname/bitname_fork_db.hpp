@@ -39,12 +39,15 @@ namespace bts { namespace bitname {
         */
        std::vector<name_id_type> fetch_unknown();
 
+       name_id_type              best_fork_head_id()const;
+       name_id_type              best_fork_fetch_next( const name_id_type& b )const;
+
        /**
         * All forks that branch from a particular node.
         */
        std::vector<name_id_type> fetch_next( const name_id_type& b );
        name_header               fetch_header( const name_id_type& b );
-       name_block                fetch_block( const name_id_type& b );
+       fc::optional<name_block>  fetch_block( const name_id_type& b );
 
        /**
         *  Marks all forks derived from this block invalid.

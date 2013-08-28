@@ -16,6 +16,8 @@ namespace bts { namespace bitname {
         db::level_pod_map<name_id_type, std::vector<name_id_type> > _nexts;
         db::level_pod_map<name_id_type,name_id_type>                _unknown; // unknown id to the block that refs it.
 
+        name_id_type                                                _best_fork_head_id;
+
         void reverse_update( const name_id_type& start_id, uint64_t starting_diff = 0, uint32_t starting_depth = 0 )
         {
             auto start_head = _headers.fetch( start_id );
@@ -69,6 +71,28 @@ namespace bts { namespace bitname {
      my->_forks.open( db_dir / "forks", create );
      my->_nexts.open( db_dir / "nexts", create );
      my->_unknown.open( db_dir / "unknown", create );
+
+     fc::optional<fork_state> best_fork;
+     auto forks = get_forks();
+     for( auto f = forks.begin(); f != forks.end(); ++f )
+     {
+         if( !best_fork && !f->invalid ) 
+         {
+            best_fork = *f;
+         }
+         else if( best_fork )
+         {
+            if( !f->invalid && (f->fork_difficulty > best_fork->fork_difficulty) )
+            {
+              best_fork = *f;
+            }
+         }
+     }
+     if( best_fork )
+     {
+        my->_best_fork_head_id = best_fork->head_id;
+     }
+
   } FC_RETHROW_EXCEPTIONS( warn, "unable to open fork database ${path}", ("path",db_dir) ) }
 
 
@@ -162,9 +186,23 @@ namespace bts { namespace bitname {
      return my->_headers.fetch(id);
   } FC_RETHROW_EXCEPTIONS( warn, "", ("id",id) ) }
 
-  name_block  fork_db::fetch_block( const name_id_type& id )
+  fc::optional<name_block>  fork_db::fetch_block( const name_id_type& id )
   { try {
-     return my->_blocks.fetch(id);
+     auto head = fetch_header( id );
+     if( head.trxs_hash == name_trxs_hash_type() )
+     {
+       return name_block(head);
+     }
+
+     try {
+        // TODO: verify that _blocks.fetch() throws key_not_found exception
+        // if no block is known for id.
+        return my->_blocks.fetch(id);
+     } 
+     catch ( const fc::key_not_found_exception& e )
+     {
+       return fc::optional<name_block>();
+     }
   } FC_RETHROW_EXCEPTIONS( warn, "", ("id",id) ) }
 
   void fork_db::set_valid( const name_id_type& blk_id, bool is_valid )
@@ -180,6 +218,17 @@ namespace bts { namespace bitname {
       fork_val.invalid = false;
       my->_forks.store( blk_id, fork_val );
     }
+  }
+
+  name_id_type fork_db::best_fork_head_id()const
+  {
+     return my->_best_fork_head_id;
+  }
+
+  name_id_type fork_db::best_fork_fetch_next( const name_id_type& b )const
+  {
+      // TODO: implment 
+     return name_id_type();  
   }
 
   std::vector<fork_state> fork_db::get_forks()const

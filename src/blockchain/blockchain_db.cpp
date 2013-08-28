@@ -561,9 +561,6 @@ namespace bts { namespace blockchain {
 
          asset total_fees;
 
-         // make sure inputs are unique, unfortunately we cannot use
-         // validate unique inputs because we can safely skip trx that
-         // have conflict.
          std::unordered_set<output_reference> consumed_outputs;
          for( size_t i = 0; i < stats.size(); ++i )
          {
