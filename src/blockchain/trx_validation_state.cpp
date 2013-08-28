@@ -262,6 +262,9 @@ void trx_validation_state::validate_signature( const meta_trx_input& in )
  *
  *  1) Signed by owner
  *  2) A suitable output exists in trx that meets the requirements of the bid.
+ *       - output paying proper proper asset to proper address at specified exchange rate
+ *       - left-over-bid sent to new output with same terms.
+ *       - accepted and change bids > min amount
  */
 void trx_validation_state::validate_bid( const meta_trx_input& in )
 { try {
@@ -283,28 +286,35 @@ void trx_validation_state::validate_bid( const meta_trx_input& in )
        // accepted bids pay their dividends to the miner, if there are any to speak of
        dividend_fees  += db->calculate_output_dividends( output_bal, in.source.block_num );
 
-       // find an claim_by_sig output paying ask_price to pay_address
-       // there may be multiple outputs meeting this description... 
-       // TODO... sort this out... some orders may be split and thus result in
+       // some orders may be split and thus result in
        // two outputs being generated... look for the split order first, then look
        // for the change!  Easy peesy..
-       
        uint16_t split_order = find_unused_bid_output( cbb );
        if( split_order == output_not_found ) // must be a full order...
        {
          uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, output_bal * cbb.ask_price  );
-         // TODO: mark the sig_out as used
-
+         FC_ASSERT( sig_out != output_not_found );
+         mark_output_as_used( sig_out );
        }
        else // look for change, must be a partial order
        {
-         // TODO: mark the split_order as used... 
+         mark_output_as_used( split_order );
+         const trx_output& split_out = trx.outputs[split_order];
+         auto split_claim = split_out.as<claim_by_bid_output>();
+
+         FC_ASSERT( split_out.amount                      >= cbb.min_order );
+         FC_ASSERT( (in.output.amount - split_out.amount) >= cbb.min_order );
+         FC_ASSERT( split_out.unit   == in.output.unit                     );
+         
+         // the balance of the order that was accepted
+         asset accepted_bal = asset( in.output.amount - split_out.amount, split_out.unit ) * cbb.ask_price; 
 
          // get balance of partial order, validate that it is greater than min_order 
          // subtract partial order from output_bal and insure the remaining order is greater than min_order
          // look for an output making payment of the balance to the pay address
-         asset bal = output_bal; // TODO - split_order.bal
-         uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, bal * cbb.ask_price );
+         uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, accepted_bal * cbb.ask_price );
+         FC_ASSERT( sig_out != output_not_found );
+         mark_output_as_used( sig_out );
        }
     }
 } FC_RETHROW_EXCEPTIONS( warn, "validating bid input ${i}", ("i",in) ) }
