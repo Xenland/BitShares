@@ -67,4 +67,23 @@ namespace bts { namespace blockchain {
      return asset();
   }
 
+  /** buy $amount of $base_unit with $quote_unit at or above price_per_unit */
+  void   blockchain_client::bid( uint64_t amount, asset::type quote_unit, asset::type base_unit, double price_per_unit )
+  {
+  }
+
+  /** sell $amount of $base_unit for $quote_unit at or above price_per_unit */
+  void   blockchain_client::ask( uint64_t amount, asset::type quote_unit, asset::type base_unit, double price_per_unit )
+  {
+  }
+
+  /** sell $amount of $quote_unit at or above price_per_unit where base_unit is BTS*/
+  void   blockchain_client::short_sell( uint64_t amount, asset::type quote_unit, double price_per_unit )
+  {
+  }
+
+  void   blockchain_client::cover( uint64_t amount, asset::type unit )
+  {
+  }
+
 } } // namespace bts::blockchain

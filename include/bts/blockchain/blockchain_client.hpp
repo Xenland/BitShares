@@ -40,7 +40,23 @@ namespace bts { namespace blockchain {
 
       extended_address get_recv_address( const std::string& contact_label );
       void             add_contact( const std::string& label, const extended_address& send_to_addr )const;
+
       void             transfer( uint64_t amount, asset::type unit, const std::string& to_contact_label )const;
+
+      /** buy $amount of $base_unit with $quote_unit at or above price_per_unit */
+      void             bid( uint64_t amount, asset::type quote_unit, asset::type base_unit, double price_per_unit );
+
+      /** sell $amount of $base_unit for $quote_unit at or above price_per_unit */
+      void             ask( uint64_t amount, asset::type quote_unit, asset::type base_unit, double price_per_unit );
+
+      /** sell $amount of $quote_unit at or above price_per_unit where base_unit is BTS*/
+      void             short_sell( uint64_t amount, asset::type quote_unit, double price_per_unit );
+
+      /** assuming you have a positive balance of amount/unit in your wallet, this will cover your
+       * positions with the least margin first and work their way up to the positions with the most
+       * margin.
+       */
+      void             cover( uint64_t amount, asset::type unit );
       
       asset            get_balance( asset::type unit, uint32_t min_conf = 1  )const;
       asset            get_trx_balance( const std::string& contact_label, uint32_t trx_num, uint32_t min_conf = 1  )const;
