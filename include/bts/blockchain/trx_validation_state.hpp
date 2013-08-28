@@ -88,8 +88,11 @@ namespace bts { namespace blockchain {
            void validate();
         private:
            static const uint16_t output_not_found = uint16_t(-1);
-           uint16_t find_unused_bid_output( const claim_by_bid_output& b );
+           void     mark_output_as_used( uint16_t output_number );
            uint16_t find_unused_sig_output( const address& a, const asset& bal );
+           uint16_t find_unused_bid_output( const claim_by_bid_output& b );
+           uint16_t find_unused_long_output( const claim_by_long_output& b );
+           uint16_t find_unused_cover_output( const claim_by_cover_output& b );
 
            void validate_input( const meta_trx_input& );
            void validate_signature( const meta_trx_input& );

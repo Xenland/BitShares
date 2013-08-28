@@ -64,6 +64,8 @@ struct claim_by_bid_output
    address                           pay_address; // where to send ask_unit (or cancel sig)
    price                             ask_price;   // price base per unit
    uint64_t                          min_order;   // minimum accepted order, in output.unit   
+
+   bool operator == ( const claim_by_bid_output& other )const;
 };
 
 /**
@@ -101,7 +103,6 @@ struct claim_by_long_output
  *  pairing it against a matching bid.  
  *
  *  Creates a negitive BTS input and positive USD input
- *
  */
 struct claim_by_long_input
 {

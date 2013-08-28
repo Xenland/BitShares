@@ -91,6 +91,8 @@ struct trx_output
     }
 
     trx_output():amount(0){}
+
+    asset get_amount()const { return asset( amount,unit ); }
     // NOTE: note this class has a custom to_variant method 
     //   that pretty prints the claim data for known types
     //   and this method must be updated if you change these

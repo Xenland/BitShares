@@ -132,7 +132,7 @@ void trx_validation_state::validate_input( const meta_trx_input& in )
 void trx_validation_state::validate_output( const trx_output& out )
 {
      FC_ASSERT( out.unit < asset::count );
-     FC_ASSERT( out.amount < MAX_BITSHARE_SUPPLY ); // some sanity checs here
+     FC_ASSERT( out.amount < MAX_BITSHARE_SUPPLY ); // some sanity checks here
      switch( out.claim_func )
      {
         case claim_by_signature:
@@ -189,10 +189,16 @@ void trx_validation_state::validate_bid( const trx_output& o )
 void trx_validation_state::validate_long( const trx_output& o )
 {
    auto long_claim = o.as<claim_by_long_output>();
+   FC_ASSERT( long_claim.ask_price.ratio != 0 );
+   FC_ASSERT( long_claim.ask_price.base_unit != long_claim.ask_price.quote_unit );
+   FC_ASSERT( long_claim.ask_price.base_unit.value < long_claim.ask_price.quote_unit.value );
+
+   balance_sheet[(asset::type)o.unit].out += asset(o.amount,o.unit);
 }
 void trx_validation_state::validate_cover( const trx_output& o )
 {
    auto cover_claim = o.as<claim_by_cover_output>();
+   balance_sheet[(asset::type)o.unit].out += asset(o.amount,o.unit);
 }
 void trx_validation_state::validate_opt( const trx_output& o )
 {
@@ -252,73 +258,112 @@ void trx_validation_state::validate_signature( const meta_trx_input& in )
 
 
 /**
- *  A bid transaction is a valid input in two cases:
+ *  A bid input is a valid input in two cases:
  *
  *  1) Signed by owner
  *  2) A suitable output exists in trx that meets the requirements of the bid.
  */
 void trx_validation_state::validate_bid( const meta_trx_input& in )
-{
-   try {
-       auto cbb = in.output.as<claim_by_bid_output>();
+{ try {
+    auto cbb = in.output.as<claim_by_bid_output>();
+    
+    asset output_bal( in.output.amount, in.output.unit );
+    balance_sheet[(asset::type)in.output.unit].in += output_bal;
+    dividend_fees                                 += db->calculate_dividend_fees( output_bal, in.source.block_num );
+
+
+    // if the pay address has signed the trx, then that means this is a cancel request
+    if( signed_addresses.find( cbb.pay_address ) != signed_addresses.end() )
+    {
+       // canceled orders can reclaim their dividends (assuming the order has been open long enough)
+       balance_sheet[asset::bts].in += db->calculate_output_dividends( output_bal, in.source.block_num );
+    }
+    else // someone else accepted the offer based upon the terms of the bid.
+    {
+       // accepted bids pay their dividends to the miner, if there are any to speak of
+       dividend_fees  += db->calculate_output_dividends( output_bal, in.source.block_num );
+
+       // find an claim_by_sig output paying ask_price to pay_address
+       // there may be multiple outputs meeting this description... 
+       // TODO... sort this out... some orders may be split and thus result in
+       // two outputs being generated... look for the split order first, then look
+       // for the change!  Easy peesy..
        
-       asset output_bal( in.output.amount, in.output.unit );
-       balance_sheet[(asset::type)in.output.unit].in += output_bal;
-       dividend_fees                                 += db->calculate_dividend_fees( output_bal, in.source.block_num );
-
-
-       // if the pay address has signed the trx, then that means this is a cancel request
-       if( signed_addresses.find( cbb.pay_address ) != signed_addresses.end() )
+       uint16_t split_order = find_unused_bid_output( cbb );
+       if( split_order == output_not_found ) // must be a full order...
        {
-          // canceled orders can reclaim their dividends (assuming the order has been open long enough)
-          balance_sheet[asset::bts].in += db->calculate_output_dividends( output_bal, in.source.block_num );
+         uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, output_bal * cbb.ask_price  );
+         // TODO: mark the sig_out as used
+
        }
-       else // someone else accepted the offer based upon the terms of the bid.
+       else // look for change, must be a partial order
        {
-          // accepted bids pay their dividends to the miner, if there are any to speak of
-          dividend_fees  += db->calculate_output_dividends( output_bal, in.source.block_num );
+         // TODO: mark the split_order as used... 
 
-          // find an claim_by_sig output paying ask_price to pay_address
-          // there may be multiple outputs meeting this description... 
-          // TODO... sort this out... some orders may be split and thus result in
-          // two outputs being generated... look for the split order first, then look
-          // for the change!  Easy peesy..
-          
-          uint16_t split_order = find_unused_bid_output( cbb );
-          if( split_order == output_not_found ) // must be a full order...
-          {
-            uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, output_bal * cbb.ask_price  );
-            // TODO: mark the sig_out as used
+         // get balance of partial order, validate that it is greater than min_order 
+         // subtract partial order from output_bal and insure the remaining order is greater than min_order
+         // look for an output making payment of the balance to the pay address
+         asset bal = output_bal; // TODO - split_order.bal
+         uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, bal * cbb.ask_price );
+       }
+    }
+} FC_RETHROW_EXCEPTIONS( warn, "validating bid input ${i}", ("i",in) ) }
 
-          }
-          else // look for change, must be a partial order
-          {
+/**
+ *  Someone offering to go 'short' created an output that could be claimed
+ *  by going long.   When taken as an input the output set must contain an
+ *  unused cover output, along with the 
+ */
+void trx_validation_state::validate_long( const meta_trx_input& in )
+{ try {
+    auto long_claim = in.output.as<claim_by_long_output>();
+#if 0
+    asset output_bal( in.output.amount, in.output.unit );
+    balance_sheet[(asset::type)in.output.unit].in += output_bal;
+    dividend_fees                                 += db->calculate_dividend_fees( output_bal, in.source.block_num );
+
+    if( signed_addresses.find( long_claim.pay_address ) != signed_addresses.end() )
+    {
+        // canceled orders can reclaim their dividends (assuming the order has been open long enough)
+        balance_sheet[asset::bts].in += db->calculate_output_dividends( output_bal, in.source.block_num );
+
+    }
+    else // someone else accepted the offer based on terms of the long
+    {
+        asset bal = output_bal; // TODO - split_order.bal
+        dividend_fees  += db->calculate_output_dividends( output_bal, in.source.block_num );
+
+        uint16_t split_order = find_unused_long_output( long_claim );
+        if( split_order == output_not_found ) // must be a full order...
+        {
+            // TODO: what about multiple outputs that add up to output_bal*cbb.ask_price and are paid to pay_address?
+            // why would we do that? There is no reason.
+            uint16_t sig_out  = find_unused_sig_output( cbb.pay_address, output_bal * cbb.ask_price  );
+            FC_ASSERT( sig_out != output_not_found );
+        }
+        else // look for change, must be partial order
+        {
             // TODO: mark the split_order as used... 
 
-            // get balance of partial order, validate that it is greater than min_order 
-            // subtract partial order from output_bal and insure the remaining order is greater than min_order
-            // look for an output making payment of the balance to the pay address
-            asset bal = output_bal; // TODO - split_order.bal
-            uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, bal * cbb.ask_price );
-          }
-       }
-   } FC_RETHROW_EXCEPTIONS( warn, "validating bid input ${i}", ("i",in) );
-}
+            // TODO eval uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, bal * cbb.ask_price );
+        }
+    }
+    #endif
+} FC_RETHROW_EXCEPTIONS( warn, "", ("in",in) ) } // validate_long
 
-
-
-void trx_validation_state::validate_long( const meta_trx_input& in )
-{
-}
 void trx_validation_state::validate_cover( const meta_trx_input& in )
 {
 }
+
 void trx_validation_state::validate_opt( const meta_trx_input& in )
 {
+
 }
+
 void trx_validation_state::validate_multi_sig( const meta_trx_input& in )
 {
 }
+
 void trx_validation_state::validate_escrow( const meta_trx_input& in )
 {
 }
@@ -326,11 +371,60 @@ void trx_validation_state::validate_password( const meta_trx_input& in )
 {
 }
 
-uint16_t trx_validation_state::find_unused_bid_output( const claim_by_bid_output& b )
+void trx_validation_state::mark_output_as_used( uint16_t output_number )
+{
+  FC_ASSERT( output_number != output_not_found );
+  FC_ASSERT( used_outputs.insert(output_number).second ); // make sure we don't mark it twice
+}
+
+uint16_t trx_validation_state::find_unused_sig_output( const address& owner, const asset& bal )
+{
+  for( uint32_t i = 0; i < trx.outputs.size(); ++i )
+  {
+     if( used_outputs.find(i) != used_outputs.end() )
+     {
+        if( trx.outputs[i].claim_func == claim_by_signature )
+        {
+           if( trx.outputs[i].get_amount() == bal )
+           {
+              if( trx.outputs[i].as<claim_by_signature_output>().owner == owner )
+              {
+                 return i;
+              }
+           }
+        }
+     }
+  }
+  return output_not_found;
+}
+
+/**
+ *  Find a bid that matches the pay_to_address and price, amount may be different because
+ *  of partial orders.
+ */
+uint16_t trx_validation_state::find_unused_bid_output( const claim_by_bid_output& bid_claim )
+{
+  for( uint32_t i = 0; i < trx.outputs.size(); ++i )
+  {
+     if( used_outputs.find(i) != used_outputs.end() )
+     {
+        if( trx.outputs[i].claim_func == claim_by_bid )
+        {
+           if( trx.outputs[i].as<claim_by_bid_output>() == bid_claim )
+           {
+              return i;
+           }
+        }
+     }
+  }
+  return output_not_found;
+}
+
+uint16_t trx_validation_state::find_unused_long_output( const claim_by_long_output& b )
 {
   return output_not_found;
 }
-uint16_t trx_validation_state::find_unused_sig_output( const address& a, const asset& bal )
+uint16_t trx_validation_state::find_unused_cover_output( const claim_by_cover_output& b )
 {
   return output_not_found;
 }
