@@ -19,7 +19,7 @@ struct output_reference
   output_reference():output_idx(0){}
   output_reference( const uint160& trx, uint8_t idx )
   :trx_hash(trx),output_idx(idx){}
-  uint160  trx_hash;   // the hash of a transaction.
+  uint160  trx_hash;   // the hash of a transaction, TODO: switch to trx_id_type typedef rather than uint160 directly
   uint8_t  output_idx; // the output index in the transaction trx_hash
   
   friend bool operator==( const output_reference& a, const output_reference& b )
@@ -29,6 +29,10 @@ struct output_reference
   friend bool operator!=( const output_reference& a, const output_reference& b )
   {
      return !(a==b);
+  }
+  friend bool operator < ( const output_reference& a, const output_reference& b )
+  {
+     return a.trx_hash == b.trx_hash ? a.output_idx < b.output_idx : a.trx_hash < b.trx_hash;
   }
 };
 

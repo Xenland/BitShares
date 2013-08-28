@@ -1,6 +1,7 @@
 #include <bts/config.hpp>
 #include <bts/blockchain/trx_validation_state.hpp>
 #include <bts/blockchain/blockchain_db.hpp>
+#include <bts/blockchain/blockchain_market_db.hpp>
 #include <bts/blockchain/asset.hpp>
 #include <leveldb/db.h>
 #include <bts/db/level_pod_map.hpp>
@@ -14,6 +15,8 @@
 #include <fc/log/logger.hpp>
 
 #include <algorithm>
+
+
     struct trx_stat
     {
        uint16_t trx_idx;
@@ -37,7 +40,8 @@ namespace bts { namespace blockchain {
       {
          fc::array<asset_dividend_accumulator, asset::count>  accumulators;
       };
-
+      
+      // TODO: .01 BTC update private members to use _member naming convention
       class blockchain_db_impl
       {
          public:
@@ -50,6 +54,8 @@ namespace bts { namespace blockchain {
             bts::db::level_map<trx_num,meta_trx>                meta_trxs;
             bts::db::level_map<uint32_t,block>                  blocks;
             bts::db::level_map<uint32_t,std::vector<uint160> >  block_trxs; 
+
+            market_db                                           _market_db;
 
             /** table that accumulates all dividends that should be paid
              * based upon coinage
@@ -133,6 +139,10 @@ namespace bts { namespace blockchain {
                return dividend_acc_table->accumulators.at( u ).at( blk_num % DIVIDEND_HISTORY );
             }
 
+            void match_orders( std::vector<signed_transaction>& matched,  asset::type quote, asset::type base )
+            {
+
+            }
       };
     }
 
@@ -162,6 +172,7 @@ namespace bts { namespace blockchain {
          my->meta_trxs.open(  dir / "meta_trxs",  create );
          my->blocks.open(     dir / "blocks",     create );
          my->block_trxs.open( dir / "block_trxs", create );
+         my->_market_db.open( dir / "market" );
 
          if( !fc::exists( dir / "dividend_accumulator.dat" ) )
          {
@@ -509,6 +520,23 @@ namespace bts { namespace blockchain {
     uint64_t blockchain_db::current_bitshare_supply()
     {
        return my->current_bitshare_supply; // cache this every time we push a block
+    }
+
+    /**
+     *  Generates transactions that match all compatiable bids, asks, and shorts for
+     *  all possible asset combinations and returns the result.
+     */
+    std::vector<signed_transaction> blockchain_db::match_orders()
+    {
+       std::vector<signed_transaction> matched;
+       for( uint32_t quote = asset::bts; quote < asset::count; ++quote )
+       {
+          for( uint32_t base = quote+1; base < asset::count; ++base )
+          {
+              my->match_orders( matched, asset::type(quote), asset::type(base) );
+          }
+       }
+       return matched;
     }
 
     /**

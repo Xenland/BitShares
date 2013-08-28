@@ -81,8 +81,6 @@ set( BOOST_LIBRARIES ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FIL
 
 
 set( sources 
-     src/difficulty.cpp 
-
      src/network/stcp_socket.cpp
      src/network/connection.cpp
      src/network/server.cpp
@@ -115,6 +113,7 @@ set( sources
      src/blockchain/trx_validation_state.cpp
      src/blockchain/blockchain_outputs.cpp
      src/blockchain/blockchain_db.cpp
+     src/blockchain/blockchain_market_db.cpp
      src/blockchain/blockchain_printer.cpp
      src/blockchain/blockchain_messages.cpp
      src/blockchain/blockchain_channel.cpp
@@ -124,6 +123,7 @@ set( sources
      src/rpc/rpc_server.cpp
 
 
+     src/difficulty.cpp 
      src/extended_address.cpp
      src/small_hash.cpp
      src/merkle_tree.cpp

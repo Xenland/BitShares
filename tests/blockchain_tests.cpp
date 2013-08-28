@@ -344,6 +344,11 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
          auto block6 = chain.generate_next_block( a3, bid_trxs );
          ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string( block6 ) ) );
          chain.push_block( block6 );
+
+         bid_trxs.clear();
+         auto block7 = chain.generate_next_block( a4, bid_trxs );
+         ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string( block7 ) ) );
+         chain.push_block( block7 );
      /*
      ilog( "\n${block}", ("block", 
      ilog( "\n${block}", ("block", bts::blockchain::pretty_print( block1, chain ) ) );
@@ -359,6 +364,7 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      html << bts::blockchain::pretty_print( block4, chain );
      html << bts::blockchain::pretty_print( block5, chain );
      html << bts::blockchain::pretty_print( block6, chain );
+     html << bts::blockchain::pretty_print( block7, chain );
 
     
       /*

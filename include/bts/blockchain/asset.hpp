@@ -65,6 +65,9 @@ namespace bts { namespace blockchain {
       static const fc::uint128& infinite();
 
       price() {}
+      price( const fc::uint128_t& r, asset_type base, asset_type quote )
+      :ratio(r),base_unit(base),quote_unit(quote){}
+
       price( const std::string& s );
       operator std::string()const;
 
