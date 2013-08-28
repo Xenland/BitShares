@@ -63,6 +63,9 @@ struct claim_by_bid_output
    claim_by_bid_output( const address& pay_addr, const price& ask, uint64_t min_trade = 0 )
    :pay_address(pay_addr),ask_price(ask),min_trade(min_trade){}
 
+   bool is_bid(asset::type out_unit)const;
+   bool is_ask(asset::type out_unit)const;
+
    address                           pay_address; // where to send ask_unit (or cancel sig)
    price                             ask_price;   // price base per unit
    uint64_t                          min_trade;   // minimum accepted order, in output.unit   

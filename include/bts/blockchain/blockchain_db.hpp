@@ -175,6 +175,8 @@ namespace bts { namespace blockchain {
           */
          void pop_block( full_block& b, std::vector<signed_transaction>& trxs );
 
+         std::string dump_market( asset::type quote, asset::type base );
+
        private:
          void   store_trx( const signed_transaction& trx, const trx_num& t );
          std::unique_ptr<detail::blockchain_db_impl> my;          

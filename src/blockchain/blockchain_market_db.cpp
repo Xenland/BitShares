@@ -2,6 +2,8 @@
 #include <bts/db/level_pod_map.hpp>
 #include <fc/reflect/variant.hpp>
 
+#include <fc/log/logger.hpp>
+
 namespace bts { namespace blockchain {
 
   namespace detail
@@ -95,5 +97,51 @@ namespace bts { namespace blockchain {
     return lowest_ask;
   }
 
+  std::vector<market_order> market_db::get_bids( asset::type quote_unit, asset::type base_unit )const
+  {
+     FC_ASSERT( quote_unit > base_unit );
+
+     std::vector<market_order> orders;
+     market_order mo;
+     mo.base_unit  = base_unit;
+     mo.quote_unit = quote_unit;
+
+     auto order_itr  = my->_bids.lower_bound( mo );
+     while( order_itr.valid() )
+     {
+        auto order = order_itr.key();
+        if( order.quote_unit != quote_unit || order.base_unit != base_unit )
+        {
+            return orders;
+        }
+        orders.push_back(order);
+        ++order_itr;
+     }
+     ilog( "order_itr is not valid!" );
+     return orders;
+  }
+  std::vector<market_order> market_db::get_asks( asset::type quote_unit, asset::type base_unit )const
+  {
+     FC_ASSERT( quote_unit > base_unit );
+
+     std::vector<market_order> orders;
+     market_order mo;
+     mo.base_unit  = base_unit;
+     mo.quote_unit = quote_unit;
+
+     auto order_itr  = my->_asks.lower_bound( mo );
+     while( order_itr.valid() )
+     {
+        auto order = order_itr.key();
+        if( order.quote_unit != quote_unit || order.base_unit != base_unit )
+        {
+            return orders;
+        }
+        orders.push_back(order);
+        ++order_itr;
+     }
+     ilog( "order_itr is not valid!" );
+     return orders;
+  }
 
 } } // bts::blockchain

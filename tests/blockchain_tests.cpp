@@ -365,7 +365,8 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      html << bts::blockchain::pretty_print( block5, chain );
      html << bts::blockchain::pretty_print( block6, chain );
      html << bts::blockchain::pretty_print( block7, chain );
-
+  
+     html << chain.dump_market( asset::usd, asset::bts );
     
       /*
      for( uint32_t i = 0; i < 100; ++i )

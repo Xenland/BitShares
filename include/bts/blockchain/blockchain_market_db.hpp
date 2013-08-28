@@ -41,6 +41,9 @@ namespace bts { namespace blockchain {
        ~market_db();
 
        void open( const fc::path& db_dir );
+       std::vector<market_order> get_bids( asset::type quote_unit, asset::type base_unit )const;
+       std::vector<market_order> get_asks( asset::type quote_unit, asset::type base_unit )const;
+
        void insert_bid( const market_order& m );
        void insert_ask( const market_order& m );
        void remove_bid( const market_order& m );

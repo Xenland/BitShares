@@ -13,8 +13,10 @@
 
 #include <fc/filesystem.hpp>
 #include <fc/log/logger.hpp>
+#include <fc/io/json.hpp>
 
 #include <algorithm>
+#include <sstream>
 
 
     struct trx_stat
@@ -80,6 +82,14 @@ namespace bts { namespace blockchain {
 
                meta_trxs.store( tid, mtrx );
             }
+
+            trx_output get_output( const output_reference& ref )
+            {
+               auto tid    = trx_id2num.fetch( ref.trx_hash );
+               meta_trx   mtrx   = meta_trxs.fetch( tid );
+               FC_ASSERT( mtrx.outputs.size() > ref.output_idx );
+               return mtrx.outputs[ref.output_idx];
+            }
             
             /**
              *   Stores a transaction and updates the spent status of all 
@@ -93,6 +103,30 @@ namespace bts { namespace blockchain {
                for( uint16_t i = 0; i < t.inputs.size(); ++i )
                {
                   mark_spent( t.inputs[i].output_ref, tn, i ); 
+               }
+               
+               for( uint16_t i = 0; i < t.outputs.size(); ++i )
+               {
+                  if( t.outputs[i].claim_func == claim_by_bid )
+                  {
+                     claim_by_bid_output cbb = t.outputs[i].as<claim_by_bid_output>();
+                     if( cbb.is_bid(t.outputs[i].unit) )
+                     {
+                        elog( "Insert Bid: ${bid}", ("bid",market_order(cbb.ask_price, output_reference( t.id(), i )) ) );
+                        _market_db.insert_bid( market_order(cbb.ask_price, output_reference( t.id(), i )) );
+                     }
+                     else
+                     {
+                        elog( "Insert Ask: ${bid}", ("bid",market_order(cbb.ask_price, output_reference( t.id(), i )) ) );
+                        _market_db.insert_ask( market_order(cbb.ask_price, output_reference( t.id(), i )) );
+                     }
+                  }
+                  else if( t.outputs[i].claim_func == claim_by_long )
+                  {
+                    auto cbl = t.outputs[i].as<claim_by_long_output>();
+                    elog( "Insert Short Ask: ${bid}", ("bid",market_order(cbl.ask_price, output_reference( t.id(), i )) ) );
+                    _market_db.insert_ask( market_order(cbl.ask_price, output_reference( t.id(), i )) );
+                  }
                }
             }
 
@@ -206,6 +240,7 @@ namespace bts { namespace blockchain {
        return my->head_block.block_num;
     }
 
+
     /**
      *  @pre trx must pass evaluate_signed_transaction() without exception
      *  @pre block_num must be a valid block 
@@ -213,7 +248,6 @@ namespace bts { namespace blockchain {
      *  @param block_num - the number of the block that contains this trx.
      *
      *  @return the index / trx number that was assigned to trx as part of storing it.
-     */
     void  blockchain_db::store_trx( const signed_transaction& trx, const trx_num& trx_idx )
     {
        try {
@@ -227,6 +261,7 @@ namespace bts { namespace blockchain {
           "an error occured while trying to store the transaction", 
           ("trx",trx) );
     }
+     */
 
     trx_num    blockchain_db::fetch_trx_num( const uint160& trx_id )
     {
@@ -686,6 +721,28 @@ namespace bts { namespace blockchain {
          return new_blk;
 
       } FC_RETHROW_EXCEPTIONS( warn, "error generating new block" );
+    }
+
+    std::string blockchain_db::dump_market( asset::type quote, asset::type base )
+    {
+      std::stringstream ss;
+      ss << "Market "<< fc::variant(quote).as_string() <<" : "<<fc::variant(base).as_string() <<"<br/>\n";
+      ss << "Bids<br/>\n";
+      auto bids = my->_market_db.get_bids( quote, base );
+      for( uint32_t b = 0; b < bids.size(); ++b )
+      {
+        auto output = my->get_output( bids[b].location );
+        ss << b << "] " << fc::json::to_string( output ) <<" <br/>\n";
+      }
+
+      ss << "<br/>\nAsks<br/>\n";
+      auto asks = my->_market_db.get_asks( quote, base );
+      for( uint32_t a = 0; a < asks.size(); ++a )
+      {
+        auto output = my->get_output( asks[a].location );
+        ss << a << "] " << fc::json::to_string( output ) <<" <br/>\n";
+      }
+      return ss.str();
     }
 
 }  } // bts::blockchain
