@@ -302,15 +302,15 @@ void trx_validation_state::validate_bid( const meta_trx_input& in )
          const trx_output& split_out = trx.outputs[split_order];
          auto split_claim = split_out.as<claim_by_bid_output>();
 
-         FC_ASSERT( split_out.amount                      >= cbb.min_order );
-         FC_ASSERT( (in.output.amount - split_out.amount) >= cbb.min_order );
+         FC_ASSERT( split_out.amount                      >= cbb.min_trade );
+         FC_ASSERT( (in.output.amount - split_out.amount) >= cbb.min_trade );
          FC_ASSERT( split_out.unit   == in.output.unit                     );
          
          // the balance of the order that was accepted
          asset accepted_bal = asset( in.output.amount - split_out.amount, split_out.unit ) * cbb.ask_price; 
 
-         // get balance of partial order, validate that it is greater than min_order 
-         // subtract partial order from output_bal and insure the remaining order is greater than min_order
+         // get balance of partial order, validate that it is greater than min_trade 
+         // subtract partial order from output_bal and insure the remaining order is greater than min_trade
          // look for an output making payment of the balance to the pay address
          uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, accepted_bal * cbb.ask_price );
          FC_ASSERT( sig_out != output_not_found );

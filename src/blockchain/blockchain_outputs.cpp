@@ -7,7 +7,7 @@ namespace bts { namespace blockchain {
    {
       return  (other.pay_address == pay_address) &&
               (other.ask_price   == ask_price)   &&
-              (other.min_order   == min_order);
+              (other.min_trade   == min_trade);
    }
 
 } } // bts::blockchain

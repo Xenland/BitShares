@@ -48,14 +48,13 @@ namespace bts { namespace blockchain {
     return extended_address();
   }
 
-  void             blockchain_client::add_contact( const std::string& label, const extended_address& send_to_addr )const
+  void blockchain_client::add_contact( const std::string& label, const extended_address& send_to_addr )const
   {
   }
 
-  void             blockchain_client::transfer( uint64_t amount, asset::type unit, const std::string& to_contact_label )const
+  void blockchain_client::transfer( uint64_t amount, asset::type unit, const std::string& to_contact_label )const
   {
   }
-
   
   asset            blockchain_client::get_balance( asset::type unit, uint32_t min_conf  )const
   {

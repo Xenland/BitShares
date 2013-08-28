@@ -33,3 +33,6 @@ be imported into the code code base and your funds will be paid.
 1 BTC - update stcp_socket to use fc::aes_encoder 
 --------------------------------
     must verify that communication via bts::network::connection remains functional.
+
+.25 BTC - implement from_variant in src/blockchain/transaction.cpp
+   void from_variant( const variant& var,  bts::blockchain::trx_output& vo )

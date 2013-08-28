@@ -59,11 +59,13 @@ struct claim_by_bid_output
 {
    static const claim_type_enum type = claim_type_enum::claim_by_bid;
    claim_by_bid_output()
-   :min_order(0){}
+   :min_trade(0){}
+   claim_by_bid_output( const address& pay_addr, const price& ask, uint64_t min_trade = 0 )
+   :pay_address(pay_addr),ask_price(ask),min_trade(min_trade){}
 
    address                           pay_address; // where to send ask_unit (or cancel sig)
    price                             ask_price;   // price base per unit
-   uint64_t                          min_order;   // minimum accepted order, in output.unit   
+   uint64_t                          min_trade;   // minimum accepted order, in output.unit   
 
    bool operator == ( const claim_by_bid_output& other )const;
 };
@@ -93,9 +95,12 @@ struct claim_by_long_output
    claim_by_long_output()
    :min_trade(0){}
 
-   uint64_t                          min_trade;   ///< measured in bts to accept this order
+   claim_by_long_output( const address& pay_addr, const price& ask, uint64_t min_order = 0 )
+   :pay_address(pay_addr),ask_price(ask),min_trade(min_order){}
+
    address                           pay_address; ///< where to send ask_unit (or cancel sig)
    price                             ask_price;   ///< price per unit (base must be bts)
+   uint64_t                          min_trade;   ///< measured in bts to accept this order
 };
 
 /**
@@ -287,8 +292,8 @@ FC_REFLECT_ENUM( bts::blockchain::claim_type_enum,
     )
 
 FC_REFLECT( bts::blockchain::claim_by_signature_output, (owner) )
-FC_REFLECT( bts::blockchain::claim_by_bid_output, (pay_address)(ask_price) )
-FC_REFLECT( bts::blockchain::claim_by_long_output, (pay_address)(ask_price) )
+FC_REFLECT( bts::blockchain::claim_by_bid_output, (pay_address)(ask_price)(min_trade) )
+FC_REFLECT( bts::blockchain::claim_by_long_output, (pay_address)(ask_price)(min_trade) )
 FC_REFLECT( bts::blockchain::claim_by_cover_output, (payoff_unit)(payoff_amount)(owner) )
 FC_REFLECT( bts::blockchain::claim_by_opt_execute_output, (optionor)(expire_time)(strike_unit)(strike_amount)(optionee) )
 FC_REFLECT( bts::blockchain::claim_by_escrow_output, (agreement)(agent_terms)(agent)(payee)(payor) )

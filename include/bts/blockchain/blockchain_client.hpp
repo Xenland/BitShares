@@ -8,12 +8,6 @@ namespace bts { namespace blockchain {
 
   namespace detail { class blockchain_client_impl; }
 
-  struct contact
-  {
-     std::string      label;
-     extended_address recv_via_address; ///< the address incoming payments are recived from
-     extended_address send_to_address; ///< the address outgoing payments are sent to
-  };
 
   class blockchain_client
   {

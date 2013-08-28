@@ -306,11 +306,44 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      new_trx[0].sign( k4 );
 
      auto block4 = chain.generate_next_block( a6, new_trx );
-     ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string(block4) ) );
+     ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string( block4 ) ) );
      chain.push_block( block4 );
-     BOOST_REQUIRE_THROW( chain.evaluate_signed_transaction(new_trx[0]), fc::exception  );
+     BOOST_REQUIRE_THROW( chain.evaluate_signed_transaction( new_trx[0] ), fc::exception  );
 
+     wlog( "================ Bid Test =======================" );
      
+        std::vector<signed_transaction> bid_trxs;
+        bid_trxs.resize( 1 );
+        
+        bid_trxs[0].inputs.push_back( // input 50000000 bts
+           trx_input( output_reference( block4.trxs[1].id(), 0 ) ) );
+
+        // 1 BitUSD / 10,000,000 BTS
+        auto bid_price = bts::blockchain::asset( 100, asset::usd ) / bts::blockchain::asset( 10000000, asset::bts );
+
+        bid_trxs[0].outputs.push_back( 
+           trx_output( claim_by_bid_output( address(a7), bid_price, 10000000 /*min bts*/ ), 50000000, asset::bts ) ); 
+        
+        bid_trxs[0].sign( k7 );
+
+         auto block5 = chain.generate_next_block( a6, bid_trxs );
+         ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string( block5 ) ) );
+         chain.push_block( block5 );
+
+         bid_trxs.clear();
+         bid_trxs.resize(1);
+
+         bid_trxs[0].inputs.push_back(
+            trx_input( output_reference( block2.trxs[0].id(), 0 ) ) );
+
+         bid_trxs[0].outputs.push_back( 
+            trx_output( claim_by_long_output( address(a2), bid_price, 10000000 /*min bts*/ ), 1500000000l, asset::bts ) ); 
+        
+         bid_trxs[0].sign( k2 );
+     
+         auto block6 = chain.generate_next_block( a3, bid_trxs );
+         ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string( block6 ) ) );
+         chain.push_block( block6 );
      /*
      ilog( "\n${block}", ("block", 
      ilog( "\n${block}", ("block", bts::blockchain::pretty_print( block1, chain ) ) );
@@ -324,6 +357,8 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      html << bts::blockchain::pretty_print( block2, chain );
      html << bts::blockchain::pretty_print( block3, chain );
      html << bts::blockchain::pretty_print( block4, chain );
+     html << bts::blockchain::pretty_print( block5, chain );
+     html << bts::blockchain::pretty_print( block6, chain );
 
     
       /*
