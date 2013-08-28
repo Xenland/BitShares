@@ -58,6 +58,9 @@ struct claim_by_signature_output
 struct claim_by_bid_output
 {
    static const claim_type_enum type = claim_type_enum::claim_by_bid;
+   claim_by_bid_output()
+   :min_order(0){}
+
    address                           pay_address; // where to send ask_unit (or cancel sig)
    price                             ask_price;   // price base per unit
    uint64_t                          min_order;   // minimum accepted order, in output.unit   
@@ -71,7 +74,6 @@ struct claim_by_bid_output
 struct claim_by_bid_input
 {
    static const claim_type_enum type = claim_type_enum::claim_by_bid;
-//   fc::ecc::compact_signature  cancel_sig;  ///< signed by claim_by_bid_output::pay_address
 };
 
 /**
@@ -86,6 +88,9 @@ struct claim_by_bid_input
 struct claim_by_long_output
 {
    static const claim_type_enum type = claim_type_enum::claim_by_long;
+   claim_by_long_output()
+   :min_trade(0){}
+
    uint64_t                          min_trade;   ///< measured in bts to accept this order
    address                           pay_address; ///< where to send ask_unit (or cancel sig)
    price                             ask_price;   ///< price per unit (base must be bts)
@@ -101,7 +106,6 @@ struct claim_by_long_output
 struct claim_by_long_input
 {
    static const claim_type_enum type = claim_type_enum::claim_by_long;
-//   fc::ecc::compact_signature  cancel_sig;  ///< signed by claim_by_short_output::pay_address
 };
 
 /**
@@ -118,9 +122,13 @@ struct claim_by_long_input
 struct claim_by_cover_output
 {
    static const claim_type_enum type = claim_type_enum::claim_by_cover;
-   asset::type    payoff_unit;
-   uint64_t       payoff_amount;
-   bts::address   owner;
+
+   claim_by_cover_output()
+   :payoff_amount(0){}
+
+   asset_type      payoff_unit;
+   uint64_t        payoff_amount;
+   bts::address    owner;
 };
 
 /**
@@ -130,7 +138,6 @@ struct claim_by_cover_output
 struct claim_by_cover_input
 {
    static const claim_type_enum type = claim_type_enum::claim_by_cover;
-//   fc::ecc::compact_signature owner_sig;
 };
 
 
@@ -176,6 +183,9 @@ struct claim_by_cover_input
 struct claim_by_opt_execute_output
 {
    static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
+   claim_by_opt_execute_output()
+   :strike_amount(0){}
+
    address             optionor; // who to pay for this option (also who may cancel this offer)
    fc::time_point_sec  expire_time;   
    asset_type          strike_unit; 
@@ -186,8 +196,6 @@ struct claim_by_opt_execute_output
 struct claim_by_opt_execute_input
 {
    static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
-// this signature is for the entire trx, and not just the input
-//   fc::ecc::compact_signature   sig; // either optionor or optionee
 };
 
 #if 0 // kept for future escrow extention

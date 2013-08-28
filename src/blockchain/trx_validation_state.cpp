@@ -131,6 +131,8 @@ void trx_validation_state::validate_input( const meta_trx_input& in )
 
 void trx_validation_state::validate_output( const trx_output& out )
 {
+     FC_ASSERT( out.unit < asset::count );
+     FC_ASSERT( out.amount < MAX_BITSHARE_SUPPLY ); // some sanity checs here
      switch( out.claim_func )
      {
         case claim_by_signature:
@@ -167,32 +169,46 @@ void trx_validation_state::validate_signature( const trx_output& o )
    auto cbs = o.as<claim_by_signature_output>();
    ilog( "${cbs}", ("cbs",cbs));
    FC_ASSERT( cbs.owner != address() );
-   FC_ASSERT( o.unit < asset::count );
-   FC_ASSERT( o.amount < MAX_BITSHARE_SUPPLY ); // some sanity checs here
    asset out(o.amount,o.unit);
+
    balance_sheet[(asset::type)o.unit].out += out;
    
 }
-void trx_validation_state::validate_bid( const trx_output& )
+void trx_validation_state::validate_bid( const trx_output& o )
 {
+   auto bid = o.as<claim_by_bid_output>();
+   FC_ASSERT( bid.ask_price.ratio != 0 );
+   FC_ASSERT( bid.pay_address != address() );
+   FC_ASSERT( bid.ask_price.base_unit == o.unit ||
+              bid.ask_price.quote_unit == o.unit );
+   FC_ASSERT( bid.ask_price.base_unit != bid.ask_price.quote_unit );
+   FC_ASSERT( bid.ask_price.base_unit.value < bid.ask_price.quote_unit.value );
+
+   balance_sheet[(asset::type)o.unit].out += asset(o.amount,o.unit);
 }
-void trx_validation_state::validate_long( const trx_output& )
+void trx_validation_state::validate_long( const trx_output& o )
 {
+   auto long_claim = o.as<claim_by_long_output>();
 }
-void trx_validation_state::validate_cover( const trx_output& )
+void trx_validation_state::validate_cover( const trx_output& o )
 {
+   auto cover_claim = o.as<claim_by_cover_output>();
 }
-void trx_validation_state::validate_opt( const trx_output& )
+void trx_validation_state::validate_opt( const trx_output& o )
 {
+   auto opt_claim = o.as<claim_by_opt_execute_output>();
 }
-void trx_validation_state::validate_multi_sig( const trx_output& )
+void trx_validation_state::validate_multi_sig( const trx_output& o )
 {
+   auto multsig_claim = o.as<claim_by_multi_sig_output>();
 }
-void trx_validation_state::validate_escrow( const trx_output& )
+void trx_validation_state::validate_escrow( const trx_output& o )
 {
+   auto escrow_claim = o.as<claim_by_escrow_output>();
 }
-void trx_validation_state::validate_password( const trx_output& )
+void trx_validation_state::validate_password( const trx_output& o )
 {
+   auto password_claim = o.as<claim_by_password_output>();
 }
 
 
