@@ -14,10 +14,14 @@ be imported into the code code base and your funds will be paid.
 
 1  BTC - generate an input via socket connection that can cause our client to crash.
 --------------------------------
+   not yet open for dibs, but will be opened after we complete our initial security audit.
    must provide unit test that demonstrates the crash in reproduceable manner.
 
 2  BTC - generate full coverage tests for bts::bitname::fork_db
 --------------------------------
+    not yet open for dibs, but will be once the full funtionality is defined.  Let me
+    know if you are interested.
+
     must generate chains at least 2 years deep at 1 header every 5 minutes
     must handle populating the blocks in any order and generate the same result.
     must benchmark get_forks(), set_valid()
@@ -29,10 +33,14 @@ be imported into the code code base and your funds will be paid.
 
 0.5 BTC - convert traversals of the fork db chain from recursive to iterative.
 --------------------------------
+    open for bids now.
 
 1 BTC - update stcp_socket to use fc::aes_encoder 
 --------------------------------
+    open for bids now.
     must verify that communication via bts::network::connection remains functional.
 
 .25 BTC - implement from_variant in src/blockchain/transaction.cpp
+   open for bids now
    void from_variant( const variant& var,  bts::blockchain::trx_output& vo )
+   - must provide boost unit tests for all variations.
