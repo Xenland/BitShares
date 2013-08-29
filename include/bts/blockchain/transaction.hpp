@@ -90,7 +90,7 @@ struct trx_output
     template<typename ClaimType>
     ClaimType as()const
     {
-       FC_ASSERT( claim_func == ClaimType::type );
+       FC_ASSERT( claim_func == ClaimType::type, "", ("claim_func",claim_func)("ClaimType",ClaimType::type) );
        return fc::raw::unpack<ClaimType>(claim_data);
     }
 

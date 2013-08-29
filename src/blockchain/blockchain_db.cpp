@@ -84,12 +84,12 @@ namespace bts { namespace blockchain {
             }
 
             trx_output get_output( const output_reference& ref )
-            {
+            { try {
                auto tid    = trx_id2num.fetch( ref.trx_hash );
                meta_trx   mtrx   = meta_trxs.fetch( tid );
                FC_ASSERT( mtrx.outputs.size() > ref.output_idx );
                return mtrx.outputs[ref.output_idx];
-            }
+            } FC_RETHROW_EXCEPTIONS( warn, "", ("ref",ref) ) }
             
             /**
              *   Stores a transaction and updates the spent status of all 
@@ -174,9 +174,58 @@ namespace bts { namespace blockchain {
             }
 
             void match_orders( std::vector<signed_transaction>& matched,  asset::type quote, asset::type base )
-            {
+            { try {
+                ilog( "match orders.." );
+               auto bids = _market_db.get_bids( quote, base );
+               auto asks = _market_db.get_asks( quote, base );
+               ilog( "asks: ${asks}", ("asks",asks) );
+               ilog( "bids: ${bids}", ("bids",bids) );
 
-            }
+               fc::optional<trx_output>  ask_change;
+               fc::optional<trx_output>  bid_change;
+
+               signed_transaction market_trx;
+               for( auto ask_itr = asks.begin(); ask_itr != asks.end(); ++ask_itr )
+               {
+                  ilog( "back to top... asks.size: ${s}", ("s", asks.size()) );
+                  FC_ASSERT( ask_itr != asks.end() );
+                  ilog( "ask... ${ask}", ("ask",*ask_itr) );
+                  trx_output ask;
+                  trx_output bid;
+                  if( ask_change )       { ask = *ask_change; }
+                  else if( asks.size() ) { ask = get_output( ask_itr->location );  }
+                  else { continue; }
+
+                  if( bid_change )            { bid = *bid_change; }
+                  else if( 0 != bids.size() ) { bid = get_output( bids.back().location ); }
+                  else { continue; }
+                  
+                  ilog( "${what}", ("what",bid) );
+                  claim_by_bid_output bid_claim = bid.as<claim_by_bid_output>();
+                  if( ask.claim_func == claim_by_long )
+                  {
+                     claim_by_long_output long_claim = ask.as<claim_by_long_output>();
+
+                     auto strike_price = bid_claim.ask_price;
+                     // TODO: which price should I use, bid, ask, avg(bid+ask), different for each side? 
+
+                     asset bid_amount = bid.get_amount() * strike_price;
+                     asset ask_amount = ask.get_amount() * strike_price;
+                     FC_ASSERT( bid_amount.unit == ask_amount.unit );
+
+                     asset trade_amount = std::min(bid_amount,ask_amount);
+
+                     ilog( "trade amount ${s}     bid: ${b}   ask: ${a}", ("s",trade_amount)("b",bid_amount)("a",ask_amount) );
+
+
+                  }
+                  else if( ask.claim_func == claim_by_bid )
+                  {
+                     auto strike_price = bid_claim.ask_price;
+                  }
+               }
+               ilog( "done match orders.." );
+            } FC_RETHROW_EXCEPTIONS( warn, "", ("quote",quote)("base",base) ) }
       };
     }
 
@@ -562,17 +611,17 @@ namespace bts { namespace blockchain {
      *  all possible asset combinations and returns the result.
      */
     std::vector<signed_transaction> blockchain_db::match_orders()
-    {
+    { try {
        std::vector<signed_transaction> matched;
-       for( uint32_t quote = asset::bts; quote < asset::count; ++quote )
+       for( uint32_t base = asset::bts; base < asset::count; ++base )
        {
-          for( uint32_t base = quote+1; base < asset::count; ++base )
+          for( uint32_t quote = base+1; quote < asset::count; ++quote )
           {
               my->match_orders( matched, asset::type(quote), asset::type(base) );
           }
        }
        return matched;
-    }
+    } FC_RETHROW_EXCEPTIONS( warn, "" ) }
 
     /**
      *  First step to creating a new block is to take all canidate transactions and 
@@ -580,9 +629,12 @@ namespace bts { namespace blockchain {
      *  filter out incompatible transactions (those that share the same inputs).
      */
     trx_block  blockchain_db::generate_next_block( const address& coinbase_addr, 
-                                                   const std::vector<signed_transaction>& trxs )
+                                                   const std::vector<signed_transaction>& in_trxs )
     {
       try {
+         std::vector<signed_transaction> trxs = match_orders();
+         trxs.insert( trxs.end(), in_trxs.begin(), in_trxs.end() );
+
          FC_ASSERT( coinbase_addr != address() );
          std::vector<trx_stat>  stats;
          stats.reserve(trxs.size());

@@ -190,6 +190,7 @@ namespace bts { namespace blockchain {
             {
                FC_THROW_EXCEPTION( exception, "overflow ${a} * ${p}", ("a",a)("p",p) );
             }
+         //   amnt += 5000000000; // TODO:evaluate this rounding factor... 
 
             asset rtn;
             rtn.amount = amnt;
@@ -215,6 +216,7 @@ namespace bts { namespace blockchain {
                                     "overflow ${a} / ${p} = ${r} lg2 = ${l}", 
                                     ("a",a)("p",p)("r", std::string(result)  )("l",lg2) );
             }
+          //  result += 5000000000; // TODO: evaluate this rounding factor..
             asset r;
             r.amount = result;
             r.unit   = p.base_unit;

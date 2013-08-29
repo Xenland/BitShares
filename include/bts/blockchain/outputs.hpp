@@ -35,13 +35,13 @@ typedef fc::enum_type<fc::unsigned_int,claim_type_enum> claim_type;
  */
 struct claim_by_signature_input 
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_signature;
+   static const claim_type_enum type;
 //   fc::ecc::compact_signature address_sig;
 };
 
 struct claim_by_signature_output
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_signature;
+   static const claim_type_enum type;
    claim_by_signature_output( const address& a ):owner(a){}
    claim_by_signature_output(){}
    address  owner; // checksummed hash of public key
@@ -57,7 +57,7 @@ struct claim_by_signature_output
  **/
 struct claim_by_bid_output
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_bid;
+   static const claim_type_enum type;
    claim_by_bid_output()
    :min_trade(0){}
    claim_by_bid_output( const address& pay_addr, const price& ask, uint64_t min_trade = 0 )
@@ -80,7 +80,7 @@ struct claim_by_bid_output
  */
 struct claim_by_bid_input
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_bid;
+   static const claim_type_enum type;
 };
 
 /**
@@ -94,7 +94,7 @@ struct claim_by_bid_input
  */
 struct claim_by_long_output
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_long;
+   static const claim_type_enum type;
    claim_by_long_output()
    :min_trade(0){}
 
@@ -114,7 +114,7 @@ struct claim_by_long_output
  */
 struct claim_by_long_input
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_long;
+   static const claim_type_enum type;
 };
 
 /**
@@ -130,7 +130,7 @@ struct claim_by_long_input
  */
 struct claim_by_cover_output
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_cover;
+   static const claim_type_enum type;
 
    claim_by_cover_output()
    :payoff_amount(0){}
@@ -146,7 +146,7 @@ struct claim_by_cover_output
  */
 struct claim_by_cover_input
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_cover;
+   static const claim_type_enum type;
 };
 
 
@@ -191,7 +191,7 @@ struct claim_by_cover_input
  */
 struct claim_by_opt_execute_output
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
+   static const claim_type_enum type;
    claim_by_opt_execute_output()
    :strike_amount(0){}
 
@@ -204,7 +204,7 @@ struct claim_by_opt_execute_output
 
 struct claim_by_opt_execute_input
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
+   static const claim_type_enum type;
 };
 
 #if 0 // kept for future escrow extention
@@ -233,7 +233,7 @@ struct escrow_terms
 
 struct claim_by_escrow_output
 {
-    static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
+    static const claim_type_enum type;
     uint160 agreement;    // hash of any agreement between payee and payor
     uint160 agent_terms;  // hash of escrow terms published by the agent
     address agent;        // agent must be registered with the network.
@@ -243,7 +243,7 @@ struct claim_by_escrow_output
 
 struct claim_by_escrow_input
 {
-    static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
+    static const claim_type_enum type;
 };
 
 /**
@@ -252,7 +252,7 @@ struct claim_by_escrow_input
  */
 struct claim_by_password_output
 {
-    static const claim_type_enum type = claim_type_enum::claim_by_password;
+    static const claim_type_enum type;
     address          payer;
     address          payee;
     fc::ripemd160    hashed_password;
@@ -263,7 +263,7 @@ struct claim_by_password_output
  */
 struct claim_by_password_input
 {
-    static const claim_type_enum type = claim_type_enum::claim_by_password;
+    static const claim_type_enum type;
     fc::uint128     password; ///< random number generated for cross chain trading
 };
 
@@ -274,9 +274,13 @@ struct claim_by_password_input
  */
 struct claim_by_multi_sig_output
 {
-    static const claim_type_enum type = claim_type_enum::claim_by_multi_sig;
+    static const claim_type_enum type;
     fc::unsigned_int    required;
     std::vector<address> addresses;
+};
+struct claim_by_multi_sig_input
+{
+    static const claim_type_enum type;
 };
 
 
