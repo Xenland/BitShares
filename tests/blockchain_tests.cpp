@@ -318,7 +318,7 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
         bid_trxs[0].inputs.push_back( // input 50000000 bts
            trx_input( output_reference( block4.trxs[1].id(), 0 ) ) );
 
-        // 1 BitUSD / 10,000,000 BTS
+        // 100 BitUSD / 10,000,000 BTS
         auto bid_price = bts::blockchain::asset( 100, asset::usd ) / bts::blockchain::asset( 10000000, asset::bts );
 
         bid_trxs[0].outputs.push_back( 

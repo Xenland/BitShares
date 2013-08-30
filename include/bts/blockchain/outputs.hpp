@@ -156,6 +156,11 @@ struct claim_by_cover_output
 struct claim_by_cover_input
 {
    static const claim_type_enum type;
+   /**
+    *  Indicates how much of the cover position is being
+    *  paid of as part of spending this input.
+    */
+   uint64_t cover_amount;
 };
 
 
@@ -320,7 +325,7 @@ FC_REFLECT( bts::blockchain::claim_by_password_output, (payer)(payee)(hashed_pas
 FC_REFLECT( bts::blockchain::claim_by_signature_input,    BOOST_PP_SEQ_NIL )
 FC_REFLECT( bts::blockchain::claim_by_bid_input,          BOOST_PP_SEQ_NIL )
 FC_REFLECT( bts::blockchain::claim_by_long_input,         BOOST_PP_SEQ_NIL )
-FC_REFLECT( bts::blockchain::claim_by_cover_input,        BOOST_PP_SEQ_NIL )
+FC_REFLECT( bts::blockchain::claim_by_cover_input,        (cover_amount)   )
 FC_REFLECT( bts::blockchain::claim_by_opt_execute_input,  BOOST_PP_SEQ_NIL )
 FC_REFLECT( bts::blockchain::claim_by_escrow_input,       BOOST_PP_SEQ_NIL )
 FC_REFLECT( bts::blockchain::claim_by_password_input,     (password)       )

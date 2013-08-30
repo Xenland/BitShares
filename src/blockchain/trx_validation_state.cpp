@@ -270,10 +270,15 @@ void trx_validation_state::validate_signature( const meta_trx_input& in )
 void trx_validation_state::validate_bid( const meta_trx_input& in )
 { try {
     auto cbb = in.output.as<claim_by_bid_output>();
-   /* 
+   
     asset output_bal( in.output.amount, in.output.unit );
     balance_sheet[(asset::type)in.output.unit].in += output_bal;
-    dividend_fees                                 += db->calculate_dividend_fees( output_bal, in.source.block_num );
+
+    dividend_fees  += db->calculate_dividend_fees( output_bal, in.source.block_num, ref_head );
+    auto new_div = db->calculate_output_dividends( output_bal, in.source.block_num, ref_head );
+    dividends      += new_div;
+
+    balance_sheet[asset::bts].in += new_div;
 
 
     // if the pay address has signed the trx, then that means this is a cancel request
@@ -318,7 +323,7 @@ void trx_validation_state::validate_bid( const meta_trx_input& in )
          mark_output_as_used( sig_out );
        }
     }
-    */
+    
 } FC_RETHROW_EXCEPTIONS( warn, "validating bid input ${i}", ("i",in) ) }
 
 /**
@@ -329,11 +334,16 @@ void trx_validation_state::validate_bid( const meta_trx_input& in )
 void trx_validation_state::validate_long( const meta_trx_input& in )
 { try {
     auto long_claim = in.output.as<claim_by_long_output>();
-#if 0
     asset output_bal( in.output.amount, in.output.unit );
     balance_sheet[(asset::type)in.output.unit].in += output_bal;
-    dividend_fees                                 += db->calculate_dividend_fees( output_bal, in.source.block_num );
 
+    dividend_fees  += db->calculate_dividend_fees( output_bal, in.source.block_num, ref_head );
+    auto new_div = db->calculate_output_dividends( output_bal, in.source.block_num, ref_head );
+    dividends      += new_div;
+
+    balance_sheet[asset::bts].in += new_div;
+
+/*
     if( signed_addresses.find( long_claim.pay_address ) != signed_addresses.end() )
     {
         // canceled orders can reclaim their dividends (assuming the order has been open long enough)
@@ -350,7 +360,7 @@ void trx_validation_state::validate_long( const meta_trx_input& in )
         {
             // TODO: what about multiple outputs that add up to output_bal*cbb.ask_price and are paid to pay_address?
             // why would we do that? There is no reason.
-            uint16_t sig_out  = find_unused_sig_output( cbb.pay_address, output_bal * cbb.ask_price  );
+            uint16_t sig_out  = find_unused_sig_output( long_claim.pay_address, output_bal * cbb.ask_price  );
             FC_ASSERT( sig_out != output_not_found );
         }
         else // look for change, must be partial order
@@ -360,7 +370,7 @@ void trx_validation_state::validate_long( const meta_trx_input& in )
             // TODO eval uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, bal * cbb.ask_price );
         }
     }
-    #endif
+    */
 } FC_RETHROW_EXCEPTIONS( warn, "", ("in",in) ) } // validate_long
 
 void trx_validation_state::validate_cover( const meta_trx_input& in )

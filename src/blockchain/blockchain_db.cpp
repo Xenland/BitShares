@@ -183,10 +183,14 @@ namespace bts { namespace blockchain {
 
                fc::optional<trx_output>  ask_change;
                fc::optional<trx_output>  bid_change;
-               address                   ask_payout_address;
-               fc::optional<asset>       ask_payout;
+               fc::optional<trx_output>  cover_change;
+
                address                   bid_payout_address;
                fc::optional<asset>       bid_payout;
+
+               asset                                cover_collat;       
+               fc::optional<claim_by_cover_output>  cover_payout;
+
 
                signed_transaction market_trx;
 
@@ -219,11 +223,9 @@ namespace bts { namespace blockchain {
 
                   if( working_ask.claim_func == claim_by_long )
                   {
-                     claim_by_long_output long_claim = working_ask.as<claim_by_long_output>();
+                     auto long_claim = working_ask.as<claim_by_long_output>();
                      if( long_claim.ask_price > bid_claim.ask_price )
                      {
-                        if( ask_change ) market_trx.inputs.push_back( ask_itr->location );
-                        if( bid_change ) market_trx.inputs.push_back( bid_itr->location );
                         break; // exit the while loop, no more trades can occur
                      }
                      asset bid_amount = working_bid.get_amount() * bid_claim.ask_price;
@@ -250,19 +252,28 @@ namespace bts { namespace blockchain {
                      */
 
                      bid_payout_address = bid_claim.pay_address;
-                     ask_payout_address = long_claim.pay_address;
 
                      if( bid_payout ) { *bid_payout += bid_amount; }
                      else             { bid_payout   = bid_amount; }
 
-                     if( ask_payout ) { *ask_payout += ask_amount; }
-                     else             { ask_payout   = ask_amount; }
-
+                     if( cover_payout ) 
+                     { 
+                        cover_payout->payoff_amount += trade_amount.get_rounded_amount();
+                        cover_collat                += (trade_amount * long_claim.ask_price)*2;
+                     }
+                     else
+                     {
+                        cover_payout                = claim_by_cover_output();
+                        cover_payout->owner         = long_claim.pay_address;
+                        cover_payout->payoff_unit   = trade_amount.unit;
+                        cover_payout->payoff_amount = trade_amount.get_rounded_amount();
+                        cover_collat                = (trade_amount * long_claim.ask_price)*2;
+                     }
 
                      if( bid_change_amount != asset(0, working_bid.unit) )
                      {
                         // TODO: accumulate fractional parts, round at the end?....
-                        working_bid.amount -= bid_change_amount.get_rounded_amount(); 
+                        working_bid.amount = bid_change_amount.get_rounded_amount(); 
                         bid_change = working_bid;
                      }
                      else // we have filled the bid!  
@@ -275,32 +286,26 @@ namespace bts { namespace blockchain {
                         ++bid_itr;
                      }
 
-
                      if( ask_change_amount != asset( 0, working_bid.unit ) )
                      {
-                        // TODO: accumulate fractional parts, round at the end?....
-                        working_ask.amount -= ask_change_amount.get_rounded_amount();
+                        working_ask.amount = ask_change_amount.get_rounded_amount();
                         ask_change = working_ask;
                      }
                      else // we have filled the ask!
                      {
                         market_trx.inputs.push_back( ask_itr->location );
-                        // TODO: evaluate rounding of numbers here..
-                        market_trx.outputs.push_back( 
-                                trx_output( claim_by_cover_output( *ask_payout, long_claim.pay_address ), 
-                                              (*ask_payout  * long_claim.ask_price)*2) );
+                        market_trx.outputs.push_back( trx_output( *cover_payout, cover_collat ) );
                         ask_change.reset();
-                        ask_payout.reset();
+                        cover_payout.reset();
                         ++ask_itr;
                      }
                   }
                   else if( working_ask.claim_func == claim_by_bid )
                   {
+                     FC_ASSERT( !"Not Implemented" );
                      claim_by_bid_output ask_claim = working_ask.as<claim_by_bid_output>();
                      if( ask_claim.ask_price > bid_claim.ask_price )
                      {
-                        if( ask_change ) market_trx.inputs.push_back( ask_itr->location );
-                        if( bid_change ) market_trx.inputs.push_back( bid_itr->location );
                         break;
                      }
                      // TODO: implement straight trades..
@@ -312,18 +317,29 @@ namespace bts { namespace blockchain {
                   }
 
                } // while( ... ) 
+               if( ask_change && ask_itr != asks.end()  ) market_trx.inputs.push_back( ask_itr->location );
+               if( bid_change && bid_itr != bids.rend() ) market_trx.inputs.push_back( bid_itr->location );
               
-               if( ask_change ){ market_trx.outputs.push_back( *ask_change ); }
-               if( bid_change ){ market_trx.outputs.push_back( *bid_change ); }
+               if( ask_change )
+               { 
+                  ilog( "ask_change: ${ask_change}", ("ask_change",ask_change) ); 
+                  market_trx.outputs.push_back( *ask_change ); 
+               }
+               if( bid_change )
+               {
+                  ilog( "bid_change: ${bid_change}", ("bid_change",bid_change) ); 
+                  market_trx.outputs.push_back( *bid_change ); 
+               }
                if( bid_payout ) 
                {
+                   ilog( "bid_payout ${payout}", ("payout",bid_payout) );
                    market_trx.outputs.push_back( 
                             trx_output( claim_by_signature_output( bid_payout_address ), *bid_payout ) );
                }
-               if( ask_payout ) 
+               if( cover_payout ) 
                {
-                   market_trx.outputs.push_back( 
-                            trx_output( claim_by_signature_output( ask_payout_address ), *ask_payout ) );
+                   ilog( "cover_payout ${payout}", ("payout",cover_payout) );
+                   market_trx.outputs.push_back( trx_output( *cover_payout, cover_collat ) );
                }
                wlog( "Market Transaction: ${trx}", ("trx", market_trx) );
                if( market_trx.inputs.size() )
@@ -758,8 +774,8 @@ namespace bts { namespace blockchain {
 
                 if( s.eval.coinbase.amount != fc::uint128_t(0) )
                 {
-                  wlog( "ignoring transaction ${trx} because it creates coins", 
-                        ("trx",trxs[i]) );
+                  wlog( "ignoring transaction ${trx} because it creates coins\n\n state: ${s}", 
+                        ("trx",trxs[i])("s",s.eval) );
                   continue;
                 }
                 s.trx_idx = i;
