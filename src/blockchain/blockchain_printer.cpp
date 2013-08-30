@@ -19,7 +19,7 @@ namespace bts { namespace blockchain {
       {
           case claim_by_signature:
           {
-             ss << std::string(o.as<claim_by_signature_output>().owner);
+             ss << std::string(o.as<claim_by_signature_output>().owner) << "<br/>\n";
              break;
           }
           case claim_by_bid:
@@ -27,7 +27,7 @@ namespace bts { namespace blockchain {
              claim_by_bid_output bid = o.as<claim_by_bid_output>();
              ss << "pay to: "<<std::string(bid.pay_address)<<"<br/>\n";
              ss << "price:  "<<std::string(bid.ask_price)<<"<br/>\n";
-             ss << "min:    "<<bid.min_trade<<"\n";
+             ss << "min:    "<<bid.min_trade<<"<br/>\n";
             break;
           }
           case claim_by_long:
@@ -35,7 +35,7 @@ namespace bts { namespace blockchain {
              claim_by_long_output bid = o.as<claim_by_long_output>();
              ss << "pay to: "<<std::string(bid.pay_address)<<"<br/>\n";
              ss << "price:  "<<std::string(bid.ask_price)<<"<br/>\n";
-             ss << "min:    "<<bid.min_trade<<"\n";
+             ss << "min:    "<<bid.min_trade<<"<br/>\n";
             break;
           }
           case claim_by_cover:
@@ -84,7 +84,7 @@ namespace bts { namespace blockchain {
            out << "  <br/>\n" << print_output( state.trx.outputs[i] ) <<" \n";
            if( mtrx.meta_outputs[i].is_spent() )
            {
-              out << "SPENT Block #"<< mtrx.meta_outputs[i].trx_id.block_num;
+              out << " SPENT Block #"<< mtrx.meta_outputs[i].trx_id.block_num;
               out << " Trx #"<< mtrx.meta_outputs[i].trx_id.trx_idx;
               out << " In  #"<< uint32_t(mtrx.meta_outputs[i].input_num);
            }

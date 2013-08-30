@@ -311,15 +311,14 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      BOOST_REQUIRE_THROW( chain.evaluate_signed_transaction( new_trx[0] ), fc::exception  );
 
      wlog( "================ Bid Test =======================" );
+        // 100 BitUSD / 10,000,000 BTS
+        auto bid_price = bts::blockchain::asset( 100, asset::usd ) / bts::blockchain::asset( 10000000, asset::bts );
      
         std::vector<signed_transaction> bid_trxs;
         bid_trxs.resize( 1 );
         
         bid_trxs[0].inputs.push_back( // input 50000000 bts
            trx_input( output_reference( block4.trxs[1].id(), 0 ) ) );
-
-        // 100 BitUSD / 10,000,000 BTS
-        auto bid_price = bts::blockchain::asset( 100, asset::usd ) / bts::blockchain::asset( 10000000, asset::bts );
 
         bid_trxs[0].outputs.push_back( 
            trx_output( claim_by_bid_output( address(a7), bid_price, 10000000 /*min bts*/ ), 50000000, asset::bts ) ); 
@@ -349,6 +348,41 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
          auto block7 = chain.generate_next_block( a4, bid_trxs );
          ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string( block7 ) ) );
          chain.push_block( block7 );
+
+         auto block8 = chain.generate_next_block( a4, bid_trxs );
+         ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string( block8 ) ) );
+         chain.push_block( block8 );
+
+         auto block9 = chain.generate_next_block( a5, bid_trxs );
+         ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string( block9 ) ) );
+         chain.push_block( block9 );
+
+         bid_trxs.resize(2);
+
+         bid_trxs[0].inputs.push_back(
+            trx_input( output_reference( block8.trxs[0].id(), 0 ) ) );
+
+         bid_trxs[0].outputs.push_back( 
+            trx_output( claim_by_long_output( address(a4), bid_price, 20000000 /*min bts*/ ), 1500000000l, asset::bts ) ); 
+        
+         bid_trxs[0].sign( k4 );
+         
+         bid_trxs[1].inputs.push_back( 
+            trx_input( output_reference( block6.trxs[0].id(), 0 ) ) );
+         
+         bid_trxs[1].outputs.push_back( 
+            trx_output( claim_by_bid_output( address(a6), bid_price, 30000000 /*min bts*/ ), 90000000, asset::bts ) ); 
+         
+         bid_trxs[1].sign( k3 );
+
+         auto block10 = chain.generate_next_block( a5, bid_trxs );
+         ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string( block10 ) ) );
+         chain.push_block( block10 );
+
+         bid_trxs.clear();
+         auto block11 = chain.generate_next_block( a5, bid_trxs );
+         ilog( "next block: \n${s}", ("s", fc::json::to_pretty_string( block11 ) ) );
+         chain.push_block( block11 );
      /*
      ilog( "\n${block}", ("block", 
      ilog( "\n${block}", ("block", bts::blockchain::pretty_print( block1, chain ) ) );
@@ -365,6 +399,10 @@ BOOST_AUTO_TEST_CASE( blockchain_build )
      html << bts::blockchain::pretty_print( block5, chain );
      html << bts::blockchain::pretty_print( block6, chain );
      html << bts::blockchain::pretty_print( block7, chain );
+     html << bts::blockchain::pretty_print( block8, chain );
+     html << bts::blockchain::pretty_print( block9, chain );
+     html << bts::blockchain::pretty_print( block10, chain );
+     html << bts::blockchain::pretty_print( block11, chain );
   
      html << chain.dump_market( asset::usd, asset::bts );
     

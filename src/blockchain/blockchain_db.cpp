@@ -81,7 +81,28 @@ namespace bts { namespace blockchain {
                mtrx.meta_outputs[o.output_idx].input_num = in;
 
                meta_trxs.store( tid, mtrx );
+               remove_market_orders( o );
             }
+
+
+            void remove_market_orders( const output_reference& o )
+            {
+               auto trx_out = get_output( o );
+               if( trx_out.claim_func == claim_by_bid )
+               {
+                  auto cbb = trx_out.as<claim_by_bid_output>();
+                  market_order order( cbb.ask_price, o );
+                  _market_db.remove_bid( order );
+               }
+
+               if( trx_out.claim_func == claim_by_long )
+               {
+                  auto cbl = trx_out.as<claim_by_long_output>();
+                  market_order order( cbl.ask_price, o );
+                  _market_db.remove_ask( order );
+               }
+            }
+
 
             trx_output get_output( const output_reference& ref )
             { try {
