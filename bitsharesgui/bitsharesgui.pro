@@ -21,13 +21,16 @@ INCLUDEPATH+=../fc/include
 SOURCES += main.cpp \
     bitsharesmainwindow.cpp \
     profileeditor.cpp \
-    bitsharestreemodel.cpp
+    bitsharestreemodel.cpp \
+    bshare_gui.cpp
 
 HEADERS  += \
     bitsharesmainwindow.h \
     profileeditor.h \
-    bitsharestreemodel.h
+    bitsharestreemodel.h \
+    bshare_gui.h
 
 FORMS    += \
     bitsharesmainwindow.ui \
-    profileeditor.ui
+    profileeditor.ui \
+    bshare_gui.ui
