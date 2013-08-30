@@ -183,47 +183,155 @@ namespace bts { namespace blockchain {
 
                fc::optional<trx_output>  ask_change;
                fc::optional<trx_output>  bid_change;
+               address                   ask_payout_address;
+               fc::optional<asset>       ask_payout;
+               address                   bid_payout_address;
+               fc::optional<asset>       bid_payout;
 
                signed_transaction market_trx;
-               for( auto ask_itr = asks.begin(); ask_itr != asks.end(); ++ask_itr )
-               {
-                  ilog( "back to top... asks.size: ${s}", ("s", asks.size()) );
-                  FC_ASSERT( ask_itr != asks.end() );
-                  ilog( "ask... ${ask}", ("ask",*ask_itr) );
-                  trx_output ask;
-                  trx_output bid;
-                  if( ask_change )       { ask = *ask_change; }
-                  else if( asks.size() ) { ask = get_output( ask_itr->location );  }
-                  else { continue; }
 
-                  if( bid_change )            { bid = *bid_change; }
-                  else if( 0 != bids.size() ) { bid = get_output( bids.back().location ); }
-                  else { continue; }
-                  
-                  ilog( "${what}", ("what",bid) );
-                  claim_by_bid_output bid_claim = bid.as<claim_by_bid_output>();
-                  if( ask.claim_func == claim_by_long )
+               /** asks are sorted from low to high, so we start
+                * with the lowest ask, and check to see if there are
+                * any bids that are greaterthan or equal to the ask, if
+                * there are then either the full bid or full ask will be
+                * filled.  If the full bid is filled, then move on to the
+                * next bid, and save the leftover ask.  If the left over
+                * ask is filled, then move to the next ask.
+                *
+                * When there are no more pairs that can be matched, exit
+                * the loop and any partial payouts are made.  
+                */
+               auto ask_itr = asks.begin();
+               auto bid_itr = bids.rbegin();
+               while( ask_itr != asks.end() &&
+                      bid_itr != bids.rend() )
+               { 
+                  trx_output working_ask;
+                  trx_output working_bid;
+
+                  if( ask_change ) {  working_ask = *ask_change; }
+                  else             {  working_ask = get_output( ask_itr->location );  }
+
+                  if( bid_change ) {  working_bid = *bid_change; }
+                  else             {  working_bid = get_output( bid_itr->location);   }
+
+                  claim_by_bid_output bid_claim = working_bid.as<claim_by_bid_output>();
+
+                  if( working_ask.claim_func == claim_by_long )
                   {
-                     claim_by_long_output long_claim = ask.as<claim_by_long_output>();
-
-                     auto strike_price = bid_claim.ask_price;
-                     // TODO: which price should I use, bid, ask, avg(bid+ask), different for each side? 
-
-                     asset bid_amount = bid.get_amount() * strike_price;
-                     asset ask_amount = ask.get_amount() * strike_price;
+                     claim_by_long_output long_claim = working_ask.as<claim_by_long_output>();
+                     if( long_claim.ask_price > bid_claim.ask_price )
+                     {
+                        if( ask_change ) market_trx.inputs.push_back( ask_itr->location );
+                        if( bid_change ) market_trx.inputs.push_back( bid_itr->location );
+                        break; // exit the while loop, no more trades can occur
+                     }
+                     asset bid_amount = working_bid.get_amount() * bid_claim.ask_price;
+                     asset ask_amount = working_ask.get_amount() * long_claim.ask_price;
+                     auto  trade_amount = std::min(bid_amount,ask_amount);
+                     
                      FC_ASSERT( bid_amount.unit == ask_amount.unit );
 
-                     asset trade_amount = std::min(bid_amount,ask_amount);
+                     ilog( "bid: ${b}   ask: ${a}", ("b",bid_amount)("a",ask_amount) );
 
-                     ilog( "trade amount ${s}     bid: ${b}   ask: ${a}", ("s",trade_amount)("b",bid_amount)("a",ask_amount) );
+                     asset bid_change_amount   = working_bid.get_amount();
+                     bid_change_amount        -= trade_amount * bid_claim.ask_price;
+                     ilog( "bid change.. ${c}", ("c",bid_change_amount) );
+                     
+                     asset ask_change_amount   = working_ask.get_amount();
+                     ask_change_amount        -= trade_amount * long_claim.ask_price;
+                     ilog( "ask change.. ${c}", ("c",ask_change_amount) );
+                      /*
+                     if( ask_change_amount != bid_change_amount  && ask_change_amount != asset(0,working_bid.unit) )
+                     {
+                       FC_ASSERT( !"At least one of the bid or ask should be completely filled", "", 
+                                  ("ask_change_amount",ask_change_amount)("bid_change_amount",bid_change_amount) );
+                     }
+                     */
+
+                     bid_payout_address = bid_claim.pay_address;
+                     ask_payout_address = long_claim.pay_address;
+
+                     if( bid_payout ) { *bid_payout += bid_amount; }
+                     else             { bid_payout   = bid_amount; }
+
+                     if( ask_payout ) { *ask_payout += ask_amount; }
+                     else             { ask_payout   = ask_amount; }
 
 
+                     if( bid_change_amount != asset(0, working_bid.unit) )
+                     {
+                        // TODO: accumulate fractional parts, round at the end?....
+                        working_bid.amount -= bid_change_amount.get_rounded_amount(); 
+                        bid_change = working_bid;
+                     }
+                     else // we have filled the bid!  
+                     {
+                        market_trx.inputs.push_back( bid_itr->location );
+                        market_trx.outputs.push_back( 
+                                trx_output( claim_by_signature_output( bid_claim.pay_address ), bid_payout->get_rounded_asset() ) );
+                        bid_change.reset();
+                        bid_payout.reset();
+                        ++bid_itr;
+                     }
+
+
+                     if( ask_change_amount != asset( 0, working_bid.unit ) )
+                     {
+                        // TODO: accumulate fractional parts, round at the end?....
+                        working_ask.amount -= ask_change_amount.get_rounded_amount();
+                        ask_change = working_ask;
+                     }
+                     else // we have filled the ask!
+                     {
+                        market_trx.inputs.push_back( ask_itr->location );
+                        // TODO: evaluate rounding of numbers here..
+                        market_trx.outputs.push_back( 
+                                trx_output( claim_by_cover_output( *ask_payout, long_claim.pay_address ), 
+                                              (*ask_payout  * long_claim.ask_price)*2) );
+                        ask_change.reset();
+                        ask_payout.reset();
+                        ++ask_itr;
+                     }
                   }
-                  else if( ask.claim_func == claim_by_bid )
+                  else if( working_ask.claim_func == claim_by_bid )
                   {
-                     auto strike_price = bid_claim.ask_price;
+                     claim_by_bid_output ask_claim = working_ask.as<claim_by_bid_output>();
+                     if( ask_claim.ask_price > bid_claim.ask_price )
+                     {
+                        if( ask_change ) market_trx.inputs.push_back( ask_itr->location );
+                        if( bid_change ) market_trx.inputs.push_back( bid_itr->location );
+                        break;
+                     }
+                     // TODO: implement straight trades..
                   }
+                  else
+                  {
+                     FC_ASSERT( !"Ask must either be a claim by bid or claim by long",
+                                "", ("ask", working_ask) );  
+                  }
+
+               } // while( ... ) 
+              
+               if( ask_change ){ market_trx.outputs.push_back( *ask_change ); }
+               if( bid_change ){ market_trx.outputs.push_back( *bid_change ); }
+               if( bid_payout ) 
+               {
+                   market_trx.outputs.push_back( 
+                            trx_output( claim_by_signature_output( bid_payout_address ), *bid_payout ) );
                }
+               if( ask_payout ) 
+               {
+                   market_trx.outputs.push_back( 
+                            trx_output( claim_by_signature_output( ask_payout_address ), *ask_payout ) );
+               }
+               wlog( "Market Transaction: ${trx}", ("trx", market_trx) );
+               if( market_trx.inputs.size() )
+               {
+                   FC_ASSERT( market_trx.outputs.size() );
+                   matched.push_back(market_trx);
+               }
+
                ilog( "done match orders.." );
             } FC_RETHROW_EXCEPTIONS( warn, "", ("quote",quote)("base",base) ) }
       };
@@ -435,6 +543,7 @@ namespace bts { namespace blockchain {
     trx_eval blockchain_db::evaluate_signed_transaction( const signed_transaction& trx )       
     {
        try {
+           FC_ASSERT( trx.inputs.size() || trx.outputs.size() );
            if( trx.valid_after != 0 )
            {
              FC_ASSERT( head_block_num() > trx.valid_after.value );

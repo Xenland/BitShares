@@ -49,6 +49,12 @@ namespace bts { namespace blockchain {
      return s;
   }
 
+  uint64_t asset::get_rounded_amount()const
+  {
+    auto tmp = amount;
+    tmp += (fc::uint128(1,0)>>1);
+    return tmp.high_bits(); // TODO: round rather than truncate
+  }
 
 
   const fc::uint128& asset::one()

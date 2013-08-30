@@ -119,6 +119,7 @@ namespace bts { namespace blockchain {
 FC_REFLECT( bts::blockchain::trx_validation_state::asset_balance, (in)(out) )
 FC_REFLECT( bts::blockchain::trx_validation_state, 
     (trx)
+    (inputs)
     (ref_head)
     (dividends)
     (issue_sheet)

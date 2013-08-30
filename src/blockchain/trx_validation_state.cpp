@@ -198,7 +198,8 @@ void trx_validation_state::validate_long( const trx_output& o )
 void trx_validation_state::validate_cover( const trx_output& o )
 {
    auto cover_claim = o.as<claim_by_cover_output>();
-   balance_sheet[(asset::type)o.unit].out += asset(o.amount,o.unit);
+   balance_sheet[(asset::type)o.unit].out += o.get_amount(); //asset(o.amount,o.unit);
+   balance_sheet[(asset::type)cover_claim.payoff_unit].out -= cover_claim.get_payoff_amount();
 }
 void trx_validation_state::validate_opt( const trx_output& o )
 {
@@ -269,7 +270,7 @@ void trx_validation_state::validate_signature( const meta_trx_input& in )
 void trx_validation_state::validate_bid( const meta_trx_input& in )
 { try {
     auto cbb = in.output.as<claim_by_bid_output>();
-    
+   /* 
     asset output_bal( in.output.amount, in.output.unit );
     balance_sheet[(asset::type)in.output.unit].in += output_bal;
     dividend_fees                                 += db->calculate_dividend_fees( output_bal, in.source.block_num );
@@ -293,7 +294,7 @@ void trx_validation_state::validate_bid( const meta_trx_input& in )
        if( split_order == output_not_found ) // must be a full order...
        {
          uint16_t sig_out   = find_unused_sig_output( cbb.pay_address, output_bal * cbb.ask_price  );
-         FC_ASSERT( sig_out != output_not_found );
+         FC_ASSERT( sig_out != output_not_found, " unable to find payment of ${asset} to ${pay_addr}", ("asset", output_bal*cbb.ask_price)("pay_addr",cbb.pay_address)("in",in) );
          mark_output_as_used( sig_out );
        }
        else // look for change, must be a partial order
@@ -317,6 +318,7 @@ void trx_validation_state::validate_bid( const meta_trx_input& in )
          mark_output_as_used( sig_out );
        }
     }
+    */
 } FC_RETHROW_EXCEPTIONS( warn, "validating bid input ${i}", ("i",in) ) }
 
 /**
@@ -363,6 +365,8 @@ void trx_validation_state::validate_long( const meta_trx_input& in )
 
 void trx_validation_state::validate_cover( const meta_trx_input& in )
 {
+   auto cover_in = in.output.as<claim_by_cover_output>();
+   
 }
 
 void trx_validation_state::validate_opt( const meta_trx_input& in )
@@ -389,16 +393,24 @@ void trx_validation_state::mark_output_as_used( uint16_t output_number )
 
 uint16_t trx_validation_state::find_unused_sig_output( const address& owner, const asset& bal )
 {
+  auto rounded_amount = asset(bal.get_rounded_amount(),bal.unit);
+  ilog( "find unused sig output ${o}  ${bal}", ("o", owner)("bal",bal) );
   for( uint32_t i = 0; i < trx.outputs.size(); ++i )
   {
-     if( used_outputs.find(i) != used_outputs.end() )
+    ilog( "${i}",("i",i) );
+     if( used_outputs.find(i) == used_outputs.end() )
      {
+      
+    ilog( "${i}",("i",i) );
         if( trx.outputs[i].claim_func == claim_by_signature )
         {
-           if( trx.outputs[i].get_amount() == bal )
+    ilog( "${i}",("i",i) );
+           if( trx.outputs[i].get_amount() == rounded_amount )
            {
+    ilog( "${i}",("i",i) );
               if( trx.outputs[i].as<claim_by_signature_output>().owner == owner )
               {
+    ilog( "${i}",("i",i) );
                  return i;
               }
            }

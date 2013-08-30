@@ -122,6 +122,8 @@ struct claim_by_long_input
  *  signed by owner, then this output can be spent.  Alternatively, the
  *  owner could transfer the short position to a new owner.
  *
+ *  This position could also be spent as part of a margin call.
+ *
  *  Assumptions:
  *    trx_output.unit = bts
  *    trx_output.amount = total collateral held
@@ -132,8 +134,15 @@ struct claim_by_cover_output
 {
    static const claim_type_enum type;
 
+   claim_by_cover_output( const asset& payoff, const address& own )
+   :payoff_unit(payoff.unit),
+    payoff_amount(payoff.get_rounded_amount()),
+    owner(own){}
+
    claim_by_cover_output()
    :payoff_amount(0){}
+
+   asset get_payoff_amount()const { return asset( payoff_amount, payoff_unit); }
 
    asset_type      payoff_unit;
    uint64_t        payoff_amount;
