@@ -10,9 +10,10 @@ namespace bts {
           application_impl()
           :_delegate(nullptr){}
 
-          application_delegate* _delegate;
-          application_config    _config;
-          profile_ptr           _profile;
+          application_delegate*             _delegate;
+          fc::optional<application_config>  _config;
+          profile_ptr                       _profile;
+          fc::path                          _profile_dir;
     };
   }
 
@@ -26,11 +27,15 @@ namespace bts {
   void application::configure( const application_config& cfg )
   {
      my->_config = cfg;
+     my->_profile_dir = cfg.data_dir / "profiles";
+     
+     fc::create_directories( my->_profile_dir );
   }
 
   application_config application::get_configuration()const
   {
-     return my->_config;
+     FC_ASSERT( my->_config );
+     return *my->_config;
   }
 
   void      application::set_application_delegate( application_delegate* del )
@@ -40,18 +45,37 @@ namespace bts {
 
   profile_ptr                 application::get_profile()
   {
+    FC_ASSERT( my->_config );
     return my->_profile;
   }
 
   profile_ptr                 application::load_profile( const std::string& password )
-  {
-    return my->_profile;
-  }
+  { try {
+    FC_ASSERT( my->_config );
+
+    // note: stored in temp incase open throws.
+    auto tmp_profile = std::make_shared<profile>();
+    tmp_profile->open( my->_profile_dir / "default", password );
+
+    return my->_profile = tmp_profile;
+  } FC_RETHROW_EXCEPTIONS( warn, "" ) }
+
 
   profile_ptr                 application::create_profile( const profile_config& cfg, const std::string& password )
-  {
-    return my->_profile;
-  }
+  { try {
+
+    FC_ASSERT( !fc::exists( my->_profile_dir ) );
+    fc::create_directories( my->_profile_dir );
+
+    // note: stored in temp incase create throws.
+    auto tmp_profile = std::make_shared<profile>();
+
+    tmp_profile->create( my->_profile_dir / "default", cfg, password );
+
+    return my->_profile = tmp_profile;
+
+  } FC_RETHROW_EXCEPTIONS( warn, "" ) }
+
                               
   fc::optional<bitname::name_record>   application::lookup_name( const std::string& name )
   {
