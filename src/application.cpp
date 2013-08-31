@@ -1,10 +1,14 @@
 #include <bts/application.hpp>
+#include <bts/bitname/bitname_client.hpp>
+#include <fc/reflect/variant.hpp>
+
+#include <fc/log/logger.hpp>
 
 namespace bts {
 
   namespace detail
   {
-    class application_impl
+    class application_impl : public bts::bitname::client_delegate
     {
        public:
           application_impl()
@@ -14,6 +18,34 @@ namespace bts {
           fc::optional<application_config>  _config;
           profile_ptr                       _profile;
           fc::path                          _profile_dir;
+
+          bts::network::server_ptr          _server;
+          bts::peer::peer_channel_ptr       _peers;
+          bts::bitname::client_ptr          _bitname_client;
+
+
+
+
+          void bitname_block_added( const bts::bitname::name_block& h )
+          {
+
+          }
+         
+          void bitname_header_pending( const bts::bitname::name_header& h )
+          {
+              ilog( "${h}", ("h",h) );
+              /*
+              if( h.name_hash == current_name )
+              {
+                 current_name = fc::time_point::now().time_since_epoch().count();
+          
+                auto next_name = std::string(fc::time_point::now()); 
+                ilog( "registering next name ${name}", ("name",next_name));
+                 _client->mine_name( next_name,
+                                         fc::ecc::private_key::generate().get_public_key() );
+              }
+              */
+          }  
     };
   }
 
@@ -25,12 +57,24 @@ namespace bts {
   application::~application(){}
 
   void application::configure( const application_config& cfg )
-  {
+  { try {
      my->_config = cfg;
      my->_profile_dir = cfg.data_dir / "profiles";
      
      fc::create_directories( my->_profile_dir );
-  }
+
+     my->_server = std::make_shared<bts::network::server>();    
+
+     bts::network::server::config server_cfg;
+     server_cfg.port = cfg.network_port;
+
+     my->_server->configure( server_cfg );
+
+     my->_peers            = std::make_shared<bts::peer::peer_channel>(my->_server);
+     my->_bitname_client   = std::make_shared<bts::bitname::client>( my->_peers );
+     my->_bitname_client->set_delegate( my.get() );
+
+  } FC_RETHROW_EXCEPTIONS( warn, "", ("config",cfg) ) }
 
   application_config application::get_configuration()const
   {

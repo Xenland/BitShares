@@ -1,7 +1,7 @@
 project( bitshares )
 cmake_minimum_required( VERSION 2.8.11 )
 
-set( CMAKE_AUTOMOC ON )
+#set( CMAKE_AUTOMOC ON )
 
 set( CMAKE_PREFIX_PATH  ${CMAKE_PREFIX_PATH} ";${CMAKE_SOURCE_DIR}/vendor/qt.5.1/5.1.0/msvc2012/lib/cmake/Qt5Widgets" )
 find_package( Qt5Widgets )
@@ -140,7 +140,6 @@ set( sources
 
 add_library( bshare ${sources} )
 
-add_subdirectory( bitchat )
 IF( NOT Qt5Widgets_DIR MATCHES Qt5Widgets_DIR-NOTFOUND )
 add_subdirectory( src/gui )
 ENDIF()
@@ -161,5 +160,5 @@ ENDIF()
 
 #add_executable( bitshared bitshared.cpp )
 #target_link_libraries( bitshared bshare fc ${BOOST_LIBRARIES} )
-
+add_subdirectory( cli_client )
 add_subdirectory( tests )
