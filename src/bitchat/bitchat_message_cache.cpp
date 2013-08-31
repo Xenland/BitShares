@@ -37,7 +37,7 @@ namespace bts { namespace bitchat {
           fc::mmap_struct<size_t>                           _stats;
 
           void purge_old()
-          {
+          { try {
              fc::time_point_sec expired = fc::time_point::now() - fc::seconds( BITCHAT_CACHE_WINDOW_SEC );
              auto itr = _age_index.begin();
              while( itr.valid() )
@@ -52,11 +52,23 @@ namespace bts { namespace bitchat {
                 }
                 ++itr;
              }
-          }
+          } FC_RETHROW_EXCEPTIONS( warn, "" ) }
 
           void purge_easy( fc::uint128 target, size_t required_space )
-          {
-          }
+          { try {
+             fc::uint128 key; 
+             encrypted_message val;
+             while( required_space > 0 && _cache_by_id.last( key, val ) )
+             {
+               if( key > target )
+               {
+                  *_stats        -= val.data.size();
+                  required_space -= val.data.size();
+                  _cache_by_id.remove(key);
+                  _age_index.remove( age_index( val.timestamp, key ) );
+               }
+             }
+          } FC_RETHROW_EXCEPTIONS( warn, "", ("target",target)("required_space",required_space) ) }
      };
   }
 
