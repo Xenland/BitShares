@@ -117,18 +117,20 @@ int main( int argc, char** argv )
     bts::bitchat::client_ptr       chat_cl        = std::make_shared<bts::bitchat::client>( peer_ch, address_book, chat_del.get() );
 
     /// provides synchronized accounts across all computers in the network
+   /*
     bts::bitname::client_ptr       name_cl        = std::make_shared<bts::bitname::client>( peer_ch );
     std::shared_ptr<bitname_test_del> name_test_del  = std::make_shared<bitname_test_del>();
     name_test_del->_client = name_cl.get();
     name_cl->set_delegate( name_test_del.get() );
     name_cl->configure( cfg.bitname_config );
+    */
 
 
 //    bts::blockchain::client_ptr    blockchain_cl  = std::make_shared<bts::blockchain::client>( peer_ch );
 
     /// enable local RPC queries of data on various channels
     bts::rpc::server_ptr rpc_serv = std::make_shared<bts::rpc::server>();
-    rpc_serv->set_bitname_client( name_cl );
+   // rpc_serv->set_bitname_client( name_cl );
     rpc_serv->configure( cfg.rpc_config );
 
     auto  upnpserv = std::make_shared<bts::network::upnp_service>();
@@ -204,7 +206,7 @@ int main( int argc, char** argv )
           out << fc::json::to_pretty_string( cfg );
          
           std::cout << "created identity '"<<id.label<<"' with address: "<< std::string( bts::bitchat::address( id.key.get_public_key() ) ) <<"\n";
-          name_cl->mine_name( id.label, id.key.get_public_key() );
+          //name_cl->mine_name( id.label, id.key.get_public_key() );
        }
        else if( cmd == "set_contact_pay_address" )
        {

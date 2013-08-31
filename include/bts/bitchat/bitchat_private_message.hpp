@@ -49,7 +49,7 @@ namespace bts { namespace bitchat {
         encrypted_message();
 
         uint16_t                                      nonce; ///< increment timestamp after 63K tests
-        fc::time_point                                timestamp;
+        fc::time_point_sec                            timestamp;
         fc::ecc::public_key                           dh_key;
         fc::uint160_t                                 check;
         std::vector<char>                             data;

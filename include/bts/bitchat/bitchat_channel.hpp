@@ -1,5 +1,6 @@
 #pragma once
 #include <bts/peer/peer_channel.hpp>
+#include <fc/filesystem.hpp>
 
 namespace bts { namespace bitchat {
 
@@ -14,6 +15,14 @@ namespace bts { namespace bitchat {
 
        virtual void handle_message( const encrypted_message& pm, const network::channel_id& c ) = 0;
    
+   };
+
+   struct channel_config
+   {
+      channel_config( const fc::path& p = fc::path() )
+      :data_dir(p){}
+
+      fc::path data_dir;
    };
    
    /**
@@ -31,6 +40,8 @@ namespace bts { namespace bitchat {
        ~channel();
   
        network::channel_id get_id()const;
+
+       void configure( const channel_config& conf );
 
        void broadcast( encrypted_message&& m );
 

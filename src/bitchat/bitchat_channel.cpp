@@ -1,6 +1,7 @@
 #include <bts/bitchat/bitchat_channel.hpp>
 #include <bts/bitchat/bitchat_messages.hpp>
 #include <bts/bitchat/bitchat_private_message.hpp>
+#include <bts/bitchat/bitchat_message_cache.hpp>
 #include <fc/reflect/variant.hpp>
 #include <fc/thread/thread.hpp>
 #include <fc/log/logger.hpp>
@@ -27,6 +28,8 @@ namespace bts { namespace bitchat {
           channel_id               chan_id;
           channel_delegate*        del;
           peer::peer_channel_ptr   peers;
+
+          message_cache            _message_cache;
 
           std::map<fc::time_point, fc::uint128>              msg_time_index;
           std::unordered_map<fc::uint128,encrypted_message>  priv_msgs;
@@ -236,6 +239,9 @@ namespace bts { namespace bitchat {
                  new_msgs.push_back( mid );
                  msg_time_index[fc::time_point::now()] = mid;
                  const encrypted_message& m = (priv_msgs[mid] = std::move(msg));
+
+                 _message_cache.cache( m );
+
                  del->handle_message( m, chan_id );
               }
               else
@@ -289,12 +295,19 @@ namespace bts { namespace bitchat {
   {
       //TODO: make 30 a constant in bts/config.hpp
       FC_ASSERT( fc::time_point::now() - m.timestamp  <  fc::seconds(30) );
-      FC_ASSERT( m.timestamp <= fc::time_point::now() );
+      FC_ASSERT( fc::time_point(m.timestamp) <= fc::time_point::now() );
 
       auto id = m.id();
       my->priv_msgs[ id ] = std::move(m);
       my->msg_time_index[ m.timestamp ] = id;
       my->new_msgs.push_back(id);
+  }
+
+  void channel::configure( const channel_config& conf )
+  {
+      auto dir = conf.data_dir / ("cache_chan_" + fc::variant(my->chan_id.id()).as_string());
+      fc::create_directories( dir );
+      my->_message_cache.open( dir );
   }
 
 

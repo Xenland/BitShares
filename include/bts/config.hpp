@@ -15,6 +15,8 @@
 #define COINBASE_WAIT_PERIOD          (BLOCKS_PER_HOUR*8) // blocks before a coinbase can be spent
 #define DEFAULT_SERVER_PORT           (9876)
 #define DESIRED_PEER_COUNT            (8)                 // number of nodes to connect to
+#define BITCHAT_CHANNEL_SIZE          (512*1024*1024)     // 512 MB of history... 
+#define BITCHAT_CACHE_WINDOW_SEC      (60*60*24*30)       // 1 month
 #define BITCHAT_TARGET_BPS            (128*1024)          // 128 kbit / sec target data rate
 #define BITCHAT_BANDWIDTH_WINDOW_US   (5*60*1000*1000ll)  // 5 minutes
 #define BITCHAT_INVENTORY_WINDOW_SEC  (60)                // seconds to keep inventory items around
