@@ -25,22 +25,22 @@ namespace bts { namespace bitchat {
      class channel_impl : public bts::network::channel 
      {
         public:
-          channel_id               chan_id;
-          channel_delegate*        del;
-          peer::peer_channel_ptr   peers;
-
-          message_cache            _message_cache;
+          channel_id                                         chan_id;
+          channel_delegate*                                  del;
+          peer::peer_channel_ptr                             peers;
+                                                             
+          message_cache                                      _message_cache;
 
           std::map<fc::time_point, fc::uint128>              msg_time_index;
           std::unordered_map<fc::uint128,encrypted_message>  priv_msgs;
 
           /// messages that we have recieved inv for, but have not requested the data for
-          std::unordered_set<fc::uint128>                  unknown_msgs; 
-          std::unordered_map<fc::uint128,fc::time_point>   requested_msgs; // messages that we have requested but not yet received
-
-          std::vector<fc::uint128>                         new_msgs;  // messages received since last inv broadcast
-
-          fc::future<void>                              fetch_loop_complete;
+          std::unordered_set<fc::uint128>                    unknown_msgs; 
+          std::unordered_map<fc::uint128,fc::time_point>     requested_msgs; // messages that we have requested but not yet received
+                                                             
+          std::vector<fc::uint128>                           new_msgs;  // messages received since last inv broadcast
+                                                             
+          fc::future<void>                                   fetch_loop_complete;
 
           /**
            *  Get or create the bitchat channel data for this connection and return

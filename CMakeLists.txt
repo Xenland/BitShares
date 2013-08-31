@@ -125,6 +125,7 @@ set( sources
 
 
      src/difficulty.cpp 
+     src/profile.cpp
      src/extended_address.cpp
      src/small_hash.cpp
      src/merkle_tree.cpp

@@ -76,13 +76,13 @@ namespace bts { namespace bitchat {
                                         m.from_key, to );
                    break;
                case contact_request_msg:
-                   break;
+               //    break;
                case contact_auth_msg:
-                   break;
+               //    break;
                case status_msg:
-                   break;
+               //    break;
                case email_msg:
-                   break;
+               //    break;
                case unknown_msg:
 
                default:
