@@ -81,8 +81,13 @@ namespace bts { namespace bitchat {
                    break;
                case status_msg:
                    break;
+               case email_msg:
+                   break;
+               case unknown_msg:
+
                default:
-                 wlog( "unknown private message type ${t}", ("t", m.msg_type)("message",m));
+                   wlog( "unknown private message type ${t}", ("t", m.msg_type)("message",m));
+                   break;
             }
          }
 

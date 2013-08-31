@@ -71,9 +71,10 @@ namespace bts { namespace bitchat {
     {
        unknown_msg          = 0,
        text_msg             = 1,
-       contact_request_msg  = 2,
-       contact_auth_msg     = 3,
-       status_msg           = 4
+       email_msg            = 2,
+       contact_request_msg  = 3,
+       contact_auth_msg     = 4,
+       status_msg           = 5
     };
 
     /**
@@ -142,6 +143,20 @@ namespace bts { namespace bitchat {
        channel_id  from_channel;    ///< channel where from_name can be contacted
     };
 
+    struct attachment
+    {
+      std::string       filename;
+      std::vector<char> body;
+    };
+
+    struct private_email_message
+    {
+       static const private_message_type  type;
+       std::string                        subject;
+       std::string                        body;
+       std::vector<attachment>            attachments;
+    };
+
 
     struct private_contact_auth_message 
     {
@@ -185,10 +200,12 @@ namespace bts { namespace bitchat {
 #include <fc/reflect/reflect.hpp>
 FC_REFLECT_ENUM( bts::bitchat::account_status, (unknown)(active)(away)(idle) )
 FC_REFLECT_ENUM( bts::bitchat::message_type, (inv_msg)(get_inv_msg)(get_priv_msg)(encrypted_msg) )
-FC_REFLECT_ENUM( bts::bitchat::private_message_type, (unknown_msg)(text_msg)(contact_request_msg)(contact_auth_msg)(status_msg) )
+FC_REFLECT_ENUM( bts::bitchat::private_message_type, (unknown_msg)(text_msg)(email_msg)(contact_request_msg)(contact_auth_msg)(status_msg) )
 FC_REFLECT_ENUM( bts::bitchat::compression_type, (no_compression)(smaz_compression)(lzma_compression) )
 FC_REFLECT_ENUM( bts::bitchat::encryption_type, (no_encryption)(blowfish_encryption)(twofish_encryption)(aes_encryption) )
+FC_REFLECT( bts::bitchat::attachment, (filename)(body) )
 FC_REFLECT( bts::bitchat::encrypted_message, (nonce)(timestamp)(dh_key)(check)(data) );
 FC_REFLECT( bts::bitchat::decrypted_message, (msg_type)(compression_format)(encryption_method)(data)(sig_time)(from_sig) )
 FC_REFLECT( bts::bitchat::private_text_message, (msg) )
+FC_REFLECT( bts::bitchat::private_email_message, (subject)(body)(attachments) )
 FC_REFLECT( bts::bitchat::private_status_message, (status)(status_message) )

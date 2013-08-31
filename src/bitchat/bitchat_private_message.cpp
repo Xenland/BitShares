@@ -12,6 +12,7 @@
 namespace bts { namespace bitchat {
 
 const private_message_type private_text_message::type = text_msg;
+const private_message_type private_email_message::type = email_msg;
 const private_message_type private_contact_request_message::type = contact_request_msg;
 const private_message_type private_contact_auth_message::type = contact_auth_msg;
 const private_message_type private_status_message::type = status_msg;
