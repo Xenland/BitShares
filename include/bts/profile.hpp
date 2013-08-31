@@ -104,6 +104,8 @@ namespace bts {
       std::unique_ptr<detail::profile_impl> my;
   };
 
+  typedef std::shared_ptr<profile> profile_ptr;
+
 } // namespace bts
 
 FC_REFLECT( bts::profile_config,

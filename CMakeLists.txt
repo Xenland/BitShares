@@ -123,7 +123,7 @@ set( sources
 
      src/rpc/rpc_server.cpp
 
-
+     src/application.cpp
      src/difficulty.cpp 
      src/profile.cpp
      src/extended_address.cpp

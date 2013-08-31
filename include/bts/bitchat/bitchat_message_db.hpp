@@ -22,6 +22,8 @@ namespace bts { namespace bitchat {
       fc::uint256                                    digest;
       fc::ecc::compact_signature                     from_sig;
       fc::time_point_sec                             from_sig_time;
+      fc::time_point_sec                             ack_time;   // the time the ack for this msg was received
+      bool                                           read_mark;  // whether or not the user has read the message
   };
   
   /**
@@ -73,4 +75,6 @@ FC_REFLECT( bts::bitchat::message_header,
     (from_key)
     (from_sig)
     (from_sig_time)
+    (ack_time)
+    (read_mark)
     )

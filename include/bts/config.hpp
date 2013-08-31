@@ -1,5 +1,31 @@
 #pragma once
 
+/** 
+ *  This is the file that contains all of the 'magic' numbers used throughout the
+ *  code and provides them with a useful name.  This is the file where you can experiment
+ *  with many arbitrary parameters such as timeouts, sizes, ports, etc.
+ *
+ *  Naming Scheme:
+ *   COMPONENT_PROPERTY_UNIT
+ *
+ *  Valid Components:
+ *    NETWORK
+ *    PEER
+ *    BITCHAT
+ *    BITNAME     - bitname p
+ *    BITSHARE    - properties of the bitshare blockchain
+ *    RPC
+ *    GUI
+ *    BTS         - catch all
+ *
+ *  Group properties by component in the order listed above.
+ *
+ *  TODO: update configs below to follow scheme described above
+ */
+
+#define NETWORK_DEFAULT_PORT          (9876)
+#define RPC_DEFAULT_PORT              (NETWORK_DEFAULT_PORT+1)
+
 #define SHARE                         (1000ll)                    // used to position the decimal place
 #define MAX_BITSHARE_SUPPLY           (2000000000000ll * SHARE)   // 1 Trillion with 3 decimal places
 #define YEARS_TO_MINE                 (12ll)                      // how many years until the full bitshare supply is mined
@@ -12,8 +38,9 @@
 #define REWARD_DELTA_PER_BLOCK        (INITIAL_REWARD / BLOCKS_WITH_REWARD)
 
 
+
+
 #define COINBASE_WAIT_PERIOD          (BLOCKS_PER_HOUR*8) // blocks before a coinbase can be spent
-#define DEFAULT_SERVER_PORT           (9876)
 #define DESIRED_PEER_COUNT            (8)                 // number of nodes to connect to
 #define BITCHAT_CHANNEL_SIZE          (512*1024*1024)     // 512 MB of history... 
 #define BITCHAT_CACHE_WINDOW_SEC      (60*60*24*30)       // 1 month

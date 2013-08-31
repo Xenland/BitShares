@@ -46,7 +46,7 @@ namespace bts { namespace network {
         struct config
         {
             config()
-            :port(DEFAULT_SERVER_PORT){}
+            :port(NETWORK_DEFAULT_PORT){}
             uint16_t                 port;  ///< the port to listen for incoming connections on.
             std::string              chain; ///< the name of the chain this server is operating on (test,main,etc)
 
