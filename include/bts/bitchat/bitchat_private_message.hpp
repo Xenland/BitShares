@@ -3,6 +3,7 @@
 #include <fc/io/raw.hpp>
 #include <fc/thread/future.hpp>
 #include <fc/crypto/elliptic.hpp>
+#include <fc/crypto/ripemd160.hpp>
 #include <fc/time.hpp>
 #include <fc/optional.hpp>
 #include <fc/io/enum_type.hpp>
@@ -50,7 +51,7 @@ namespace bts { namespace bitchat {
         uint16_t                                      nonce; ///< increment timestamp after 63K tests
         fc::time_point                                timestamp;
         fc::ecc::public_key                           dh_key;
-        uint32_t                                      dh_check;
+        fc::uint160_t                                 check;
         std::vector<char>                             data;
 
         fc::uint128        id()const;
@@ -187,7 +188,7 @@ FC_REFLECT_ENUM( bts::bitchat::message_type, (inv_msg)(get_inv_msg)(get_priv_msg
 FC_REFLECT_ENUM( bts::bitchat::private_message_type, (unknown_msg)(text_msg)(contact_request_msg)(contact_auth_msg)(status_msg) )
 FC_REFLECT_ENUM( bts::bitchat::compression_type, (no_compression)(smaz_compression)(lzma_compression) )
 FC_REFLECT_ENUM( bts::bitchat::encryption_type, (no_encryption)(blowfish_encryption)(twofish_encryption)(aes_encryption) )
-FC_REFLECT( bts::bitchat::encrypted_message, (nonce)(timestamp)(dh_key)(dh_check)(data) );
+FC_REFLECT( bts::bitchat::encrypted_message, (nonce)(timestamp)(dh_key)(check)(data) );
 FC_REFLECT( bts::bitchat::decrypted_message, (msg_type)(compression_format)(encryption_method)(data)(sig_time)(from_sig) )
 FC_REFLECT( bts::bitchat::private_text_message, (msg) )
 FC_REFLECT( bts::bitchat::private_status_message, (status)(status_message) )

@@ -17,7 +17,7 @@ const private_message_type private_contact_auth_message::type = contact_auth_msg
 const private_message_type private_status_message::type = status_msg;
 
 encrypted_message::encrypted_message()
-:nonce(0),dh_check(0){}
+:nonce(0){}
 
 fc::uint128   encrypted_message::id()const
 {
@@ -35,15 +35,16 @@ bool  encrypted_message::decrypt( const fc::ecc::private_key& with, decrypted_me
     FC_ASSERT( data.size() % 8 == 0 );
     
     auto aes_key = with.get_shared_secret( dh_key );
-    uint32_t check  = fc::sha256::hash(fc::sha256::hash( aes_key ))._hash[0];
-    if( check != dh_check )  
-    { // 1 out of every 4 million msgs will have a false positive... 
-      // and will cause the message to attempt decryption with bf, this
-      // will cause failures later in the algo, but should not be
-      // fatal to the program because in theory the unpacking
-      // algorithm is secure against malicious data
+
+    auto check_hash = fc::sha512::hash( aes_key );
+    fc::ripemd160::encoder enc;
+    fc::raw::pack( enc, check_hash );
+    fc::raw::pack( enc, data       );
+    if( check != enc.result() )
+    {
       return false;
     }
+
     std::vector<char> tmp = fc::aes_decrypt( aes_key, data );
     m = fc::raw::unpack<decrypted_message>(tmp);
     if( m.from_sig )
@@ -102,9 +103,14 @@ encrypted_message decrypted_message::encrypt(const fc::ecc::public_key& to)const
     auto priv_dh_key = fc::ecc::private_key::generate(); 
     em.dh_key        = priv_dh_key.get_public_key();
     auto aes_key      = priv_dh_key.get_shared_secret( to );
-
-    em.dh_check = fc::sha256::hash(fc::sha256::hash( aes_key ))._hash[0];
     em.data = aes_encrypt( aes_key, fc::raw::pack(*this) );
+
+
+    auto check_hash = fc::sha512::hash( aes_key );
+    fc::ripemd160::encoder enc;
+    fc::raw::pack( enc, check_hash     );
+    fc::raw::pack( enc, em.data   );
+    em.check = enc.result();
    
     return em;
 }
