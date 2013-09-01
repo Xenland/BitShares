@@ -157,7 +157,7 @@ namespace bts { namespace bitname {
           }
 
           bool fetch_next_from_fork_db()
-          {
+          { try {
              if( _name_db.head_block_id() != _fork_db.best_fork_head_id() )
              {
                  fc::optional<name_id_type> next = _fork_db.best_fork_fetch_next( _name_db.head_block_id() );
@@ -191,7 +191,7 @@ namespace bts { namespace bitname {
                  }
              }
              return false;
-          }
+          } FC_RETHROW_EXCEPTIONS( warn , "" ) }
 
           /**
            *  The fetch loop has several modes:
@@ -746,7 +746,6 @@ namespace bts { namespace bitname {
      my->_peers = n;
      my->_chan_id = channel_id(network::name_proto,0);
      my->_peers->subscribe_to_channel( my->_chan_id, my );
-     my->_fetch_loop = fc::async( [=](){ my->fetch_loop(); } );
   }
 
   name_channel::~name_channel() 
@@ -754,8 +753,11 @@ namespace bts { namespace bitname {
      my->_peers->unsubscribe_from_channel( my->_chan_id );
      my->_delegate = nullptr;
      try {
-        my->_fetch_loop.cancel();
-        my->_fetch_loop.wait();
+        if( my->_fetch_loop.valid() )
+        {
+            my->_fetch_loop.cancel();
+            my->_fetch_loop.wait();
+        }
      } 
      catch ( ... ) 
      {
@@ -767,6 +769,8 @@ namespace bts { namespace bitname {
   {
       my->_name_db.open( c.name_db_dir, true/*create*/ );
       my->_fork_db.open( c.name_db_dir / "forks" , true/*create*/ );
+
+      my->_fetch_loop = fc::async( [=](){ my->fetch_loop(); } );
       // TODO: connect to the network and attempt to download the chain...
       //      *  what if no peers on on the name channel ??  * 
       //         I guess when I do connect to a peer on this channel they will

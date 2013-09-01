@@ -121,7 +121,7 @@ namespace bts { namespace bitname {
              }
 
              void load_genesis()
-             {
+             { try {
                  // TODO: verify that all databases are NULL/empty 
                 
                  auto genesis = create_genesis_block(); 
@@ -136,7 +136,7 @@ namespace bts { namespace bitname {
                     index_trx( name_location( 0, max_trx_num ), genesis.name_hash );
                     push_header_id( genesis.id() );
                  }
-             }
+             } FC_RETHROW_EXCEPTIONS( warn, "" ) }
 
              void push_header_id( const fc::sha224& id )
              {
@@ -216,7 +216,7 @@ namespace bts { namespace bitname {
        my->load_indexes(db_dir);
        my->load_genesis();
        my->init_timekeeper();
-
+       ilog( "open name db" );
        dump(); // DEBUG
     } FC_RETHROW_EXCEPTIONS( warn, "unable to open name db at path ${path}", ("path", db_dir)("create",create) ) }
 

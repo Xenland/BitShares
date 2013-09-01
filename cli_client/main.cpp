@@ -5,6 +5,9 @@
 #include <fc/io/stdio.hpp>
 #include <fc/log/logger.hpp>
 #include <fc/io/fstream.hpp>
+#include <fc/thread/thread.hpp>
+
+#include <iostream>
 
 int main( int argc, char** argv )
 {
@@ -27,6 +30,14 @@ int main( int argc, char** argv )
 
      auto app = std::make_shared<bts::application>();
      app->configure( cfg );
+
+
+     std::string line;
+     fc::thread _cin("cin");
+     fc::cout<<"$] ";
+     while( _cin.async([&](){ return !std::getline( std::cin, line ).eof(); } ).wait() ) 
+     {
+     }
 
      ilog( "shutting down" );
      return 0;
