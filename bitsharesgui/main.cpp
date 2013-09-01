@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
     //BitSharesMainWindow mainWindow;
     //mainWindow.show();
     bshare_gui bshare_window;
-    bshare_window.setWindowTitle("Bitshare | Invictus Innovations");
+    bshare_window.setWindowTitle("Bitshares | Invictus Innovations");
     bshare_window.show();
     qDebug() << "RUNNING";
 	fc::usleep( fc::microseconds(1000) );

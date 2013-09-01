@@ -19,18 +19,14 @@ INCLUDEPATH+=../fc/include
 
 
 SOURCES += main.cpp \
-    bitsharesmainwindow.cpp \
-    profileeditor.cpp \
-    bitsharestreemodel.cpp \
-    bshare_gui.cpp
+    bshare_gui.cpp \
+    bshare_viewport.cpp \
+    bshare_viewports/bshare_viewport_mail.cpp
 
 HEADERS  += \
-    bitsharesmainwindow.h \
-    profileeditor.h \
-    bitsharestreemodel.h \
-    bshare_gui.h
+    bshare_gui.h \
+    bshare_viewport.hpp \
+    bshare_viewports/bshare_viewport_mail.hpp
 
 FORMS    += \
-    bitsharesmainwindow.ui \
-    profileeditor.ui \
     bshare_gui.ui
