@@ -124,12 +124,12 @@ namespace fc
       template<typename Stream>
       inline void pack( Stream& s, const bts::network::message& m )
       {
-         FC_ASSERT( m.size % 8 == 0, ", size: ${s}", ("s",m.size) );
          detail::packed_message_header packed_value;
          packed_value.size = m.size;
          packed_value.proto = m.proto;
          packed_value.chan_num = m.chan_num;
          packed_value.msg_type = m.msg_type;
+         FC_ASSERT( m.size % 8 == 0, ", size: ${s}", ("s",int64_t(m.size)) );
          s.write( (char*)&packed_value, sizeof( packed_value ) );
          if( m.size )
          {
