@@ -1,6 +1,9 @@
 #include <bts/profile.hpp>
 #include <bts/keychain.hpp>
 #include <bts/addressbook/addressbook.hpp>
+#include <bts/db/level_map.hpp>
+#include <fc/io/raw.hpp>
+#include <fc/io/raw_variant.hpp>
 
 #include <fc/crypto/aes.hpp>
 #include <fc/reflect/variant.hpp>
@@ -14,10 +17,10 @@ namespace bts {
      class profile_impl
      {
         public:
-            keychain                     _keychain;
-            addressbook::addressbook_ptr _addressbook;
-            bitchat::message_db_ptr      _message_db;
-
+            keychain                             _keychain;
+            addressbook::addressbook_ptr         _addressbook;
+            bitchat::message_db_ptr              _message_db;
+            db::level_map<std::string, identity> _idents;
      };
 
   } // namespace detail
@@ -56,18 +59,24 @@ namespace bts {
      
       my->_keychain.set_seed( fc::raw::unpack<fc::sha512>(stretched_seed_data) );
       my->_addressbook->open( profile_dir / "addressbook" );
+      my->_idents.open( profile_dir / "idents" );
 
   } FC_RETHROW_EXCEPTIONS( warn, "", ("profile_dir",profile_dir) ) }
 
   std::vector<identity>   profile::identities()const
-  {
+  { try {
      std::vector<identity> idents;
+     for( auto itr = my->_idents.begin(); itr.valid(); ++itr )
+     {
+       idents.push_back(itr.value());
+     }
      return idents;
-  }
+  } FC_RETHROW_EXCEPTIONS( warn, "" ) }
   
   void    profile::store_identity( const identity& id )
-  {
-  }
+  { try {
+      my->_idents.store( id.bit_id, id ); 
+  } FC_RETHROW_EXCEPTIONS( warn, "", ("id",id) ) }
   
   /**
    *  Checks the transaction to see if any of the inp
