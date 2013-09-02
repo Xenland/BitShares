@@ -20,10 +20,12 @@
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QPlainTextEdit>
 #include <QtWidgets/QSplitter>
+#include <QtWidgets/QStackedWidget>
 #include <QtWidgets/QStatusBar>
+#include <QtWidgets/QTableView>
+#include <QtWidgets/QTextBrowser>
 #include <QtWidgets/QToolBar>
 #include <QtWidgets/QTreeView>
-#include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
 
 QT_BEGIN_NAMESPACE
@@ -37,12 +39,18 @@ public:
     QAction *actionRecent_Profiles;
     QAction *actionAbout;
     QWidget *centralWidget;
-    QVBoxLayout *verticalLayout;
-    QSplitter *mainWindowHorizontalSplitter;
+    QSplitter *treeStackSplitter;
     QTreeView *bitSharesTreeView;
-    QSplitter *conversationSendMessageSplitter;
-    QListView *conversationView;
-    QPlainTextEdit *sendMessageTextEdit;
+    QStackedWidget *stackedWidget;
+    QWidget *chatPage;
+    QSplitter *chatSplitter;
+    QListView *chatView;
+    QPlainTextEdit *chatTextEdit;
+    QWidget *mailPage;
+    QSplitter *mailSplitter;
+    QTableView *mailHeadersTable;
+    QTextBrowser *mailPreview;
+    QSplitter *splitter;
     QMenuBar *menuBar;
     QMenu *menuBitShares;
     QMenu *menuHelp;
@@ -66,29 +74,49 @@ public:
         actionAbout->setObjectName(QStringLiteral("actionAbout"));
         centralWidget = new QWidget(BitSharesMainWindow);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
-        verticalLayout = new QVBoxLayout(centralWidget);
-        verticalLayout->setSpacing(6);
-        verticalLayout->setContentsMargins(11, 11, 11, 11);
-        verticalLayout->setObjectName(QStringLiteral("verticalLayout"));
-        mainWindowHorizontalSplitter = new QSplitter(centralWidget);
-        mainWindowHorizontalSplitter->setObjectName(QStringLiteral("mainWindowHorizontalSplitter"));
-        mainWindowHorizontalSplitter->setOrientation(Qt::Horizontal);
-        bitSharesTreeView = new QTreeView(mainWindowHorizontalSplitter);
+        treeStackSplitter = new QSplitter(centralWidget);
+        treeStackSplitter->setObjectName(QStringLiteral("treeStackSplitter"));
+        treeStackSplitter->setGeometry(QRect(9, 9, 611, 511));
+        treeStackSplitter->setOrientation(Qt::Horizontal);
+        bitSharesTreeView = new QTreeView(treeStackSplitter);
         bitSharesTreeView->setObjectName(QStringLiteral("bitSharesTreeView"));
-        mainWindowHorizontalSplitter->addWidget(bitSharesTreeView);
-        conversationSendMessageSplitter = new QSplitter(mainWindowHorizontalSplitter);
-        conversationSendMessageSplitter->setObjectName(QStringLiteral("conversationSendMessageSplitter"));
-        conversationSendMessageSplitter->setOrientation(Qt::Vertical);
-        conversationView = new QListView(conversationSendMessageSplitter);
-        conversationView->setObjectName(QStringLiteral("conversationView"));
-        conversationSendMessageSplitter->addWidget(conversationView);
-        sendMessageTextEdit = new QPlainTextEdit(conversationSendMessageSplitter);
-        sendMessageTextEdit->setObjectName(QStringLiteral("sendMessageTextEdit"));
-        conversationSendMessageSplitter->addWidget(sendMessageTextEdit);
-        mainWindowHorizontalSplitter->addWidget(conversationSendMessageSplitter);
-
-        verticalLayout->addWidget(mainWindowHorizontalSplitter);
-
+        treeStackSplitter->addWidget(bitSharesTreeView);
+        stackedWidget = new QStackedWidget(treeStackSplitter);
+        stackedWidget->setObjectName(QStringLiteral("stackedWidget"));
+        chatPage = new QWidget();
+        chatPage->setObjectName(QStringLiteral("chatPage"));
+        chatSplitter = new QSplitter(chatPage);
+        chatSplitter->setObjectName(QStringLiteral("chatSplitter"));
+        chatSplitter->setGeometry(QRect(-30, 20, 256, 384));
+        chatSplitter->setOrientation(Qt::Vertical);
+        chatView = new QListView(chatSplitter);
+        chatView->setObjectName(QStringLiteral("chatView"));
+        chatSplitter->addWidget(chatView);
+        chatTextEdit = new QPlainTextEdit(chatSplitter);
+        chatTextEdit->setObjectName(QStringLiteral("chatTextEdit"));
+        chatSplitter->addWidget(chatTextEdit);
+        stackedWidget->addWidget(chatPage);
+        mailPage = new QWidget();
+        mailPage->setObjectName(QStringLiteral("mailPage"));
+        mailSplitter = new QSplitter(mailPage);
+        mailSplitter->setObjectName(QStringLiteral("mailSplitter"));
+        mailSplitter->setGeometry(QRect(10, 20, 225, 511));
+        mailSplitter->setOrientation(Qt::Vertical);
+        mailHeadersTable = new QTableView(mailSplitter);
+        mailHeadersTable->setObjectName(QStringLiteral("mailHeadersTable"));
+        mailSplitter->addWidget(mailHeadersTable);
+        mailPreview = new QTextBrowser(mailSplitter);
+        mailPreview->setObjectName(QStringLiteral("mailPreview"));
+        mailSplitter->addWidget(mailPreview);
+        stackedWidget->addWidget(mailPage);
+        mailSplitter->raise();
+        mailPreview->raise();
+        mailSplitter->raise();
+        treeStackSplitter->addWidget(stackedWidget);
+        splitter = new QSplitter(centralWidget);
+        splitter->setObjectName(QStringLiteral("splitter"));
+        splitter->setGeometry(QRect(0, 0, 0, 0));
+        splitter->setOrientation(Qt::Vertical);
         BitSharesMainWindow->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(BitSharesMainWindow);
         menuBar->setObjectName(QStringLiteral("menuBar"));
@@ -114,6 +142,9 @@ public:
         menuHelp->addAction(actionAbout);
 
         retranslateUi(BitSharesMainWindow);
+
+        stackedWidget->setCurrentIndex(0);
+
 
         QMetaObject::connectSlotsByName(BitSharesMainWindow);
     } // setupUi

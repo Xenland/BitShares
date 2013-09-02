@@ -26,8 +26,6 @@ LIBS += -L${BOOST_LIBRARY_DIR} -lboost_context -lboost_thread -lboost_system -lb
 INCLUDEPATH += ../include
 INCLUDEPATH += ../fc/include
 
-win32 {
-
 SOURCES += main.cpp \
     bitsharesmainwindow.cpp \
     profileeditor.cpp \
@@ -42,19 +40,17 @@ FORMS    += \
     bitsharesmainwindow.ui \
     profileeditor.ui
 
-} else {
 
-SOURCES += main.cpp \
-    bshare_gui.cpp \
-    bshare_viewport.cpp \
-    bshare_viewports/bshare_viewport_mail.cpp
+#SOURCES += main.cpp \
+#    bshare_gui.cpp \
+#    bshare_viewport.cpp \
+#    bshare_viewports/bshare_viewport_mail.cpp
 
-HEADERS  += \
-    bshare_gui.h \
-    bshare_viewport.hpp \
-    bshare_viewports/bshare_viewport_mail.hpp
+#HEADERS  += \
+#    bshare_gui.h \
+#    bshare_viewport.hpp \
+#    bshare_viewports/bshare_viewport_mail.hpp
 
-FORMS    += \
-    bshare_gui.ui
+#FORMS    += \
+#    bshare_gui.ui
 
-}

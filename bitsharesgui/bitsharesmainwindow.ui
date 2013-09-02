@@ -14,23 +14,75 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
-    <item>
-     <widget class="QSplitter" name="mainWindowHorizontalSplitter">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <widget class="QTreeView" name="bitSharesTreeView"/>
-      <widget class="QSplitter" name="conversationSendMessageSplitter">
+   <widget class="QSplitter" name="treeStackSplitter">
+    <property name="geometry">
+     <rect>
+      <x>9</x>
+      <y>9</y>
+      <width>611</width>
+      <height>511</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+    <widget class="QTreeView" name="bitSharesTreeView"/>
+    <widget class="QStackedWidget" name="stackedWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="chatPage">
+      <widget class="QSplitter" name="chatSplitter">
+       <property name="geometry">
+        <rect>
+         <x>-30</x>
+         <y>20</y>
+         <width>256</width>
+         <height>384</height>
+        </rect>
+       </property>
        <property name="orientation">
         <enum>Qt::Vertical</enum>
        </property>
-       <widget class="QListView" name="conversationView"/>
-       <widget class="QPlainTextEdit" name="sendMessageTextEdit"/>
+       <widget class="QListView" name="chatView"/>
+       <widget class="QPlainTextEdit" name="chatTextEdit"/>
       </widget>
      </widget>
-    </item>
-   </layout>
+     <widget class="QWidget" name="mailPage">
+      <widget class="QSplitter" name="mailSplitter">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>20</y>
+         <width>225</width>
+         <height>511</height>
+        </rect>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <widget class="QTableView" name="mailHeadersTable"/>
+       <widget class="QTextBrowser" name="mailPreview"/>
+      </widget>
+      <zorder>mailSplitter</zorder>
+      <zorder>mailPreview</zorder>
+      <zorder>mailSplitter</zorder>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QSplitter" name="splitter">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>0</width>
+      <height>0</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Vertical</enum>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
