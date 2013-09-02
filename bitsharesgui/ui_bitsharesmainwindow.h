@@ -83,11 +83,24 @@ public:
         treeStackSplitter->addWidget(bitSharesTreeView);
         stackedWidget = new QStackedWidget(treeStackSplitter);
         stackedWidget->setObjectName(QStringLiteral("stackedWidget"));
+        QSizePolicy sizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
+        sizePolicy.setHorizontalStretch(0);
+        sizePolicy.setVerticalStretch(0);
+        sizePolicy.setHeightForWidth(stackedWidget->sizePolicy().hasHeightForWidth());
+        stackedWidget->setSizePolicy(sizePolicy);
+        stackedWidget->setMinimumSize(QSize(100, 0));
         chatPage = new QWidget();
         chatPage->setObjectName(QStringLiteral("chatPage"));
+        QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        sizePolicy1.setHorizontalStretch(0);
+        sizePolicy1.setVerticalStretch(0);
+        sizePolicy1.setHeightForWidth(chatPage->sizePolicy().hasHeightForWidth());
+        chatPage->setSizePolicy(sizePolicy1);
         chatSplitter = new QSplitter(chatPage);
         chatSplitter->setObjectName(QStringLiteral("chatSplitter"));
         chatSplitter->setGeometry(QRect(-30, 20, 256, 384));
+        sizePolicy1.setHeightForWidth(chatSplitter->sizePolicy().hasHeightForWidth());
+        chatSplitter->setSizePolicy(sizePolicy1);
         chatSplitter->setOrientation(Qt::Vertical);
         chatView = new QListView(chatSplitter);
         chatView->setObjectName(QStringLiteral("chatView"));
@@ -98,9 +111,13 @@ public:
         stackedWidget->addWidget(chatPage);
         mailPage = new QWidget();
         mailPage->setObjectName(QStringLiteral("mailPage"));
+        sizePolicy1.setHeightForWidth(mailPage->sizePolicy().hasHeightForWidth());
+        mailPage->setSizePolicy(sizePolicy1);
         mailSplitter = new QSplitter(mailPage);
         mailSplitter->setObjectName(QStringLiteral("mailSplitter"));
         mailSplitter->setGeometry(QRect(10, 20, 225, 511));
+        sizePolicy1.setHeightForWidth(mailSplitter->sizePolicy().hasHeightForWidth());
+        mailSplitter->setSizePolicy(sizePolicy1);
         mailSplitter->setOrientation(Qt::Vertical);
         mailHeadersTable = new QTableView(mailSplitter);
         mailHeadersTable->setObjectName(QStringLiteral("mailHeadersTable"));
@@ -109,9 +126,6 @@ public:
         mailPreview->setObjectName(QStringLiteral("mailPreview"));
         mailSplitter->addWidget(mailPreview);
         stackedWidget->addWidget(mailPage);
-        mailSplitter->raise();
-        mailPreview->raise();
-        mailSplitter->raise();
         treeStackSplitter->addWidget(stackedWidget);
         splitter = new QSplitter(centralWidget);
         splitter->setObjectName(QStringLiteral("splitter"));
@@ -143,7 +157,7 @@ public:
 
         retranslateUi(BitSharesMainWindow);
 
-        stackedWidget->setCurrentIndex(0);
+        stackedWidget->setCurrentIndex(1);
 
 
         QMetaObject::connectSlotsByName(BitSharesMainWindow);

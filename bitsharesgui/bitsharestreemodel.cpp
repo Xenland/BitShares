@@ -55,17 +55,24 @@ public:
 
 TTreeRoot gTreeRoot; /// Singleton tree root
 
-/** Base class for direct descendants of TTreeRoot. Derived classes will generally represent modes of the GUI.
-*/
-class AGuiMode : public ITreeNode
+/** Base class for any tree nodes not directly under TTreeRoot */
+class ATreeNode : public ITreeNode
 {
     QString _name;
 public:
-               AGuiMode(const char* name) : _name(name) {}
+               ATreeNode(const char* name) : _name(name) {}
       QVariant name()   { return QVariant(_name); }
-    ITreeNode* parent() { return &gTreeRoot; }
            int getRow() { return parent()->findRow(this); }
-           int findRow(ITreeNode*) { assert(false && "no tree node children for AGuiNodes"); return 0; }
+           int findRow(ITreeNode*) { assert(false && "no tree node children for ATreeNode"); return 0; }
+};
+
+/** Base class for direct descendants of TTreeRoot. Derived classes will generally represent modes of the GUI.
+*/
+class AGuiMode : public ATreeNode
+{
+public:
+               AGuiMode(const char* name) : ATreeNode(name) {}
+    ITreeNode* parent() { return &gTreeRoot; }
 };
 
 /** Tree node that manages list of user identities (e.g. for email and chat)
@@ -79,6 +86,45 @@ public:
     ITreeNode* child(int /* row */) { return nullptr; }
       QVariant data(int row) { return _identities[row]->_name; }
 };
+
+/** A group of email messages */
+class TMailBox
+{
+    QString _name;
+public:
+               TMailBox(const char* name) : _name(name) {}
+       QString name()   { return _name; }
+};
+
+/** Tree node that manages list of mail boxes for identity. There should probably be a mailmode under each identity, but cheating for now.
+*/
+class TMailMode : public AGuiMode
+{
+           TMailBox _inBox;         //incoming emails shown here
+           TMailBox _draftBox;      //unfinished/unsent emails shown here
+           TMailBox _pendingBox;    //emails scheduled to be sent, but not yet acknowledged by recipient (what if multiple recipients?)
+           TMailBox _sentBox;       //emails successfully sent to recipient
+
+    std::vector<TMailBox*> _mailBoxes; //all mailboxes for current identity
+public:
+               TMailMode();               
+           int childCount() { return _mailBoxes.size(); }
+    ITreeNode* child(int /* row */) { return nullptr; }
+      QVariant data(int row) { return _mailBoxes[row]->name(); }
+};
+
+TMailMode::TMailMode() 
+  : AGuiMode("Mail"),
+    _inBox("Inbox"),
+    _draftBox("Drafts"),
+    _pendingBox("Pending"),
+    _sentBox("Sent")
+{
+  _mailBoxes.push_back(&_inBox);
+  _mailBoxes.push_back(&_draftBox);
+  _mailBoxes.push_back(&_pendingBox);
+  _mailBoxes.push_back(&_sentBox);
+}
 
 /** Tree node that manages list of email and chat contacts (people you communicate with)
 */
@@ -100,6 +146,10 @@ TTreeRoot::TTreeRoot()
     identityMode->_identities.push_back(new TIdentity("Dan2"));
     identityMode->_identities.push_back(new TIdentity("Dan3"));
     _children.push_back(identityMode);
+
+    TMailMode* mailMode = new TMailMode;
+    _children.push_back(mailMode);
+
     _children.push_back(new TContactMode());
 }
 
