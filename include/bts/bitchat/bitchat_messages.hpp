@@ -7,18 +7,18 @@ namespace bts { namespace bitchat {
   struct inv_message 
   {
       static const message_type type = message_type::inv_msg;
-      std::vector<mini_pow>  items;
+      std::vector<fc::uint128>  items;
   };
 
   struct get_priv_message
   {
       static const message_type type = message_type::get_priv_msg;
       get_priv_message(){}
-      get_priv_message( const mini_pow& p )
+      get_priv_message( const fc::uint128& p )
       {
         items.push_back(p);
       }
-      std::vector<mini_pow>  items;
+      std::vector<fc::uint128>  items;
   };
 
   /**

@@ -18,8 +18,33 @@ namespace bts { namespace blockchain {
       switch( o.claim_func )
       {
           case claim_by_signature:
-             ss << std::string(o.as<claim_by_signature_output>().owner);
+          {
+             ss << std::string(o.as<claim_by_signature_output>().owner) << "<br/>\n";
              break;
+          }
+          case claim_by_bid:
+          {
+             claim_by_bid_output bid = o.as<claim_by_bid_output>();
+             ss << "pay to: "<<std::string(bid.pay_address)<<"<br/>\n";
+             ss << "price:  "<<std::string(bid.ask_price)<<"<br/>\n";
+             ss << "min:    "<<bid.min_trade<<"<br/>\n";
+            break;
+          }
+          case claim_by_long:
+          {
+             claim_by_long_output bid = o.as<claim_by_long_output>();
+             ss << "pay to: "<<std::string(bid.pay_address)<<"<br/>\n";
+             ss << "price:  "<<std::string(bid.ask_price)<<"<br/>\n";
+             ss << "min:    "<<bid.min_trade<<"<br/>\n";
+            break;
+          }
+          case claim_by_cover:
+          {
+             claim_by_cover_output cover = o.as<claim_by_cover_output>();
+             ss << "owner:   "<<std::string(cover.owner)<<"<br/>\n";
+             ss << "payoff:  "<<std::string(cover.get_payoff_amount())<<"<br/>\n";
+            break;
+          }
       }
       return ss.str();
   }
@@ -33,7 +58,7 @@ namespace bts { namespace blockchain {
         out << "<table border=1 width=\"100%\">\n";
         out << "<tr>\n";
         out << "<td width=\"33%\" valign=\"top\" padding=10>\n";
-        out << "<ol>\n";
+        out << "<ol start=\"0\">\n";
         for( uint32_t i = 0; i < state.inputs.size(); ++i )
         {
            out << "<li>\n";
@@ -44,12 +69,12 @@ namespace bts { namespace blockchain {
            out << "</br>\n   Source: Block#  "<<state.inputs[i].source.block_num 
                                  << " Trx # " <<state.inputs[i].source.trx_idx <<"\n"
                                  << " Out # " << uint32_t(state.inputs[i].output_num) <<"\n";
-           out << "</div>\n</li>\n";
+           out << "<p/></div>\n</li>\n";
         }
         out << "</ol>\n";
         out << "</td>\n";
         out << "<td width=\"33%\" align=\"right\" valign=\"top\" padding=10>\n";
-        out << "<ol>\n";
+        out << "<ol start=\"0\">\n";
         for( uint32_t i = 0; i < state.trx.outputs.size(); ++i )
         {
            out << "<li>\n";
@@ -57,20 +82,20 @@ namespace bts { namespace blockchain {
            out << state.trx.outputs[i].amount << " " << fc::variant( state.trx.outputs[i].unit ).as_string();
            out << "  <br/>" << fc::variant(state.trx.outputs[i].claim_func).as_string() <<"  ";
            out << "  <br/>\n" << print_output( state.trx.outputs[i] ) <<" \n";
-           out << "  <br/>\n"; 
            if( mtrx.meta_outputs[i].is_spent() )
            {
-              out << "SPENT Block #"<< mtrx.meta_outputs[i].trx_id.block_num;
+              out << " SPENT Block #"<< mtrx.meta_outputs[i].trx_id.block_num;
               out << " Trx #"<< mtrx.meta_outputs[i].trx_id.trx_idx;
               out << " In  #"<< uint32_t(mtrx.meta_outputs[i].input_num);
            }
+           out << "  <p/>\n"; 
            out << "</div></li>\n";
         }
 
         out << "</ol>\n";
         out << "</td>\n";
         out << "<td valign=\"top\">\n";
-        out << "<table width=\"100%\"><tr><th width=\"50%\" padding=10>In</th><th padding=10 width=\"50%\">Out</th></tr>\n";
+        out << "<table width=\"100%\"><tr><th width=\"50%\" padding=10>Net In</th><th padding=10 width=\"50%\">Net Out</th></tr>\n";
         for( uint32_t i = 0; i < state.balance_sheet.size(); ++i )
         {
            if( state.balance_sheet[i].in.amount  != fc::uint128(0) || 

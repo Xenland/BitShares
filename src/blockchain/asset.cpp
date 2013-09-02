@@ -1,8 +1,11 @@
+#define __STDC_CONSTANT_MACROS
 #include <bts/blockchain/asset.hpp>
 #include <fc/exception/exception.hpp>
 #include <fc/crypto/bigint.hpp>
 #include <fc/log/logger.hpp>
 #include <cstdint>
+
+
 
 /** more base 10 digits is beyond the precision of 64 bits */
 #define BASE10_PRECISION  UINT64_C(100000000000000)
@@ -46,6 +49,12 @@ namespace bts { namespace blockchain {
      return s;
   }
 
+  uint64_t asset::get_rounded_amount()const
+  {
+    auto tmp = amount;
+    tmp += (fc::uint128(1,0)>>1);
+    return tmp.high_bits(); // TODO: round rather than truncate
+  }
 
 
   const fc::uint128& asset::one()
@@ -187,6 +196,7 @@ namespace bts { namespace blockchain {
             {
                FC_THROW_EXCEPTION( exception, "overflow ${a} * ${p}", ("a",a)("p",p) );
             }
+         //   amnt += 5000000000; // TODO:evaluate this rounding factor... 
 
             asset rtn;
             rtn.amount = amnt;
@@ -212,6 +222,7 @@ namespace bts { namespace blockchain {
                                     "overflow ${a} / ${p} = ${r} lg2 = ${l}", 
                                     ("a",a)("p",p)("r", std::string(result)  )("l",lg2) );
             }
+          //  result += 5000000000; // TODO: evaluate this rounding factor..
             asset r;
             r.amount = result;
             r.unit   = p.base_unit;

@@ -21,8 +21,10 @@ namespace bts {
       fc::thread t("stretch_seed");
       return t.async( [=]() {
           fc::sha512 last = seed;
-          for( uint32_t i = 0; i < 100; ++i )
+          ilog( "stretchign seed" );
+          for( uint32_t i = 0; i < 10; ++i )
           {
+              ilog( ".\r" );
               auto p = proof_of_work( fc::sha256::hash( (char*)&last, sizeof(last)) );  
               last = fc::sha512::hash( (char*)&p, sizeof(p) );
           }
@@ -42,10 +44,14 @@ namespace bts {
     memcpy( (char*)&seed, (char*)this, sizeof(seed) );
     return seed;
   }
+  extended_private_key  keychain::get_identity_key( const std::string& ident )
+  {
+    return ext_priv_key.child( fc::city_hash64(ident.c_str(),ident.size()),false );
+  }
 
   extended_private_key  keychain::get_private_account( const std::string& ident, uint32_t i )
   {
-    return ext_priv_key.child( fc::city_hash64(ident.c_str(),ident.size()),false).child( i, false );
+    return get_identity_key(ident).child( i, false );
   }
 
   extended_public_key   keychain::get_public_account( const std::string& ident, uint32_t i )

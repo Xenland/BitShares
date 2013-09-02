@@ -35,13 +35,13 @@ typedef fc::enum_type<fc::unsigned_int,claim_type_enum> claim_type;
  */
 struct claim_by_signature_input 
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_signature;
+   static const claim_type_enum type;
 //   fc::ecc::compact_signature address_sig;
 };
 
 struct claim_by_signature_output
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_signature;
+   static const claim_type_enum type;
    claim_by_signature_output( const address& a ):owner(a){}
    claim_by_signature_output(){}
    address  owner; // checksummed hash of public key
@@ -57,10 +57,20 @@ struct claim_by_signature_output
  **/
 struct claim_by_bid_output
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_bid;
+   static const claim_type_enum type;
+   claim_by_bid_output()
+   :min_trade(0){}
+   claim_by_bid_output( const address& pay_addr, const price& ask, uint64_t min_trade = 0 )
+   :pay_address(pay_addr),ask_price(ask),min_trade(min_trade){}
+
+   bool is_bid(asset::type out_unit)const;
+   bool is_ask(asset::type out_unit)const;
+
    address                           pay_address; // where to send ask_unit (or cancel sig)
    price                             ask_price;   // price base per unit
-   uint64_t                          min_order;   // minimum accepted order, in output.unit   
+   uint64_t                          min_trade;   // minimum accepted order, in output.unit   
+
+   bool operator == ( const claim_by_bid_output& other )const;
 };
 
 /**
@@ -70,8 +80,7 @@ struct claim_by_bid_output
  */
 struct claim_by_bid_input
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_bid;
-//   fc::ecc::compact_signature  cancel_sig;  ///< signed by claim_by_bid_output::pay_address
+   static const claim_type_enum type;
 };
 
 /**
@@ -85,10 +94,16 @@ struct claim_by_bid_input
  */
 struct claim_by_long_output
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_long;
-   uint64_t                          min_trade;   ///< measured in bts to accept this order
+   static const claim_type_enum type;
+   claim_by_long_output()
+   :min_trade(0){}
+
+   claim_by_long_output( const address& pay_addr, const price& ask, uint64_t min_order = 0 )
+   :pay_address(pay_addr),ask_price(ask),min_trade(min_order){}
+
    address                           pay_address; ///< where to send ask_unit (or cancel sig)
    price                             ask_price;   ///< price per unit (base must be bts)
+   uint64_t                          min_trade;   ///< measured in bts to accept this order
 };
 
 /**
@@ -96,18 +111,18 @@ struct claim_by_long_output
  *  pairing it against a matching bid.  
  *
  *  Creates a negitive BTS input and positive USD input
- *
  */
 struct claim_by_long_input
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_long;
-//   fc::ecc::compact_signature  cancel_sig;  ///< signed by claim_by_short_output::pay_address
+   static const claim_type_enum type;
 };
 
 /**
  *  Given a transaction that destroys payoff_amount of payoff_unit and is
  *  signed by owner, then this output can be spent.  Alternatively, the
  *  owner could transfer the short position to a new owner.
+ *
+ *  This position could also be spent as part of a margin call.
  *
  *  Assumptions:
  *    trx_output.unit = bts
@@ -117,10 +132,21 @@ struct claim_by_long_input
  */
 struct claim_by_cover_output
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_cover;
-   asset::type    payoff_unit;
-   uint64_t       payoff_amount;
-   bts::address   owner;
+   static const claim_type_enum type;
+
+   claim_by_cover_output( const asset& payoff, const address& own )
+   :payoff_unit(payoff.unit),
+    payoff_amount(payoff.get_rounded_amount()),
+    owner(own){}
+
+   claim_by_cover_output()
+   :payoff_amount(0){}
+
+   asset get_payoff_amount()const { return asset( payoff_amount, payoff_unit); }
+
+   asset_type      payoff_unit;
+   uint64_t        payoff_amount;
+   bts::address    owner;
 };
 
 /**
@@ -129,8 +155,12 @@ struct claim_by_cover_output
  */
 struct claim_by_cover_input
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_cover;
-//   fc::ecc::compact_signature owner_sig;
+   static const claim_type_enum type;
+   /**
+    *  Indicates how much of the cover position is being
+    *  paid of as part of spending this input.
+    */
+   uint64_t cover_amount;
 };
 
 
@@ -175,7 +205,10 @@ struct claim_by_cover_input
  */
 struct claim_by_opt_execute_output
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
+   static const claim_type_enum type;
+   claim_by_opt_execute_output()
+   :strike_amount(0){}
+
    address             optionor; // who to pay for this option (also who may cancel this offer)
    fc::time_point_sec  expire_time;   
    asset_type          strike_unit; 
@@ -185,9 +218,7 @@ struct claim_by_opt_execute_output
 
 struct claim_by_opt_execute_input
 {
-   static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
-// this signature is for the entire trx, and not just the input
-//   fc::ecc::compact_signature   sig; // either optionor or optionee
+   static const claim_type_enum type;
 };
 
 #if 0 // kept for future escrow extention
@@ -216,7 +247,7 @@ struct escrow_terms
 
 struct claim_by_escrow_output
 {
-    static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
+    static const claim_type_enum type;
     uint160 agreement;    // hash of any agreement between payee and payor
     uint160 agent_terms;  // hash of escrow terms published by the agent
     address agent;        // agent must be registered with the network.
@@ -226,7 +257,7 @@ struct claim_by_escrow_output
 
 struct claim_by_escrow_input
 {
-    static const claim_type_enum type = claim_type_enum::claim_by_opt_execute;
+    static const claim_type_enum type;
 };
 
 /**
@@ -235,7 +266,7 @@ struct claim_by_escrow_input
  */
 struct claim_by_password_output
 {
-    static const claim_type_enum type = claim_type_enum::claim_by_password;
+    static const claim_type_enum type;
     address          payer;
     address          payee;
     fc::ripemd160    hashed_password;
@@ -246,7 +277,7 @@ struct claim_by_password_output
  */
 struct claim_by_password_input
 {
-    static const claim_type_enum type = claim_type_enum::claim_by_password;
+    static const claim_type_enum type;
     fc::uint128     password; ///< random number generated for cross chain trading
 };
 
@@ -257,9 +288,13 @@ struct claim_by_password_input
  */
 struct claim_by_multi_sig_output
 {
-    static const claim_type_enum type = claim_type_enum::claim_by_multi_sig;
+    static const claim_type_enum type;
     fc::unsigned_int    required;
     std::vector<address> addresses;
+};
+struct claim_by_multi_sig_input
+{
+    static const claim_type_enum type;
 };
 
 
@@ -278,8 +313,8 @@ FC_REFLECT_ENUM( bts::blockchain::claim_type_enum,
     )
 
 FC_REFLECT( bts::blockchain::claim_by_signature_output, (owner) )
-FC_REFLECT( bts::blockchain::claim_by_bid_output, (pay_address)(ask_price) )
-FC_REFLECT( bts::blockchain::claim_by_long_output, (pay_address)(ask_price) )
+FC_REFLECT( bts::blockchain::claim_by_bid_output, (pay_address)(ask_price)(min_trade) )
+FC_REFLECT( bts::blockchain::claim_by_long_output, (pay_address)(ask_price)(min_trade) )
 FC_REFLECT( bts::blockchain::claim_by_cover_output, (payoff_unit)(payoff_amount)(owner) )
 FC_REFLECT( bts::blockchain::claim_by_opt_execute_output, (optionor)(expire_time)(strike_unit)(strike_amount)(optionee) )
 FC_REFLECT( bts::blockchain::claim_by_escrow_output, (agreement)(agent_terms)(agent)(payee)(payor) )
@@ -290,7 +325,7 @@ FC_REFLECT( bts::blockchain::claim_by_password_output, (payer)(payee)(hashed_pas
 FC_REFLECT( bts::blockchain::claim_by_signature_input,    BOOST_PP_SEQ_NIL )
 FC_REFLECT( bts::blockchain::claim_by_bid_input,          BOOST_PP_SEQ_NIL )
 FC_REFLECT( bts::blockchain::claim_by_long_input,         BOOST_PP_SEQ_NIL )
-FC_REFLECT( bts::blockchain::claim_by_cover_input,        BOOST_PP_SEQ_NIL )
+FC_REFLECT( bts::blockchain::claim_by_cover_input,        (cover_amount)   )
 FC_REFLECT( bts::blockchain::claim_by_opt_execute_input,  BOOST_PP_SEQ_NIL )
 FC_REFLECT( bts::blockchain::claim_by_escrow_input,       BOOST_PP_SEQ_NIL )
 FC_REFLECT( bts::blockchain::claim_by_password_input,     (password)       )

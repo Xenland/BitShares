@@ -76,23 +76,6 @@ namespace bts { namespace bitname {
         uint32_t                                age;      
 
 
-       /**
-        * Why can I get away with a 64 bit hash without fear of collisions?  Because each
-        * of the transactions themselves has a proof of work associated with it, an attacker
-        * would have to find a collision that simultainously satisfies the proof of work
-        * requirements of the trx.  Each attempt at a collision would require about 5 minutes
-        * of CPU time or more (120K attempts/year per CPU) by which time the block would have expired.
-        *
-        * What could be gained by finding a collision? You could perhaps fool a light-client
-        * and convince them you own a name you do not or change the reputation.  These attacks
-        * would not work against full clients.  By using 64 bits I reduce the storage and
-        * bandwidth requirements significantly considering the entire name_trx struct is less
-        * than 60 bytes.
-        *
-        * Note: with all of the power of the bitcoin network, a 64 bit collision can only
-        * be found a couple of times per year and the cost per hash is billions of times
-        * less.
-        */
        name_trxs_hash_type                       trxs_hash;        
 
        /**

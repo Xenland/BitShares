@@ -15,6 +15,12 @@ namespace bts { namespace bitname {
        virtual ~name_channel_delegate(){}
 
        /**
+        *  Called every time a block is added to the chain while there are more
+        *  left to be fetched.
+        */
+       virtual void sync_progress( uint32_t recv_blocks, uint32_t total_blocks ) {};
+
+       /**
         *   Called any time a new & valid name reg trx is received
         */
        virtual void pending_name_trx( const name_header&  ) = 0;

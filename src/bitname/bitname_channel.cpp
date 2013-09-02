@@ -1,6 +1,7 @@
 #include <bts/bitname/bitname_channel.hpp>
 #include <bts/bitname/bitname_messages.hpp>
 #include <bts/bitname/bitname_db.hpp>
+#include <bts/bitname/bitname_fork_db.hpp>
 #include <bts/bitname/bitname_hash.hpp>
 #include <bts/blockchain/fork_tree.hpp>
 #include <bts/network/server.hpp>
@@ -25,6 +26,9 @@ namespace bts { namespace bitname {
       public:
         broadcast_manager<name_hash_type,name_header>::channel_data      trxs_mgr;
         broadcast_manager<name_id_type,name_block_index>::channel_data   block_mgr;
+
+        fc::optional<fc::time_point>                                     requested_headers;
+        fc::optional<fc::time_point>                                     requested_block;
 
         /** tracks the block ids this connection has reported to us */
         std::unordered_set<name_id_type>                                 available_blocks;
@@ -55,6 +59,11 @@ namespace bts { namespace bitname {
        }
     };
 
+    struct fetch_loop_state
+    {
+       bool synchronizing;
+    };
+
     class name_channel_impl : public bts::network::channel
     {
        public:
@@ -66,10 +75,12 @@ namespace bts { namespace bitname {
           network::channel_id                               _chan_id;
                                                             
           name_db                                           _name_db;
+          fork_db                                           _fork_db;
+
+          fetch_loop_state                                  _fetch_state;                          
           fc::future<void>                                  _fetch_loop;
            
-          blockchain::fork_tree<name_id_type>               _fork_tree; 
-          fc::optional<name_id_type>                        _pending_block_fetch;
+          fc::optional<fc::time_point>                      _pending_block_fetch;
                                                             
           broadcast_manager<short_name_id_type,name_header> _trx_broadcast_mgr;
           broadcast_manager<name_id_type,name_block_index>  _block_index_broadcast_mgr;
@@ -145,6 +156,61 @@ namespace bts { namespace bitname {
              }
           }
 
+          bool fetch_next_from_fork_db()
+          { try {
+             if( _name_db.head_block_id() != _fork_db.best_fork_head_id() )
+             {
+                 name_id_type next = _fork_db.best_fork_fetch_next( _name_db.head_block_id() );
+                 while( next != name_id_type() )
+                 {
+                    ilog( "next: ${next}", ("next", next) );
+                    fc::optional<name_block>  next_blk( _fork_db.fetch_block(next) );
+                    if( next_blk ) 
+                    {
+                      try {
+                         _name_db.push_block( *next_blk );
+                      } 
+                      catch ( const fc::exception& e )
+                      {
+                         wlog( "unable to apply block ${block}\n${e}", ("block",next_blk)("e",e.to_detail_string()));
+                         _fork_db.set_valid( next, false );
+                      }
+                    }
+                    else
+                    {
+                        auto cons = _peers->get_connections( _chan_id );
+                        fetch_block_from_best_connection(  cons, next );
+                        return true;
+                    }
+
+                    // TODO: this could fail if head_block_id() is not part of a valid fork,
+                    //  in which case we need to find the most recent block that is part of
+                    //  a valid fork... pop everything from _name_db and then start building
+                    //  up from there...   but only if the next fork is 'better' than the
+                    //  current state of _name_db.
+                    next = _fork_db.best_fork_fetch_next( _name_db.head_block_id() );
+                 }
+             }
+             return false;
+          } FC_RETHROW_EXCEPTIONS( warn , "" ) }
+
+          /**
+           *  The fetch loop has several modes:
+           *    1) synchronize mode.
+           *    2) maitenance mode.
+           *
+           *  In Synchronize mode the client is not conserned with inventory
+           *  notices from other nodes.  In fact, other nodes probably shouldn't
+           *  bother broadcasting inv notices to us until we have finished sync.
+           *
+           *  The client stays in synchronize mode until it has determined that it
+           *  is on the proper chain.  When a client first connects it sends a request
+           *  for new block headers and it will get a response that may include 
+           *  a potential chain reorganization though this should be relatively
+           *  rare.
+           *
+           *  
+           */
           void fetch_loop()
           {
              try 
@@ -152,51 +218,42 @@ namespace bts { namespace bitname {
                 while( !_fetch_loop.canceled() )
                 {
                    broadcast_inv();
-
-                   if( !_pending_block_fetch )
-                   {
-                      _pending_block_fetch = _fork_tree.get_best_fork_for_height( _name_db.head_block_num()+1 );
-                      if( _pending_block_fetch )
-                      {
-                         ilog( "fetch from best..." );
-                         auto cons = _peers->get_connections( _chan_id );
-                         fetch_block_from_best_connection( cons, *_pending_block_fetch );
-                      }
-                      else
-                      {
-                      //   ilog( "nothing to fetch at height ${i}", ("i", _name_db.head_block_num()+1));
-                      }
-                   }
-
-                   uint64_t trx_query = 0;
-                   if( _trx_broadcast_mgr.find_next_query( trx_query ) )
-                   {
-                      auto cons = _peers->get_connections( _chan_id );
-                      fetch_name_from_best_connection( cons, trx_query );
-                      _trx_broadcast_mgr.item_queried( trx_query );
-                   }
-
-                   name_id_type blk_idx_query;
-                   if( _block_index_broadcast_mgr.find_next_query( blk_idx_query ) )
-                   {
-                      auto cons = _peers->get_connections( _chan_id );
-                      fetch_block_idx_from_best_connection( cons, blk_idx_query );
-                      _block_index_broadcast_mgr.item_queried( blk_idx_query );
-                   }
                    
+                   if( !fetch_next_from_fork_db() )
+                   {
+                       short_name_id_type trx_query = 0;
+                       if( _trx_broadcast_mgr.find_next_query( trx_query ) )
+                       {
+                          auto cons = _peers->get_connections( _chan_id );
+                          fetch_name_from_best_connection( cons, trx_query );
+                          _trx_broadcast_mgr.item_queried( trx_query );
+                       }
+                       
+                       name_id_type blk_idx_query;
+                       if( _block_index_broadcast_mgr.find_next_query( blk_idx_query ) )
+                       {
+                          auto cons = _peers->get_connections( _chan_id );
+                          fetch_block_idx_from_best_connection( cons, blk_idx_query );
+                          _block_index_broadcast_mgr.item_queried( blk_idx_query );
+                       }
+                   }
                    /* By using a random sleep we give other peers the oppotunity to find
                     * out about messages before we pick who to fetch from.
                     * TODO: move constants to config.hpp
                     *
                     * TODO: fetch set your fetch order based upon how many times we have received
                     *        an inv regarding a particular item.
+                    *
+                    * TODO: make sure we seed rand()
                     */
-                   fc::usleep( fc::microseconds( (rand() % 20000) + 100) ); // note: usleep(0) sleeps forever... perhaps a bug?
+                   fc::usleep( fc::microseconds( (rand() % 20000) + 100) );
                 }
              } 
              catch ( const fc::exception& e )
              {
                elog( "fetch loop threw... something bad happened\n${e}", ("e", e.to_detail_string()) );
+               // TODO: bitname will hang if we don't find some way to recover or report this
+               // to the user...
              }
           }
 
@@ -295,6 +352,8 @@ namespace bts { namespace bitname {
                  if( chan_data.available_blocks.find(id) != chan_data.available_blocks.end() )
                  {
                     ilog( "request ${msg}", ("msg",get_block_message(id)) );
+
+                    get_channel_data( cons[i] ).requested_block = fc::time_point::now();
                     // TODO: track how many blocks I have requested from this connection... 
                     // and perform soem load balancing...
                     cons[i]->send( network::message( get_block_message(id), _chan_id ) );
@@ -355,8 +414,10 @@ namespace bts { namespace bitname {
           {
               c->set_channel_data( _chan_id, nullptr );
           }
+
+          /* ===================================================== */   
           void handle_message( const connection_ptr& con, const message& m )
-          {
+          { try {
              chan_data& cdat = get_channel_data(con);
    
              ilog( "${msg_type}", ("msg_type", (bitname::message_type)m.msg_type ) );
@@ -397,12 +458,17 @@ namespace bts { namespace bitname {
                    handle_headers( con, cdat, m.as<headers_message>() );
                    break;
                  default:
-                   wlog( "unknown bitname message type ${msg_type}", ("msg_type", m.msg_type ) );
+                   FC_THROW_EXCEPTION( exception, "unknown bitname message type ${msg_type}", ("msg_type", m.msg_type ) );
              }
-          } // handle_message
+          } FC_RETHROW_EXCEPTIONS( warn, "${from} - ${msg}", ("from",con->remote_endpoint())("msg",m) ) } // handle_message
 
+
+          /* ===================================================== */   
           void request_block_headers( const connection_ptr& con )
           {
+              chan_data& cdat = get_channel_data(con);
+              FC_ASSERT( !cdat.requested_headers );
+
               ilog( "requesting block headers from ${ep}", ("ep",con->remote_endpoint() ));
               get_headers_message  request;
               const std::vector<name_id_type>& ids = _name_db.get_header_ids();
@@ -413,9 +479,11 @@ namespace bts { namespace bitname {
                  i -= delta;
                  delta *= 2;
               }
+              cdat.requested_headers = fc::time_point::now();
               con->send( network::message(request,_chan_id) );
           }
 
+          /* ===================================================== */   
           void handle_name_inv( const connection_ptr& con,  chan_data& cdat, const name_inv_message& msg )
           {
               ilog( "inv: ${msg}", ("msg",msg) );
@@ -426,6 +494,7 @@ namespace bts { namespace bitname {
               cdat.trxs_mgr.update_known( msg.name_trxs );
           }
    
+          /* ===================================================== */   
           void handle_block_inv( const connection_ptr& con,  chan_data& cdat, const block_inv_message& msg )
           {
               ilog( "inv: ${msg}", ("msg",msg) );
@@ -436,6 +505,7 @@ namespace bts { namespace bitname {
               cdat.block_mgr.update_known( msg.block_ids );
           }
    
+          /* ===================================================== */   
           void handle_get_name_inv( const connection_ptr& con,  chan_data& cdat, const get_name_inv_message& msg )
           {
               name_inv_message reply;
@@ -444,6 +514,7 @@ namespace bts { namespace bitname {
               con->send( network::message(reply,_chan_id) );
           }
    
+          /* ===================================================== */   
           void handle_get_headers( const connection_ptr& con,  chan_data& cdat, const get_headers_message& msg )
           { try {
               // TODO: prevent abuse of this message... only allow it at a limited rate and take notice
@@ -463,22 +534,24 @@ namespace bts { namespace bitname {
                         ("id", msg.locator_hashes[i] )("e",e.to_detail_string()) );
                 }
               }
+
               const std::vector<name_id_type>& ids = _name_db.get_header_ids();
               uint32_t end = std::min<uint32_t>(start_block+2000, ids.size() );
 
               headers_message         reply;
               reply.first_block_num = start_block;
-              reply.header_ids.reserve( end - start_block );
-              for( auto i = start_block; i < end; ++i )
+              reply.headers.reserve( end - start_block - 1 );
+              for( auto i = start_block+1; i < end; ++i )
               {
-                reply.header_ids.push_back( ids[i] );
+                reply.headers.push_back( _name_db.fetch_block_header(ids[i]) );
               }
               reply.head_block_num = ids.size() - 1;
               reply.head_block_id  = ids.back();
               con->send( network::message( reply, _chan_id ) );
 
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) }
-   
+
+          /* ===================================================== */   
           void handle_get_block_index( const connection_ptr& con,  chan_data& cdat, const get_block_index_message& msg )
           { try {
              ilog( "${msg}", ("msg",msg) );
@@ -492,6 +565,7 @@ namespace bts { namespace bitname {
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) }
    
 
+          /* ===================================================== */   
           void handle_get_block( const connection_ptr& con,  chan_data& cdat, const get_block_message& msg )
           { try {
               // TODO: charge POW for this...
@@ -499,7 +573,7 @@ namespace bts { namespace bitname {
               con->send( network::message( block_message( std::move(block) ), _chan_id ) );
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) }
    
-
+          /* ===================================================== */   
           void handle_get_name( const connection_ptr& con,  chan_data& cdat, const get_name_header_message& msg )
           {
              ilog( "${msg}", ("msg",msg) );
@@ -514,7 +588,6 @@ namespace bts { namespace bitname {
                 name_header trx = _name_db.fetch_trx_header( msg.name_trx_id );
                 con->send( network::message( name_header_message( trx ), _chan_id ) );
               */
-
              }
              else
              {
@@ -526,6 +599,9 @@ namespace bts { namespace bitname {
           {
              ilog( "${msg}", ("msg",msg) );
              cdat.block_mgr.received_response( msg.index.header.id() );
+
+             _fork_db.cache_header( msg.index.header );
+
              if( msg.index.name_trxs.size() == 0 )
              {
                 submit_block( msg.index.header );
@@ -554,8 +630,8 @@ namespace bts { namespace bitname {
                 }
                 if( dlmgr.unknown.size() == 0 )
                 {
-                  submit_block( dlmgr.incomplete );
-                  _block_downloads.pop_back();
+                    submit_block( dlmgr.incomplete );
+                    _block_downloads.pop_back();
                 }
              }
           }
@@ -577,6 +653,8 @@ namespace bts { namespace bitname {
                // TODO: connection just sent us an invalid trx... what do we do...
                // log it and ignore it because it was probably for the prior
                // block that they haven't received yet...  we should note it though.
+               // 
+               // it may be valid because we are not yet synced... 
                 _trx_broadcast_mgr.validated( short_id, msg.trx, false );
                // FC_RETHROW_EXCEPTION( e, warn, "" );
              }
@@ -585,37 +663,52 @@ namespace bts { namespace bitname {
    
           void handle_block( const connection_ptr& con,  chan_data& cdat, const block_message& msg )
           { try {
+               FC_ASSERT( !!cdat.requested_block );
+
                // TODO: make sure that I requrested this block... 
-               FC_ASSERT( !!_pending_block_fetch && *_pending_block_fetch == msg.block.id() ); 
-               _pending_block_fetch = fc::optional<name_id_type>(); // reset this...
+               _fork_db.cache_block( msg.block );
+               cdat.requested_block.reset();
+               _pending_block_fetch.reset();
                try {
                   _name_db.push_block( msg.block ); 
                } 
                catch( const fc::exception& e )
                {
                  // don't try to fetch this or any of its decendants again..
-                 _fork_tree.set_valid_state( _name_db.head_block_num()+1, msg.block.id(), false );
+                 //_fork_tree.set_valid_state( _name_db.head_block_num()+1, msg.block.id(), false );
                  throw;
                }
           } FC_RETHROW_EXCEPTIONS( warn,"handling block ${block}", ("block",msg) ) }
    
+
+          /**
+           *  Received in response to get_headers message, we should certify that we requested this.
+           */
           void handle_headers( const connection_ptr& con,  chan_data& cdat, const headers_message& msg )
           { try {
-              // TODO: figure out how to prevent abuse by sending a bunch of bogus hashes... that
-              // will polute our fork tree.   Perhaps track the sender, punish them.
+              FC_ASSERT( !!cdat.requested_headers );
+              cdat.requested_headers.reset();
               
-              // TODO: verify that we did request these headers, no unrequested headers should be
-              //       processed.
+              // TODO: validate that all ids reported have the min proof of work for a name.
               ilog( "received ${msg}", ("msg",msg) );
-              FC_ASSERT( msg.header_ids.size() != 0 );
-           //   _fork_tree.check_node( msg.first_block_num, msg.header_ids[0] );
-              for( uint32_t i = 1; i < msg.header_ids.size(); ++i )
+              _fork_db.cache_header( msg.first );
+              name_id_type prev_id = msg.first.id();
+              for( auto itr = msg.headers.begin(); itr != msg.headers.end(); ++itr )
               {
-                 _fork_tree.add_node( msg.first_block_num + i, msg.header_ids[i], msg.header_ids[i-1] );
-                 auto tmp = _fork_tree.get_best_fork_for_height( msg.first_block_num + i );
-                 FC_ASSERT( !!tmp );
-                 cdat.available_blocks.insert( msg.header_ids[i] );
+                 name_header next_head( *itr, prev_id );
+                 _fork_db.cache_header( next_head );
+                 prev_id = next_head.id();
+                 cdat.available_blocks.insert(prev_id);
               }
+
+              if( prev_id != msg.head_block_id )
+              {
+                  cdat.requested_headers = fc::time_point::now();
+                  get_headers_message  request;
+                  request.locator_hashes.push_back( prev_id );
+                  con->send( network::message( request, _chan_id ) );
+              }
+              
           } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg) ) } 
 
           void submit_name( const name_header& new_name_trx )
@@ -636,6 +729,7 @@ namespace bts { namespace bitname {
 
           void submit_block( const name_block& block )
           { try {
+             _fork_db.cache_block( block );
              _name_db.push_block( block ); // this throws on error
              _trx_broadcast_mgr.invalidate_all(); // current inventory is now invalid
              _block_index_broadcast_mgr.clear_old_inventory(); // we can clear old inventory
@@ -655,7 +749,6 @@ namespace bts { namespace bitname {
      my->_peers = n;
      my->_chan_id = channel_id(network::name_proto,0);
      my->_peers->subscribe_to_channel( my->_chan_id, my );
-     my->_fetch_loop = fc::async( [=](){ my->fetch_loop(); } );
   }
 
   name_channel::~name_channel() 
@@ -663,8 +756,11 @@ namespace bts { namespace bitname {
      my->_peers->unsubscribe_from_channel( my->_chan_id );
      my->_delegate = nullptr;
      try {
-        my->_fetch_loop.cancel();
-        my->_fetch_loop.wait();
+        if( my->_fetch_loop.valid() )
+        {
+            my->_fetch_loop.cancel();
+            my->_fetch_loop.wait();
+        }
      } 
      catch ( ... ) 
      {
@@ -675,7 +771,9 @@ namespace bts { namespace bitname {
   void name_channel::configure( const name_channel::config& c )
   {
       my->_name_db.open( c.name_db_dir, true/*create*/ );
-      my->_fork_tree.add_node( my->_name_db.head_block_num(), my->_name_db.head_block_id(), name_id_type() );
+      my->_fork_db.open( c.name_db_dir / "forks" , true/*create*/ );
+
+      my->_fetch_loop = fc::async( [=](){ my->fetch_loop(); } );
       // TODO: connect to the network and attempt to download the chain...
       //      *  what if no peers on on the name channel ??  * 
       //         I guess when I do connect to a peer on this channel they will
@@ -694,16 +792,14 @@ namespace bts { namespace bitname {
   void name_channel::submit_block( const name_block& block_to_submit )
   {
      auto id = block_to_submit.id();
-     uint64_t block_difficulty = block_to_submit.difficulty();
+     uint64_t block_difficulty = bts::difficulty(id);
      ilog( "target: ${target}  block ${block}", ("target",my->_name_db.target_difficulty())("block",block_difficulty) );
      if( block_difficulty >= my->_name_db.target_difficulty() )
      {
-         wlog( "submit block... " );
          my->submit_block( block_to_submit );
      }
      else 
      {
-         wlog( "submit name" );
          submit_name( block_to_submit ); 
      }
   }

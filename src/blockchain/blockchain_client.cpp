@@ -48,14 +48,13 @@ namespace bts { namespace blockchain {
     return extended_address();
   }
 
-  void             blockchain_client::add_contact( const std::string& label, const extended_address& send_to_addr )const
+  void blockchain_client::add_contact( const std::string& label, const extended_address& send_to_addr )const
   {
   }
 
-  void             blockchain_client::transfer( uint64_t amount, asset::type unit, const std::string& to_contact_label )const
+  void blockchain_client::transfer( uint64_t amount, asset::type unit, const std::string& to_contact_label )const
   {
   }
-
   
   asset            blockchain_client::get_balance( asset::type unit, uint32_t min_conf  )const
   {
@@ -65,6 +64,25 @@ namespace bts { namespace blockchain {
   asset            blockchain_client::get_trx_balance( const std::string& contact_label, uint32_t trx_num, uint32_t min_conf  )const
   {
      return asset();
+  }
+
+  /** buy $amount of $base_unit with $quote_unit at or above price_per_unit */
+  void   blockchain_client::bid( uint64_t amount, asset::type quote_unit, asset::type base_unit, double price_per_unit )
+  {
+  }
+
+  /** sell $amount of $base_unit for $quote_unit at or above price_per_unit */
+  void   blockchain_client::ask( uint64_t amount, asset::type quote_unit, asset::type base_unit, double price_per_unit )
+  {
+  }
+
+  /** sell $amount of $quote_unit at or above price_per_unit where base_unit is BTS*/
+  void   blockchain_client::short_sell( uint64_t amount, asset::type quote_unit, double price_per_unit )
+  {
+  }
+
+  void   blockchain_client::cover( uint64_t amount, asset::type unit )
+  {
   }
 
 } } // namespace bts::blockchain

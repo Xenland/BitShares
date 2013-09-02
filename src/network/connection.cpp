@@ -41,8 +41,18 @@ namespace bts { namespace network {
                message m;
                while( true )
                {
-                  fc::raw::unpack( *sock, m );
-                  con_del->on_connection_message( self, m );
+                  fc::raw::unpack( *sock, m );  // unpack errors are fatal
+
+                  try { // message handling errors are warnings... 
+                    con_del->on_connection_message( self, m );
+                  } 
+                  catch ( fc::canceled_exception& e ) { throw; }
+                  catch ( fc::eof_exception& e ) { throw; }
+                  catch ( fc::exception& e ) 
+                  { 
+                     wlog( "disconnected ${er}", ("er", e.to_detail_string() ) );
+                     // TODO: log and potentiall disconnect... for now just warn.
+                  }
                }
             } 
             catch ( const fc::canceled_exception& e )

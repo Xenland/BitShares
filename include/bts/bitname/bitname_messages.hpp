@@ -80,7 +80,7 @@ namespace bts { namespace bitname {
     name_header_message( const name_header& cpy )
     :trx(cpy){}
 
-    name_header trx;
+    name_header           trx; 
   };
 
   struct block_message
@@ -109,7 +109,8 @@ namespace bts { namespace bitname {
     :first_block_num(0),head_block_num(0){}
 
     uint32_t                   first_block_num;
-    std::vector<name_id_type>  header_ids;
+    name_header                first;
+    std::vector<name_trx>      headers;
     // in the event that there are more than 2000 header_ids,
     // this will tell the client there are more and what the
     // current head is, so they can request more
@@ -146,5 +147,5 @@ FC_REFLECT( bts::bitname::get_name_header_message, (name_trx_id))
 FC_REFLECT( bts::bitname::name_header_message, (trx))
 FC_REFLECT( bts::bitname::block_message,(block) )
 FC_REFLECT( bts::bitname::block_index_message,(index) )
-FC_REFLECT( bts::bitname::headers_message, (first_block_num)(header_ids)(head_block_num)(head_block_id))
+FC_REFLECT( bts::bitname::headers_message, (first_block_num)(first)(headers)(head_block_num)(head_block_id))
 

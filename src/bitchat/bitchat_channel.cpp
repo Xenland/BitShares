@@ -1,6 +1,7 @@
 #include <bts/bitchat/bitchat_channel.hpp>
 #include <bts/bitchat/bitchat_messages.hpp>
 #include <bts/bitchat/bitchat_private_message.hpp>
+#include <bts/bitchat/bitchat_message_cache.hpp>
 #include <fc/reflect/variant.hpp>
 #include <fc/thread/thread.hpp>
 #include <fc/log/logger.hpp>
@@ -17,27 +18,29 @@ namespace bts { namespace bitchat {
      class chan_data : public network::channel_data
      {
         public:
-          std::unordered_set<mini_pow> known_inv;
+          std::unordered_set<fc::uint128> known_inv;
      };
 
 
      class channel_impl : public bts::network::channel 
      {
         public:
-          channel_id               chan_id;
-          channel_delegate*        del;
-          peer::peer_channel_ptr   peers;
+          channel_id                                         chan_id;
+          channel_delegate*                                  del;
+          peer::peer_channel_ptr                             peers;
+                                                             
+          message_cache                                      _message_cache;
 
-          std::map<fc::time_point, mini_pow>              msg_time_index;
-          std::unordered_map<mini_pow,encrypted_message>  priv_msgs;
+          std::map<fc::time_point, fc::uint128>              msg_time_index;
+          std::unordered_map<fc::uint128,encrypted_message>  priv_msgs;
 
           /// messages that we have recieved inv for, but have not requested the data for
-          std::unordered_set<mini_pow>                  unknown_msgs; 
-          std::unordered_map<mini_pow,fc::time_point>   requested_msgs; // messages that we have requested but not yet received
-
-          std::vector<mini_pow>                         new_msgs;  // messages received since last inv broadcast
-
-          fc::future<void>                              fetch_loop_complete;
+          std::unordered_set<fc::uint128>                    unknown_msgs; 
+          std::unordered_map<fc::uint128,fc::time_point>     requested_msgs; // messages that we have requested but not yet received
+                                                             
+          std::vector<fc::uint128>                           new_msgs;  // messages received since last inv broadcast
+                                                             
+          fc::future<void>                                   fetch_loop_complete;
 
           /**
            *  Get or create the bitchat channel data for this connection and return
@@ -124,7 +127,7 @@ namespace bts { namespace bitchat {
            *   is the host that we have fetched the least from and that has fetched the most from us.
            *
            */
-          void fetch_from_best_connection( const std::vector<connection_ptr>& cons, const mini_pow& id )
+          void fetch_from_best_connection( const std::vector<connection_ptr>& cons, const fc::uint128& id )
           {
              // if request is made, move id from unknown_msgs to requested_msgs 
              // TODO: update this algorithm to be something better. 
@@ -236,6 +239,9 @@ namespace bts { namespace bitchat {
                  new_msgs.push_back( mid );
                  msg_time_index[fc::time_point::now()] = mid;
                  const encrypted_message& m = (priv_msgs[mid] = std::move(msg));
+
+                 _message_cache.cache( m );
+
                  del->handle_message( m, chan_id );
               }
               else
@@ -289,12 +295,19 @@ namespace bts { namespace bitchat {
   {
       //TODO: make 30 a constant in bts/config.hpp
       FC_ASSERT( fc::time_point::now() - m.timestamp  <  fc::seconds(30) );
-      FC_ASSERT( m.timestamp <= fc::time_point::now() );
+      FC_ASSERT( fc::time_point(m.timestamp) <= fc::time_point::now() );
 
       auto id = m.id();
       my->priv_msgs[ id ] = std::move(m);
       my->msg_time_index[ m.timestamp ] = id;
       my->new_msgs.push_back(id);
+  }
+
+  void channel::configure( const channel_config& conf )
+  {
+      auto dir = conf.data_dir / ("cache_chan_" + fc::variant(my->chan_id.id()).as_string());
+      fc::create_directories( dir );
+      my->_message_cache.open( dir );
   }
 
 

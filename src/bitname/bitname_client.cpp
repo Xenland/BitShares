@@ -29,13 +29,13 @@ namespace bts { namespace bitname {
               // broadcast it accordingly... 
               // move on to the next name... 
               try {
-                 ilog( "found block ${id}  ${difficulty} \n${s}", ("id",new_block.id())("difficulty",new_block.difficulty())("s", fc::json::to_pretty_string(new_block) ) );
+                 ilog( "found block ${id}  difficulty: ${difficulty} \n${s}", ("id",new_block.id())("difficulty",new_block.difficulty())("s", new_block ) );
                  _chan->submit_block( new_block );
               } 
               catch ( const fc::exception& e )
               {
                  wlog( "\n${e}", ("e",e.to_detail_string()) );
-                 fc::usleep( fc::seconds(3) );
+                 fc::usleep( fc::seconds(1) );
               }
               start_mining();
           }
@@ -45,7 +45,7 @@ namespace bts { namespace bitname {
            */
           virtual void pending_name_trx( const name_header& pending_trx )
           {
-              ilog( "pending name trx\n${s}", ("s", fc::json::to_pretty_string(pending_trx) ) );
+              ilog( "pending name trx  ${s}", ("s", pending_trx ) );
               _miner.add_name_trx( pending_trx );
           }
           
@@ -65,7 +65,7 @@ namespace bts { namespace bitname {
              fc::optional<name_record> min_repute_record;
              for( auto itr = _names_to_mine.begin(); itr != _names_to_mine.end(); /*don't inc cause we may remove*/ )
              {
-                ilog( "lookup name ${n}", ("n",itr->first) );
+                //ilog( "lookup name ${n}", ("n",itr->first) );
                 fc::optional<name_record> name_rec = _self->lookup_name( itr->first );
                 if( name_rec.valid() )
                 {
@@ -112,7 +112,7 @@ namespace bts { namespace bitname {
                    new_name.prev          = _chan->get_head_block_id();
                    _miner.set_name_header(new_name);
                    auto pending_trxs = _chan->get_pending_name_trxs();
-                   ilog( "start new name reg: num pending ${n}", ("n",pending_trxs.size())  );
+                 //  ilog( "start new name reg: num pending ${n}", ("n",pending_trxs.size())  );
                    for( auto itr = pending_trxs.begin(); itr != pending_trxs.end(); ++itr )
                    {
                       _miner.add_name_trx(*itr);
@@ -124,7 +124,7 @@ namespace bts { namespace bitname {
              }
              if( min_repute_record.valid() )
              {
-                ilog( "update name reg" );
+                //ilog( "update name reg" );
                 name_header renew_name;
                 renew_name.name_hash       = min_repute_record->get_name_hash();
                 renew_name.key             = min_repute_record->pub_key;
@@ -135,7 +135,7 @@ namespace bts { namespace bitname {
                 _miner.set_name_header( renew_name );
 
                 auto pending_trxs = _chan->get_pending_name_trxs();
-                ilog( "start new name reg: num pending ${n}", ("n",pending_trxs.size())  );
+                //ilog( "start new name reg: num pending ${n}", ("n",pending_trxs.size())  );
                 for( auto itr = pending_trxs.begin(); itr != pending_trxs.end(); ++itr )
                 {
                    _miner.add_name_trx(*itr);

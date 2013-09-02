@@ -52,6 +52,15 @@ namespace fc {
          case bts::blockchain::claim_by_signature:
             obj["claim_data"] = fc::raw::unpack<bts::blockchain::claim_by_signature_output>(var.claim_data);
             break;
+         case bts::blockchain::claim_by_bid:
+            obj["claim_data"] = fc::raw::unpack<bts::blockchain::claim_by_bid_output>(var.claim_data);
+            break;
+         case bts::blockchain::claim_by_long:
+            obj["claim_data"] = fc::raw::unpack<bts::blockchain::claim_by_long_output>(var.claim_data);
+            break;
+         case bts::blockchain::claim_by_cover:
+            obj["claim_data"] = fc::raw::unpack<bts::blockchain::claim_by_cover_output>(var.claim_data);
+            break;
       };
       vo = std::move(obj);
    }

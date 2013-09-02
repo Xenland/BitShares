@@ -22,8 +22,15 @@
       "recv_channels": [
         0
       ]
+    },{
+      "label": "scott2",
+      "key": "5f74816e700996a49a1e716d57dc3754adeaa1ed37aeef1b6cc497381d20034e",
+      "broadcast": "82f2b99a1f8fe7f85beb9d1a30c895245aacfa2d2495a66528a7381d05692574",
+      "recv_channels": [
+        0
+      ]
     }
-    ],
+  ],
   "contacts": [{
       "label": "dan",
       "key": "03ad7290bace92ee96d05cd3e2b1049c6dfe078fa603dc12aa17bad23cc125803f",

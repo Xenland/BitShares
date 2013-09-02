@@ -130,6 +130,18 @@ namespace bts { namespace db {
            return iterator();
         } FC_RETHROW_EXCEPTIONS( warn, "error finding ${key}", ("key",key) ) }
 
+        iterator lower_bound( const Key& key )
+        { try {
+           ldb::Slice key_slice( (char*)&key, sizeof(key) );
+           iterator itr( _db->NewIterator( ldb::ReadOptions() ) );
+           itr._it->Seek( key_slice );
+           if( itr.valid()  ) 
+           {
+              return itr;
+           }
+           return iterator();
+        } FC_RETHROW_EXCEPTIONS( warn, "error finding ${key}", ("key",key) ) }
+
 
         bool last( Key& k )
         {

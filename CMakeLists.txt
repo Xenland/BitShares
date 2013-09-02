@@ -1,7 +1,7 @@
 project( bitshares )
 cmake_minimum_required( VERSION 2.8.11 )
 
-set( CMAKE_AUTOMOC ON )
+#set( CMAKE_AUTOMOC ON )
 
 set( CMAKE_PREFIX_PATH  ${CMAKE_PREFIX_PATH} ";${CMAKE_SOURCE_DIR}/vendor/qt.5.1/5.1.0/msvc2012/lib/cmake/Qt5Widgets" )
 find_package( Qt5Widgets )
@@ -14,8 +14,8 @@ SET( ALL_OPENSSL_LIBRARIES
        ${LIB_EAY_RELEASE}
    )
 
-include( VersionMacros )
-include( SetupTargetMacros )
+#include( VersionMacros )
+#include( SetupTargetMacros )
 
 IF( WIN32 )
   MESSAGE(status "Compiling on WIN32")
@@ -48,8 +48,8 @@ ELSE(WIN32)
   add_subdirectory( vendor/leveldb-1.12.0 )
 
   MESSAGE(status "Compiling on UNIX")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wno-unused-local-typedefs -fmax-errors=3 " ) 
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-local-typedefs -fmax-errors=3 " )
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wno-unused-local-typedefs -fmax-errors=3 -msse4.2" ) 
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-local-typedefs -fmax-errors=3 -msse4.2" )
   #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wno-unused-local-typedefs" ) 
   #SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wno-unused-local-typedefs" )
   SET(Boost_USE_STATIC_LIBS ON)
@@ -81,8 +81,6 @@ set( BOOST_LIBRARIES ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FIL
 
 
 set( sources 
-     src/difficulty.cpp 
-
      src/network/stcp_socket.cpp
      src/network/connection.cpp
      src/network/server.cpp
@@ -96,6 +94,7 @@ set( sources
      src/bitname/bitname_hash.cpp
      src/bitname/bitname_miner.cpp
      src/bitname/bitname_db.cpp
+     src/bitname/bitname_fork_db.cpp
      src/bitname/bitname_messages.cpp
      src/bitname/bitname_channel.cpp
      src/bitname/bitname_client.cpp
@@ -105,6 +104,7 @@ set( sources
      src/bitchat/bitchat_messages.cpp
      src/bitchat/bitchat_channel.cpp
      src/bitchat/bitchat_client.cpp 
+     src/bitchat/bitchat_message_cache.cpp
 
      src/addressbook/addressbook.cpp 
 
@@ -112,7 +112,9 @@ set( sources
      src/blockchain/block.cpp
      src/blockchain/transaction.cpp
      src/blockchain/trx_validation_state.cpp
+     src/blockchain/blockchain_outputs.cpp
      src/blockchain/blockchain_db.cpp
+     src/blockchain/blockchain_market_db.cpp
      src/blockchain/blockchain_printer.cpp
      src/blockchain/blockchain_messages.cpp
      src/blockchain/blockchain_channel.cpp
@@ -121,10 +123,11 @@ set( sources
 
      src/rpc/rpc_server.cpp
 
-
+     src/application.cpp
+     src/difficulty.cpp 
+     src/profile.cpp
      src/extended_address.cpp
      src/small_hash.cpp
-     src/mini_pow.cpp 
      src/merkle_tree.cpp
      src/address.cpp
      src/wallet.cpp
@@ -137,7 +140,6 @@ set( sources
 
 add_library( bshare ${sources} )
 
-add_subdirectory( bitchat )
 IF( NOT Qt5Widgets_DIR MATCHES Qt5Widgets_DIR-NOTFOUND )
 add_subdirectory( src/gui )
 ENDIF()
@@ -158,5 +160,5 @@ ENDIF()
 
 #add_executable( bitshared bitshared.cpp )
 #target_link_libraries( bitshared bshare fc ${BOOST_LIBRARIES} )
-
+add_subdirectory( cli_client )
 add_subdirectory( tests )

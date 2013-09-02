@@ -47,6 +47,13 @@ namespace bts { namespace blockchain {
       asset& operator -= ( const asset& o );
       //friend asset  operator - ( const asset& a, const asset& b ){ return asset(a) -= b; }
       asset  operator *  ( const fc::uint128_t& fix6464 )const;
+      asset  operator *  ( uint64_t mult )const
+      {
+         return *this * fc::uint128_t(mult,0);
+      }
+
+      uint64_t get_rounded_amount()const;
+      asset    get_rounded_asset()const { return asset( get_rounded_amount(),unit); }
 
       operator std::string()const;
        
@@ -65,6 +72,9 @@ namespace bts { namespace blockchain {
       static const fc::uint128& infinite();
 
       price() {}
+      price( const fc::uint128_t& r, asset_type base, asset_type quote )
+      :ratio(r),base_unit(base),quote_unit(quote){}
+
       price( const std::string& s );
       operator std::string()const;
 
