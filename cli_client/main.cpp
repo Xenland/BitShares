@@ -9,6 +9,8 @@
 
 #include <iostream>
 
+using namespace bts;
+
 int main( int argc, char** argv )
 {
    try
@@ -30,16 +32,43 @@ int main( int argc, char** argv )
 
      auto app = std::make_shared<bts::application>();
      app->configure( cfg );
-
+     
+     profile_ptr pro;
      try {
-       app->load_profile( "password" );
+       pro = app->load_profile( "password" );
      } 
      catch ( fc::exception& e )
      {
        wlog( "${e}", ("e",e.to_detail_string() ) );
        app->create_profile( bts::profile_config(), "password" );
-       app->load_profile( "password" );
+       pro = app->load_profile( "password" );
      }
+
+     auto idents = pro->identities();
+     ilog( "current idents: ${ids}", ("ids", idents ) );
+     if( idents.size() == 0 )
+     {
+        ilog( "creating default identity..." );
+        bts::identity new_id;
+        new_id.label = "Daniel Larimer";
+        new_id.bit_id = "bytemaster";
+        new_id.mining_effort = 0.2;
+
+        
+        fc::optional<bitname::name_record> rec =  app->lookup_name( new_id.bit_id );
+        if( rec )
+        {
+          ilog( "name is already in use: ${rec}", ("rec", *rec) );
+          auto prv_key = pro->get_keychain().get_identity_key( new_id.bit_id );
+          if( prv_key.get_public_key() != fc::ecc::public_key( rec->pub_key ) )
+          {
+              wlog( "name apparently belongs to someone else... I wouldn't recomend using this ID", ("rec", *rec) );
+          }
+        }
+        pro->store_identity( new_id );
+     }
+
+
 
 
      std::string line;

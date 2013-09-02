@@ -48,7 +48,7 @@ namespace bts {
         void                  set_seed( const fc::sha512& stretched_seed );
         fc::sha512            get_seed()const;
 
-        fc::ecc::private_key  get_identity_key( const std::string& ident );
+        extended_private_key  get_identity_key( const std::string& ident );
 
         extended_private_key  get_private_account( const std::string& ident, uint32_t i );
         extended_public_key   get_public_account( const std::string& ident, uint32_t i );

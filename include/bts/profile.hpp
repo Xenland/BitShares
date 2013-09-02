@@ -108,6 +108,8 @@ namespace bts {
 
 } // namespace bts
 
+FC_REFLECT( bts::identity, (label)(bit_id)(mining_effort)(properties) )
+
 FC_REFLECT( bts::profile_config,
   (firstname)
   (middlename)

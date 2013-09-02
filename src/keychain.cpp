@@ -44,10 +44,14 @@ namespace bts {
     memcpy( (char*)&seed, (char*)this, sizeof(seed) );
     return seed;
   }
+  extended_private_key  keychain::get_identity_key( const std::string& ident )
+  {
+    return ext_priv_key.child( fc::city_hash64(ident.c_str(),ident.size()),false );
+  }
 
   extended_private_key  keychain::get_private_account( const std::string& ident, uint32_t i )
   {
-    return ext_priv_key.child( fc::city_hash64(ident.c_str(),ident.size()),false).child( i, false );
+    return get_identity_key(ident).child( i, false );
   }
 
   extended_public_key   keychain::get_public_account( const std::string& ident, uint32_t i )
