@@ -74,6 +74,11 @@ namespace bts {
      my->_bitname_client   = std::make_shared<bts::bitname::client>( my->_peers );
      my->_bitname_client->set_delegate( my.get() );
 
+     bitname::client::config bitname_config;
+     bitname_config.data_dir = cfg.data_dir / "bitname";
+
+     my->_bitname_client->configure( bitname_config );
+
   } FC_RETHROW_EXCEPTIONS( warn, "", ("config",cfg) ) }
 
   application_config application::get_configuration()const
@@ -107,8 +112,6 @@ namespace bts {
 
   profile_ptr                 application::create_profile( const profile_config& cfg, const std::string& password )
   { try {
-
-    FC_ASSERT( !fc::exists( my->_profile_dir ) );
     fc::create_directories( my->_profile_dir );
 
     // note: stored in temp incase create throws.

@@ -160,10 +160,11 @@ namespace bts { namespace bitname {
           { try {
              if( _name_db.head_block_id() != _fork_db.best_fork_head_id() )
              {
-                 fc::optional<name_id_type> next = _fork_db.best_fork_fetch_next( _name_db.head_block_id() );
-                 while( next )
+                 name_id_type next = _fork_db.best_fork_fetch_next( _name_db.head_block_id() );
+                 while( next != name_id_type() )
                  {
-                    fc::optional<name_block>  next_blk( _fork_db.fetch_block(*next) );
+                    ilog( "next: ${next}", ("next", next) );
+                    fc::optional<name_block>  next_blk( _fork_db.fetch_block(next) );
                     if( next_blk ) 
                     {
                       try {
@@ -172,13 +173,13 @@ namespace bts { namespace bitname {
                       catch ( const fc::exception& e )
                       {
                          wlog( "unable to apply block ${block}\n${e}", ("block",next_blk)("e",e.to_detail_string()));
-                         _fork_db.set_valid( *next, false );
+                         _fork_db.set_valid( next, false );
                       }
                     }
                     else
                     {
                         auto cons = _peers->get_connections( _chan_id );
-                        fetch_block_from_best_connection(  cons, *next );
+                        fetch_block_from_best_connection(  cons, next );
                         return true;
                     }
 
@@ -251,6 +252,8 @@ namespace bts { namespace bitname {
              catch ( const fc::exception& e )
              {
                elog( "fetch loop threw... something bad happened\n${e}", ("e", e.to_detail_string()) );
+               // TODO: bitname will hang if we don't find some way to recover or report this
+               // to the user...
              }
           }
 

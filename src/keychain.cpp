@@ -21,8 +21,10 @@ namespace bts {
       fc::thread t("stretch_seed");
       return t.async( [=]() {
           fc::sha512 last = seed;
-          for( uint32_t i = 0; i < 100; ++i )
+          ilog( "stretchign seed" );
+          for( uint32_t i = 0; i < 10; ++i )
           {
+              ilog( ".\r" );
               auto p = proof_of_work( fc::sha256::hash( (char*)&last, sizeof(last)) );  
               last = fc::sha512::hash( (char*)&p, sizeof(p) );
           }

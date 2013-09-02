@@ -31,6 +31,16 @@ int main( int argc, char** argv )
      auto app = std::make_shared<bts::application>();
      app->configure( cfg );
 
+     try {
+       app->load_profile( "password" );
+     } 
+     catch ( fc::exception& e )
+     {
+       wlog( "${e}", ("e",e.to_detail_string() ) );
+       app->create_profile( bts::profile_config(), "password" );
+       app->load_profile( "password" );
+     }
+
 
      std::string line;
      fc::thread _cin("cin");
