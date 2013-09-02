@@ -6,6 +6,8 @@ BitSharesMainWindow::BitSharesMainWindow(QWidget *parent) :
     ui(new Ui::BitSharesMainWindow)
 {
     ui->setupUi(this);
+    ui->bitSharesTreeView->setUniformRowHeights(true);
+    ui->bitSharesTreeView->header()->hide();
     ui->bitSharesTreeView->setModel(&_bitSharesTreeModel);
 }
 
