@@ -3,6 +3,36 @@
 #include <bts/difficulty.hpp>
 #include <fc/reflect/variant.hpp>
 
+#include <unordered_set>
+
+#include <fc/log/logger.hpp>
+
+struct fork_index
+{
+   fork_index():fork_difficulty(0){}
+   fork_index( bts::bitname::name_id_type id, uint64_t fork_diff )
+   :fork_difficulty(fork_diff),fork_header(id){}
+
+   uint64_t     fork_difficulty;
+   bts::bitname::name_id_type fork_header;
+};
+
+bool operator < ( const fork_index& a, const fork_index& b )
+{
+   return a.fork_difficulty          == b.fork_difficulty ? 
+                   a.fork_header     <  b.fork_header : 
+                   a.fork_difficulty <  b.fork_difficulty;
+}
+bool operator == ( const fork_index& a, const fork_index& b )
+{
+   return a.fork_difficulty  == b.fork_difficulty  && 
+          a.fork_header      ==  b.fork_header; 
+}
+
+FC_REFLECT( fork_index, (fork_difficulty)(fork_header) );
+
+
+
 namespace bts { namespace bitname {
 
   namespace detail 
@@ -10,45 +40,71 @@ namespace bts { namespace bitname {
     class fork_db_impl 
     {
       public:
-        db::level_pod_map<name_id_type,name_header>                 _headers;
-        db::level_pod_map<name_id_type,name_block>                  _blocks;
-        db::level_pod_map<name_id_type,fork_state>                  _forks; // index by fork head
-        db::level_pod_map<name_id_type, std::vector<name_id_type> > _nexts;
-        db::level_pod_map<name_id_type,name_id_type>                _unknown; // unknown id to the block that refs it.
+        db::level_pod_map<name_id_type,meta_header>                         _headers;
+        db::level_pod_map<name_id_type,name_block>                          _blocks;
 
-        name_id_type                                                _best_fork_head_id;
+        /// note: invalid forks will have a difficulty of 0, best fork should have a highest difficulty
+        /// TODO: switch to level_pod_set... no need to deal with the value...
+        db::level_pod_map<fork_index,uint32_t>                              _forks; // index by difficulty
+        db::level_pod_map<name_id_type, std::unordered_set<name_id_type> >  _nexts;
+        db::level_pod_map<name_id_type,name_id_type>                        _unknown; // unknown id to the block that refs it.
 
-        void reverse_update( const name_id_type& start_id, uint64_t starting_diff = 0, uint32_t starting_depth = 0 )
+        // cached for performance reasons... 
+
+        void add_next( name_id_type prev, name_id_type next )
         {
-            auto start_head = _headers.fetch( start_id );
-            auto fork_itr   = _forks.find( start_id );
-            if( fork_itr.valid() )
-            {
-               auto fork_state = fork_itr.value();
-               fork_state.fork_difficulty =  start_head.difficulty() + starting_diff;
-               fork_state.height = starting_depth + 1;
-               _forks.store( start_id, fork_state );
-               return;
-            }
+           auto nexts = _nexts.fetch(prev);
+           if( nexts.insert(next).second )
+           {
+             _nexts.store(prev,nexts);
+           }
+        }
 
-            // TODO: update this method to be non recursive so that
-            // we do not overflow the stack and crash for deep updates.
-            auto cur_dif = start_head.difficulty() + starting_diff;
-            auto next_ids_itr = _nexts.find( start_id );
-            if( next_ids_itr.valid() )
+        void update_fork( const meta_header& prev, const meta_header& next )
+        {
+            _forks.remove( fork_index(prev.id(),prev.chain_difficulty) );
+            _forks.store( fork_index(next.id(),next.chain_difficulty), 0 );
+        }
+
+        /** calculate the difficulty, height, and valid state of every node after id */
+        void update_chain( const name_id_type& update_id )
+        {
+            std::vector<name_id_type>  update_stack;
+            update_stack.push_back(update_id);
+
+            while( update_stack.size() )
             {
-               auto next_ids = next_ids_itr.value();
-               for( auto next_id_itr = next_ids.begin(); next_id_itr != next_ids.end(); ++next_id_itr )
+               auto cur_id = update_stack.back();
+               update_stack.pop_back();
+
+               auto cur_meta = _headers.fetch( cur_id );
+               FC_ASSERT( cur_meta.height > 0 );
+
+               auto itr = _nexts.find(cur_id);
+               bool has_next = false;
+               if( itr.valid() )
                {
-                 reverse_update( *next_id_itr, cur_dif, starting_depth + 1 );
+                  auto next_set = itr.value();
+                  for( auto itr = next_set.begin(); itr != next_set.end(); ++itr )
+                  {
+                     auto next_meta             = _headers.fetch( *itr );
+                     next_meta.chain_difficulty = cur_meta.chain_difficulty + bts::difficulty( *itr ); 
+                     next_meta.height           = cur_meta.height + 1;
+                     next_meta.valid            = cur_meta.valid;
+                     _headers.store( *itr, next_meta );
+                     update_stack.push_back( *itr );
+                  }
+                  if( next_set.size() == 0 )
+                  {
+                    has_next = true;
+                  }
                }
-            }
-        }
-
-        void traverse_invalidate( const name_id_type& id )
-        {
-          // TODO: mark all forks derived from id as invalid
-        }
+               if( !has_next )
+               {
+                 _forks.store( fork_index( cur_id, cur_meta.chain_difficulty), 0 );
+               }
+           }
+        } // update_chain
     };
 
   } // namespace detail
@@ -72,95 +128,53 @@ namespace bts { namespace bitname {
      my->_nexts.open( db_dir / "nexts", create );
      my->_unknown.open( db_dir / "unknown", create );
 
-     fc::optional<fork_state> best_fork;
-     auto forks = get_forks();
-     for( auto f = forks.begin(); f != forks.end(); ++f )
-     {
-         if( !best_fork && !f->invalid ) 
-         {
-            best_fork = *f;
-         }
-         else if( best_fork )
-         {
-            if( !f->invalid && (f->fork_difficulty > best_fork->fork_difficulty) )
-            {
-              best_fork = *f;
-            }
-         }
-     }
-     if( best_fork )
-     {
-        my->_best_fork_head_id = best_fork->head_id;
-     }
-
   } FC_RETHROW_EXCEPTIONS( warn, "unable to open fork database ${path}", ("path",db_dir) ) }
 
 
   void fork_db::cache_header( const name_header& head )
   { try {
       auto id = head.id();
-      my->_headers.store( id, head );
+      meta_header meta(head);
 
-      auto forks_itr = my->_forks.find( head.prev );
-      if( forks_itr.valid() )
+      if( head.prev == name_id_type() ) // better be genesis!
       {
-         auto forkstate              = forks_itr.value();
-         forkstate.head_id           = id;
-         forkstate.fork_difficulty += head.difficulty();
-         forkstate.height     += 1;
-         my->_forks.remove( head.prev );
-         my->_forks.store( id, forkstate );
+        // TODO: FC_ASSERT( id == genesis_id ) 
+        meta.chain_difficulty = bts::difficulty(id);
+        meta.height = 0;
+        meta.valid  = true;
+        my->_forks.store( fork_index( id, meta.chain_difficulty ), 0 );
+        my->_headers.store(id,meta);
+        return;
       }
-      else
+      auto prev_meta_itr = my->_headers.find( head.prev );
+      if( prev_meta_itr.valid() )
       {
-         // it doesn't extend a fork... is the previous
-         // already in the unknown list?
-         auto unknown_itr = my->_unknown.find(head.prev);
-         if( !unknown_itr.valid() ) // then we are out of nowhere
+         auto prev_meta = prev_meta_itr.value();
+         if( prev_meta.height != -1 )
          {
-           my->_unknown.store( head.prev, id );
-           fork_state new_fork;
-           new_fork.fork_difficulty = bts::difficulty(id);
-           new_fork.height = 1;
-           new_fork.head_id = id;
-           my->_forks.store( id, new_fork );
+             meta.height           = prev_meta.height + 1;
+             meta.chain_difficulty = prev_meta.chain_difficulty + bts::difficulty(id);
+             meta.valid            = prev_meta.valid;
+
+             my->update_fork( prev_meta, meta );
          }
+         my->add_next( prev_meta.id(), id );
       }
-
-      /* link up the 'next pointers' */
-      auto peers_itr = my->_nexts.find( head.prev );
-      if( peers_itr.valid() ) 
-      {
-         auto peers = peers_itr.value();
-         peers.push_back( id );
-         my->_nexts.store( head.prev, peers );
-      }
-      else
-      {
-        std::vector<name_id_type> peers;
-        peers.push_back(id);
-        my->_nexts.store( head.prev, peers );
-      }
-
-      /** is the previous 'unknwon'?  if so add it */
-      auto prev_itr = my->_headers.find( head.prev );
-      if( !peers_itr.valid() )
+      else 
       {
          my->_unknown.store( head.prev, id );
       }
-      
-      /** is this header currently 'unknown', if so
-       *  then we just grew the chain and it probably
-       *  needs updated.
-       */
-      auto unknown_itr = my->_unknown.find( id );
+      my->_headers.store( id, meta );
+
+      auto unknown_itr = my->_unknown.find(id);
       if( unknown_itr.valid() )
       {
-        my->_unknown.remove( id );
-        my->reverse_update( id );
-        // ... what does this mean for the chain ?
+          my->_unknown.remove( id );
+          if( meta.height )
+          {  // we just connected this chain back to genesis 
+             my->update_chain( id );
+          }
       }
-
   } FC_RETHROW_EXCEPTIONS( warn, "", ("header",head) ) }
 
   void fork_db::cache_block( const name_block& b )
@@ -181,7 +195,7 @@ namespace bts { namespace bitname {
      return result;
   }
 
-  name_header fork_db::fetch_header( const name_id_type& id )
+  meta_header fork_db::fetch_header( const name_id_type& id )
   { try {
      return my->_headers.fetch(id);
   } FC_RETHROW_EXCEPTIONS( warn, "", ("id",id) ) }
@@ -206,38 +220,53 @@ namespace bts { namespace bitname {
   } FC_RETHROW_EXCEPTIONS( warn, "", ("id",id) ) }
 
   void fork_db::set_valid( const name_id_type& blk_id, bool is_valid )
-  {
-    if( is_valid == false )
-    {
-      my->traverse_invalidate( blk_id );
-    }
-    else // only the fork head can me marked valid... 
-    {
-
-      auto fork_val = my->_forks.fetch( blk_id );
-      fork_val.invalid = false;
-      my->_forks.store( blk_id, fork_val );
-    }
-  }
-
-  name_id_type fork_db::best_fork_head_id()const
-  {
-     return my->_best_fork_head_id;
-  }
-
-  name_id_type fork_db::best_fork_fetch_next( const name_id_type& b )const
-  {
-      // TODO: implment 
-     return name_id_type();  
-  }
-
-  std::vector<fork_state> fork_db::get_forks()const
   { try {
-     std::vector<fork_state> result;
+    auto cur_meta = fetch_header(blk_id);
+    FC_ASSERT( cur_meta.height > 0 ); // note: cannot set valid state on disconnected node!
+    if( is_valid != cur_meta.valid )
+    {
+       cur_meta.valid = is_valid;
+       my->_headers.store( blk_id, cur_meta );
+       my->update_chain( blk_id );
+       return;
+    }
+  } FC_RETHROW_EXCEPTIONS( warn, "" ) }
+
+  name_id_type fork_db::best_fork_head_id()
+  { try {
+     fork_index last;
+     my->_forks.last(last);
+     return last.fork_header;
+  } FC_RETHROW_EXCEPTIONS( warn, "" ) }
+
+  name_id_type fork_db::best_fork_fetch_next( const name_id_type& b )
+  { try {
+     if( b == name_id_type() )
+     {
+        FC_ASSERT( !"TODO: return genesis id" );
+     }
+     FC_ASSERT( my->_headers.find(b).valid() );
+
+     auto cur_id = best_fork_head_id();
+     while( cur_id != name_id_type() )
+     {
+         auto cur_head = fetch_header(cur_id);
+         if( cur_head.prev == b )
+         {
+           return cur_id;
+         }
+         cur_id = cur_head.prev;
+     }
+     FC_THROW_EXCEPTION( key_not_found_exception, "id ${x} is not in best fork", ("x",b) );
+  } FC_RETHROW_EXCEPTIONS( warn, "", ("b",b) ) }
+
+  std::vector<meta_header> fork_db::get_forks()
+  { try {
+     std::vector<meta_header> result;
      auto itr = my->_forks.begin();
      while( itr.valid() )
      {
-       result.push_back( itr.value() );
+       result.push_back( fetch_header(itr.key().fork_header) );
        ++itr;
      }
      return result;

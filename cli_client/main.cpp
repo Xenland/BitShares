@@ -33,6 +33,10 @@ void create_identity( const std::shared_ptr<bts::application>& app )
       {
           wlog( "name apparently belongs to someone else... I wouldn't recomend using this ID", ("rec", *rec) );
       }
+      else
+      {
+        ilog( "name belongs to me, so we are ok..." );
+      }
     }
     pro->store_identity( new_id );
 }
@@ -59,6 +63,11 @@ int main( int argc, char** argv )
 
      auto app = std::make_shared<bts::application>();
      app->configure( cfg );
+
+     if( argc >= 3 )
+     {
+        app->add_node( fc::ip::endpoint::from_string( argv[2] ) );
+     }
      
      profile_ptr pro;
      try {

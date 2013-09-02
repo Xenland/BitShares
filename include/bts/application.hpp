@@ -49,6 +49,7 @@ namespace bts {
       void                        configure( const application_config& cfg );
       application_config          get_configuration()const;
 
+      void                        add_node( const fc::ip::endpoint& remote_node_ip_port );
       void                        set_application_delegate( application_delegate* del );
                                   
       profile_ptr                 get_profile();

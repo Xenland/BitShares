@@ -7,15 +7,16 @@ namespace bts { namespace bitname {
 
   namespace detail { class fork_db_impl; }
 
-  struct fork_state
+  struct meta_header : public name_header
   {
-    fork_state()
-    :fork_difficulty(0),invalid(false),height(0){}
+     meta_header( const name_header& h )
+     :name_header(h),chain_difficulty(0),height(-1),valid(true){}
+     meta_header()
+     :chain_difficulty(0),height(-1),valid(true){}
 
-    uint64_t       fork_difficulty; ///< cumulative difficulty of all headers back to origin
-    bool           invalid;         ///< just because it isn't marked invalid, doesn't mean it is valid  
-    uint32_t       height;          ///< height of the fork
-    name_id_type   head_id;
+     uint64_t chain_difficulty;
+     int32_t  height;
+     bool     valid;
   };
 
   /**
@@ -39,14 +40,14 @@ namespace bts { namespace bitname {
         */
        std::vector<name_id_type> fetch_unknown();
 
-       name_id_type              best_fork_head_id()const;
-       name_id_type              best_fork_fetch_next( const name_id_type& b )const;
+       name_id_type              best_fork_head_id();
+       name_id_type              best_fork_fetch_next( const name_id_type& b );
 
        /**
         * All forks that branch from a particular node.
         */
        std::vector<name_id_type> fetch_next( const name_id_type& b );
-       name_header               fetch_header( const name_id_type& b );
+       meta_header               fetch_header( const name_id_type& b );
        fc::optional<name_block>  fetch_block( const name_id_type& b );
 
        /**
@@ -58,7 +59,7 @@ namespace bts { namespace bitname {
         *  @return the list of potential forks sorted by difficulty.  The
         *  most difficulty fork may not be 'valid'.
         */
-       std::vector<fork_state> get_forks()const; 
+       std::vector<meta_header> get_forks(); 
     
      private:
        std::unique_ptr<detail::fork_db_impl> my;
@@ -67,4 +68,4 @@ namespace bts { namespace bitname {
 
 } } // bts::bitname
 
-FC_REFLECT( bts::bitname::fork_state, (fork_difficulty)(invalid)(height)(head_id) )
+FC_REFLECT_DERIVED( bts::bitname::meta_header, (bts::bitname::name_header), (chain_difficulty)(height)(valid) )

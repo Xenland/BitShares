@@ -44,7 +44,9 @@ namespace bts { namespace bitname {
              /** map block number to the trxs used in that block */
              db::level_pod_map<uint32_t, std::vector<name_trx> >      _block_num_to_name_trxs;
 
-             /** tracks this history of every name and where it can be found in the chain */
+             /** tracks this history of every name and where it can be found in the chain 
+              *  TODO: verify that name_location are sorted by depth... 
+              **/
              db::level_pod_map<uint64_t, std::vector<name_location> > _name_hash_to_locs;
 
              blockchain::time_keeper   _timekeeper;

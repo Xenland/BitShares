@@ -126,31 +126,43 @@ namespace bts {
                               
   fc::optional<bitname::name_record>   application::lookup_name( const std::string& name )
   {
+    FC_ASSERT( my->_config );
     fc::optional<bitname::name_record> rec;
 
     return rec;
   }
   fc::optional<bitname::name_record>   application::reverse_name_lookup( const fc::ecc::public_key& key )
   {
+    FC_ASSERT( my->_config );
     fc::optional<bitname::name_record> rec;
 
     return rec;
   }
   void                        application::mine_name( const std::string& name, const fc::ecc::public_key& key, float effort )
   {
+     FC_ASSERT( my->_config );
      my->_bitname_client->mine_name( name, key );
   }
 
   void  application::send_contact_request( const fc::ecc::public_key& to, const fc::ecc::private_key& from )
   {
+     FC_ASSERT( my->_config );
   }
 
   void  application::send_email( const bitchat::private_email_message& email, const fc::ecc::public_key& to, const fc::ecc::private_key& from )
   {
+     FC_ASSERT( my->_config );
   }
 
   void  application::send_text_message( const bitchat::private_text_message& txtmsg, const fc::ecc::public_key& to, const fc::ecc::private_key& from )
   {
+     FC_ASSERT( my->_config );
   }
+
+  void  application::add_node( const fc::ip::endpoint& remote_ep )
+  { try {
+     FC_ASSERT( my->_config );
+     my->_server->connect_to(remote_ep);
+  } FC_RETHROW_EXCEPTIONS( warn, "", ("endpoint",remote_ep) ) }
 
 } // namespace bts

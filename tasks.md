@@ -31,10 +31,6 @@ be imported into the code code base and your funds will be paid.
     must exersize every method and every branch in the code (verify this somehow?)
 
 
-0.5 BTC - convert traversals of the fork db chain from recursive to iterative.
---------------------------------
-    open for bids now.
-
 1 BTC - update stcp_socket to use fc::aes_encoder 
 --------------------------------
     open for bids now.
