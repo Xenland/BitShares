@@ -540,6 +540,7 @@ namespace bts { namespace bitname {
 
               headers_message         reply;
               reply.first_block_num = start_block;
+              reply.first = _name_db.fetch_block_header(start_block);
               reply.headers.reserve( end - start_block - 1 );
               for( auto i = start_block+1; i < end; ++i )
               {
@@ -696,6 +697,7 @@ namespace bts { namespace bitname {
               for( auto itr = msg.headers.begin(); itr != msg.headers.end(); ++itr )
               {
                  name_header next_head( *itr, prev_id );
+                 ilog( "${id} = ${next_head}", ("id",next_head.id())("next_head",next_head) );
                  _fork_db.cache_header( next_head );
                  prev_id = next_head.id();
                  cdat.available_blocks.insert(prev_id);
