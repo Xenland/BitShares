@@ -109,7 +109,9 @@ bshare_gui::bshare_gui(QWidget *parent) :
      **/
         viewport_controller = new bshare_viewport(this);
             //Attach to ui
+#if 0
             ui->bshare_gui_gridlayout->addWidget(viewport_controller, 0,1, 1,1, Qt::AlignLeft | Qt::AlignTop);
+#endif
 
 
 }

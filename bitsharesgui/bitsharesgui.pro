@@ -11,11 +11,20 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = bitsharesgui
 TEMPLATE = app
 
+!win32 {
 QMAKE_CXXFLAGS += -std=c++11
-LIBS += ../libbshare.a ../fc/libfc.a -L${BOOST_LIBRARY_DIR} -lboost_context -lboost_thread -lboost_system -lboost_chrono -lboost_filesystem -lboost_system -lboost_date_time -lboost_coroutine
+}
 
-INCLUDEPATH+=../include
-INCLUDEPATH+=../fc/include
+win32 {
+LIBS += ../Debug/bshare.lib ../fc/Debug/fc_debug.lib
+} else {
+LIBS += ../libbshare.a ../fc/libfc.a
+LIBS += -L${BOOST_LIBRARY_DIR} -lboost_context -lboost_thread -lboost_system -lboost_chrono -lboost_filesystem -lboost_system -lboost_date_time -lboost_coroutine
+}
+
+
+INCLUDEPATH += ../include
+INCLUDEPATH += ../fc/include
 
 
 SOURCES += main.cpp \
