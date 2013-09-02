@@ -28,7 +28,7 @@ namespace bts {
 
           void bitname_block_added( const bts::bitname::name_block& h )
           {
-
+              ilog( "${h}", ("h",h) );
           }
          
           void bitname_header_pending( const bts::bitname::name_header& h )
@@ -138,6 +138,7 @@ namespace bts {
   }
   void                        application::mine_name( const std::string& name, const fc::ecc::public_key& key, float effort )
   {
+     my->_bitname_client->mine_name( name, key );
   }
 
   void  application::send_contact_request( const fc::ecc::public_key& to, const fc::ecc::private_key& from )

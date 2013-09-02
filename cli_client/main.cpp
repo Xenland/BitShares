@@ -11,6 +11,33 @@
 
 using namespace bts;
 
+void create_identity( const std::shared_ptr<bts::application>& app )
+{
+    bts::identity new_id;
+
+    std::cout<<"\n Create new Identity\n";
+    std::cout<<"Label: ";
+    std::cin >> new_id.label;
+    std::cout<<"BitID: ";
+    std::cin >> new_id.bit_id;
+
+    new_id.mining_effort = 0.2;
+    auto pro = app->get_profile();
+    
+    fc::optional<bitname::name_record> rec =  app->lookup_name( new_id.bit_id );
+    if( rec )
+    {
+      ilog( "name is already in use: ${rec}", ("rec", *rec) );
+      auto prv_key = pro->get_keychain().get_identity_key( new_id.bit_id );
+      if( prv_key.get_public_key() != fc::ecc::public_key( rec->pub_key ) )
+      {
+          wlog( "name apparently belongs to someone else... I wouldn't recomend using this ID", ("rec", *rec) );
+      }
+    }
+    pro->store_identity( new_id );
+}
+
+
 int main( int argc, char** argv )
 {
    try
@@ -48,27 +75,13 @@ int main( int argc, char** argv )
      ilog( "current idents: ${ids}", ("ids", idents ) );
      if( idents.size() == 0 )
      {
-        ilog( "creating default identity..." );
-        bts::identity new_id;
-        new_id.label = "Daniel Larimer";
-        new_id.bit_id = "bytemaster";
-        new_id.mining_effort = 0.2;
-
-        
-        fc::optional<bitname::name_record> rec =  app->lookup_name( new_id.bit_id );
-        if( rec )
-        {
-          ilog( "name is already in use: ${rec}", ("rec", *rec) );
-          auto prv_key = pro->get_keychain().get_identity_key( new_id.bit_id );
-          if( prv_key.get_public_key() != fc::ecc::public_key( rec->pub_key ) )
-          {
-              wlog( "name apparently belongs to someone else... I wouldn't recomend using this ID", ("rec", *rec) );
-          }
-        }
-        pro->store_identity( new_id );
+        create_identity( app );
+        idents = pro->identities();
      }
 
-
+     app->mine_name( idents[0].bit_id, 
+                     pro->get_keychain().get_identity_key( idents[0].bit_id ).get_public_key(), 
+                     idents[0].mining_effort );
 
 
      std::string line;
