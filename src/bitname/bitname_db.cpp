@@ -108,16 +108,9 @@ namespace bts { namespace bitname {
                     auto itr = _block_num_to_header.begin();
                     while( itr.valid() )
                     {
-                      ilog( "push back ${id}", ("id",itr.value().id()) );
-                      /*
-                      _header_ids.push_back( itr.value().id() );
-                      _id_to_block_num[_header_ids.back()] = _header_ids.size()-1;
-                      _chain_difficulty += bts::difficulty( _header_ids.back() );
-                      */
                       push_header_id( itr.value().id() );
                       ++itr;
                     }
-                 
                     // TODO: save to disk
                  }
              }
@@ -161,7 +154,6 @@ namespace bts { namespace bitname {
                 for( uint32_t window_pos = window_start; 
                      window_pos < _header_ids.size(); ++window_pos )
                 {
-                   ilog( "window_pow: ${p}", ("p",window_pos) );
                    auto head = fetch_block_header( window_pos );
                    FC_ASSERT( head.id() == _header_ids[window_pos] ); // sanity check
                    auto dif           = head.difficulty();
