@@ -52,23 +52,28 @@ namespace bts { namespace bitname {
         // cached for performance reasons... 
 
         void add_next( name_id_type prev, name_id_type next )
-        {
-           auto nexts = _nexts.fetch(prev);
+        { try {
+           auto nexts_itr = _nexts.find(prev);
+           std::unordered_set<name_id_type> nexts;
+           if( nexts_itr.valid() )
+           {
+             nexts = nexts_itr.value();
+           }
            if( nexts.insert(next).second )
            {
              _nexts.store(prev,nexts);
            }
-        }
+        } FC_RETHROW_EXCEPTIONS( warn, "", ("prev",prev)("next",next) ) }
 
         void update_fork( const meta_header& prev, const meta_header& next )
-        {
+        { try {
             _forks.remove( fork_index(prev.id(),prev.chain_difficulty) );
             _forks.store( fork_index(next.id(),next.chain_difficulty), 0 );
-        }
+        } FC_RETHROW_EXCEPTIONS( warn, "", ("prev",prev)("next",next) ) }
 
         /** calculate the difficulty, height, and valid state of every node after id */
         void update_chain( const name_id_type& update_id )
-        {
+        { try {
             std::vector<name_id_type>  update_stack;
             update_stack.push_back(update_id);
 
@@ -104,7 +109,7 @@ namespace bts { namespace bitname {
                  _forks.store( fork_index( cur_id, cur_meta.chain_difficulty), 0 );
                }
            }
-        } // update_chain
+        } FC_RETHROW_EXCEPTIONS( warn, "", ("id",update_id) ) } // update_chain
     };
 
   } // namespace detail
@@ -128,12 +133,15 @@ namespace bts { namespace bitname {
      my->_nexts.open( db_dir / "nexts", create );
      my->_unknown.open( db_dir / "unknown", create );
 
+     cache_block( create_genesis_block() );
+
   } FC_RETHROW_EXCEPTIONS( warn, "unable to open fork database ${path}", ("path",db_dir) ) }
 
 
   void fork_db::cache_header( const name_header& head )
   { try {
       auto id = head.id();
+      ilog( "                 ***              ***\n         cache header:  ${id} = ${h}", ("id",id)("h",head) );
       meta_header meta(head);
 
       if( head.prev == name_id_type() ) // better be genesis!
@@ -143,6 +151,7 @@ namespace bts { namespace bitname {
         meta.height = 0;
         meta.valid  = true;
         my->_forks.store( fork_index( id, meta.chain_difficulty ), 0 );
+        wlog( "                 ***              ***\n         cache header:  ${id} = ${h}", ("id",id)("h",head) );
         my->_headers.store(id,meta);
         return;
       }
@@ -162,6 +171,7 @@ namespace bts { namespace bitname {
       }
       else 
       {
+         wlog( "  unknown store  prev ${id}  referenced by ${h}", ("id",head.prev)("h",head) );
          my->_unknown.store( head.prev, id );
       }
       my->_headers.store( id, meta );
