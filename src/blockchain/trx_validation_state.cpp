@@ -177,7 +177,7 @@ void trx_validation_state::validate_signature( const trx_output& o )
 void trx_validation_state::validate_bid( const trx_output& o )
 {
    auto bid = o.as<claim_by_bid_output>();
-   FC_ASSERT( bid.ask_price.ratio != 0 );
+   FC_ASSERT( bid.ask_price.ratio != fc::uint128(0) );
    FC_ASSERT( bid.pay_address != address() );
    FC_ASSERT( bid.ask_price.base_unit == o.unit ||
               bid.ask_price.quote_unit == o.unit );
@@ -189,7 +189,7 @@ void trx_validation_state::validate_bid( const trx_output& o )
 void trx_validation_state::validate_long( const trx_output& o )
 {
    auto long_claim = o.as<claim_by_long_output>();
-   FC_ASSERT( long_claim.ask_price.ratio != 0 );
+   FC_ASSERT( long_claim.ask_price.ratio != fc::uint128(0) );
    FC_ASSERT( long_claim.ask_price.base_unit != long_claim.ask_price.quote_unit );
    FC_ASSERT( long_claim.ask_price.base_unit.value < long_claim.ask_price.quote_unit.value );
 
