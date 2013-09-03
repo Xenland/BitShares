@@ -3,13 +3,6 @@
 #include <assert.h>
 
 
-//TIdentity and TContact are just throwaway classes for prototyping before we switch to real data structures
-struct TIdentity
-{
-    QString _name;
-    TIdentity(const char* name) : _name(name) {};
-};
-
 struct TContact
 {
     QString _name;
@@ -30,21 +23,31 @@ public:
     virtual        int findRow(ITreeNode* child) = 0;
 };
 
-/** TTreeRoot is a singleton that represents the root of the tree. It manages the top level nodes of the tree,
-    but it isn't shown in the tree view. Each of it's children will tend to represent a "mode" of the GUI.
-*/
-class TTreeRoot : public ITreeNode
+/** Base class for any interior tree nodes */
+class ATreeNode : public ITreeNode
 {
+       QString _name;
+    ITreeNode* _parent;
+public:
+               //TODO: automate telling the parent about this new child here instead of requiring manual call.
+               ATreeNode(const char* name, ITreeNode* parent) : _name(name), _parent(parent) { }
+      QVariant name()   { return QVariant(_name); }
+    ITreeNode* parent() { return _parent; }
+           int getRow() { return parent()->findRow(this); }
+           int findRow(ITreeNode*) { assert(false && "no tree node children for ATreeNode"); return 0; }
+};
+
+/** Interior tree node with ITreeNodes as children */
+class ATreeNodeParentNode : public ATreeNode
+{
+protected:
     std::vector<ITreeNode*> _children;
 public:
-               TTreeRoot();
-      QVariant name() { return QVariant("invisibleRoot"); }
-    ITreeNode* parent() { return 0; }
+               ATreeNodeParentNode(const char* name, ITreeNode* parent) : ATreeNode(name,parent) {}
            int childCount()  { return _children.size(); }
            //return nullptr if children are not ITreeNodes (implies they are leaf nodes)
     ITreeNode* child(int row) { return _children[row]; }
       QVariant data(int row) { return _children[row]->name(); }
-           int getRow()      { return 0; }
            int findRow(ITreeNode* child) 
              {
              auto foundI = std::find( _children.begin(), _children.end(), child); 
@@ -53,39 +56,18 @@ public:
 };
 
 
+/** TTreeRoot is a singleton that represents the root of the tree. It manages the top level nodes of the tree,
+    but it isn't shown in the tree view. 
+*/
+class TTreeRoot : public ATreeNodeParentNode
+{
+public:
+               TTreeRoot();
+           int getRow() { return 0; }
+};
+
+
 TTreeRoot gTreeRoot; /// Singleton tree root
-
-/** Base class for any tree nodes not directly under TTreeRoot */
-class ATreeNode : public ITreeNode
-{
-    QString _name;
-public:
-               ATreeNode(const char* name) : _name(name) {}
-      QVariant name()   { return QVariant(_name); }
-           int getRow() { return parent()->findRow(this); }
-           int findRow(ITreeNode*) { assert(false && "no tree node children for ATreeNode"); return 0; }
-};
-
-/** Base class for direct descendants of TTreeRoot. Derived classes will generally represent modes of the GUI.
-*/
-class AGuiMode : public ATreeNode
-{
-public:
-               AGuiMode(const char* name) : ATreeNode(name) {}
-    ITreeNode* parent() { return &gTreeRoot; }
-};
-
-/** Tree node that manages list of user identities (e.g. for email and chat)
-*/
-class TIdentityMode : public AGuiMode
-{
-public:
-    std::vector<TIdentity*> _identities;
-               TIdentityMode() : AGuiMode("Identities") {}
-           int childCount() { return _identities.size(); }
-    ITreeNode* child(int /* row */) { return nullptr; }
-      QVariant data(int row) { return _identities[row]->_name; }
-};
 
 /** A group of email messages */
 class TMailBox
@@ -96,9 +78,9 @@ public:
        QString name()   { return _name; }
 };
 
-/** Tree node that manages list of mail boxes for identity. There should probably be a mailmode under each identity, but cheating for now.
+/** Tree node that manages list of mail boxes for an identity.
 */
-class TMailMode : public AGuiMode
+class TMailBoxListNode : public ATreeNode
 {
            TMailBox _inBox;         //incoming emails shown here
            TMailBox _draftBox;      //unfinished/unsent emails shown here
@@ -107,14 +89,14 @@ class TMailMode : public AGuiMode
 
     std::vector<TMailBox*> _mailBoxes; //all mailboxes for current identity
 public:
-               TMailMode();               
+               TMailBoxListNode(ITreeNode* parent);               
            int childCount() { return _mailBoxes.size(); }
     ITreeNode* child(int /* row */) { return nullptr; }
       QVariant data(int row) { return _mailBoxes[row]->name(); }
 };
 
-TMailMode::TMailMode() 
-  : AGuiMode("Mail"),
+TMailBoxListNode::TMailBoxListNode(ITreeNode* parent) 
+  : ATreeNode("Mail",parent),
     _inBox("Inbox"),
     _draftBox("Drafts"),
     _pendingBox("Pending"),
@@ -126,36 +108,63 @@ TMailMode::TMailMode()
   _mailBoxes.push_back(&_sentBox);
 }
 
-/** Tree node that manages list of email and chat contacts (people you communicate with)
+/** Tree node that manages list of email and chat contacts (people you communicate with) for an identity
 */
-class TContactMode : public AGuiMode
+class TContactListNode : public ATreeNode
 {
     std::vector<TContact*> _contacts;
 public:
-               TContactMode() : AGuiMode("Contacts") {}
+               TContactListNode(ITreeNode* parent) : ATreeNode("Contacts",parent) {}
            int childCount() { return _contacts.size(); }
     ITreeNode* child(int /* row */) { return nullptr; }
       QVariant data(int row) { return _contacts[row]->_name; }
 };
 
+class TIdentityNode : public ATreeNodeParentNode
+{
+  TMailBoxListNode mailBoxList;
+  TContactListNode contactList;
+public:
+    TIdentityNode(const char* name, ITreeNode* parent);
+};
+
+TIdentityNode::TIdentityNode(const char* name, ITreeNode* parent)
+ : ATreeNodeParentNode(name,parent),
+   mailBoxList(this),
+   contactList(this)
+{
+  _children.push_back(&mailBoxList);
+  _children.push_back(&contactList);
+}
+
+/** Tree node that manages list of user identities (e.g. for email and chat)
+*/
+class TIdentityListNode : public ATreeNodeParentNode
+{
+public:
+               TIdentityListNode(ITreeNode* parent)
+                  : ATreeNodeParentNode("Identities",parent) 
+                 {
+                 //TODO: remove sample data
+                 _children.push_back(new TIdentityNode("Dan1",this));
+                 _children.push_back(new TIdentityNode("Dan2",this));
+                 _children.push_back(new TIdentityNode("Dan3",this));
+                 }
+};
+
+
 /** Modes of the GUI are defined here */
 TTreeRoot::TTreeRoot()
+ : ATreeNodeParentNode("invisibleRoot",nullptr)
 {
-    TIdentityMode* identityMode = new TIdentityMode;
-    identityMode->_identities.push_back(new TIdentity("Dan1"));
-    identityMode->_identities.push_back(new TIdentity("Dan2"));
-    identityMode->_identities.push_back(new TIdentity("Dan3"));
-    _children.push_back(identityMode);
-
-    TMailMode* mailMode = new TMailMode;
-    _children.push_back(mailMode);
-
-    _children.push_back(new TContactMode());
+    TIdentityListNode* identityListNode = new TIdentityListNode(this);
+    _children.push_back(identityListNode);
+    _children.push_back(new TContactListNode(this));
 }
 
 
-BitSharesTreeModel::BitSharesTreeModel(QObject* parent) :
-    QAbstractItemModel(parent)
+BitSharesTreeModel::BitSharesTreeModel(QObject* parent)
+    : QAbstractItemModel(parent)
 {    
 }
 
