@@ -15,6 +15,7 @@
 
 #include <unordered_map>
 
+#include <unistd.h> // TODO: remove this and usleep below
 
 namespace bts { namespace bitname {
 
@@ -68,9 +69,13 @@ namespace bts { namespace bitname {
     {
        public:
           name_channel_impl()
-          :_delegate(nullptr){}
+          :_delegate(nullptr),_new_block_info(true){}
 
           name_channel_delegate*                            _delegate;
+          /** set this flag anytime the fork database has new info that
+           *  might change what blocks to fetch.
+           */
+          bool                                              _new_block_info; 
           bts::peer::peer_channel_ptr                       _peers;
           network::channel_id                               _chan_id;
                                                             
@@ -80,6 +85,8 @@ namespace bts { namespace bitname {
           fetch_loop_state                                  _fetch_state;                          
           fc::future<void>                                  _fetch_loop;
            
+           // TODO: on connection disconnect, check to see if there was a pending fetch and
+           // cancel it so we can get it from someone else.
           fc::optional<fc::time_point>                      _pending_block_fetch;
                                                             
           broadcast_manager<short_name_id_type,name_header> _trx_broadcast_mgr;
@@ -156,42 +163,50 @@ namespace bts { namespace bitname {
              }
           }
 
-          bool fetch_next_from_fork_db()
+          void fetch_next_from_fork_db()
           { try {
-             if( _name_db.head_block_id() != _fork_db.best_fork_head_id() )
-             {
-                 name_id_type next = _fork_db.best_fork_fetch_next( _name_db.head_block_id() );
-                 while( next != name_id_type() )
-                 {
-                    ilog( "next: ${next}", ("next", next) );
-                    fc::optional<name_block>  next_blk( _fork_db.fetch_block(next) );
-                    if( next_blk ) 
-                    {
-                      try {
-                         _name_db.push_block( *next_blk );
-                      } 
-                      catch ( const fc::exception& e )
-                      {
-                         wlog( "unable to apply block ${block}\n${e}", ("block",next_blk)("e",e.to_detail_string()));
-                         _fork_db.set_valid( next, false );
-                      }
-                    }
-                    else
-                    {
-                        auto cons = _peers->get_connections( _chan_id );
-                        fetch_block_from_best_connection(  cons, next );
-                        return true;
-                    }
-
-                    // TODO: this could fail if head_block_id() is not part of a valid fork,
-                    //  in which case we need to find the most recent block that is part of
-                    //  a valid fork... pop everything from _name_db and then start building
-                    //  up from there...   but only if the next fork is 'better' than the
-                    //  current state of _name_db.
-                    next = _fork_db.best_fork_fetch_next( _name_db.head_block_id() );
-                 }
-             }
-             return false;
+              if( _pending_block_fetch && 
+                 (fc::time_point::now() - *_pending_block_fetch) < fc::seconds( BITNAME_BLOCK_FETCH_TIMEOUT_SEC ) )
+              {
+                 return;
+              }
+              if( _new_block_info )
+              {
+                  _new_block_info = false;
+                  auto valid_head_num = _name_db.head_block_num(); 
+                  if( valid_head_num >= _fork_db.best_fork_height() )
+                  {
+                     return;
+                  }
+                  meta_header next_best = _fork_db.best_fork_fetch_at( valid_head_num + 1 );
+                  while( next_best.prev != _name_db.head_block_id() )
+                  {
+                     _name_db.pop_block();
+                     next_best = _fork_db.fetch_header( next_best.prev );
+                  }
+                  fc::optional<name_block> next_block = _fork_db.fetch_block( next_best.id() );
+                  if( next_block )
+                  {
+                     try {
+                         _name_db.push_block( *next_block );
+                     } 
+                     catch ( const fc::exception& e )
+                     {
+                         elog( "error applying block from this fork, this fork must be invalid\n${e}", ( "e", e.to_detail_string() ) );
+                         _fork_db.set_valid( next_block->id(), false );
+                         usleep( 5*1000*1000 );
+                     }
+                     _new_block_info = true; // attempt another block on next call
+                  }
+                  else
+                  {
+                     auto cons = _peers->get_connections( _chan_id );
+                     if( cons.size() != 0  )
+                     {
+                         fetch_block_from_best_connection( cons, next_best.id() );
+                     }
+                  }
+              }
           } FC_RETHROW_EXCEPTIONS( warn , "" ) }
 
           /**
@@ -208,7 +223,6 @@ namespace bts { namespace bitname {
            *  for new block headers and it will get a response that may include 
            *  a potential chain reorganization though this should be relatively
            *  rare.
-           *
            *  
            */
           void fetch_loop()
@@ -218,25 +232,26 @@ namespace bts { namespace bitname {
                 while( !_fetch_loop.canceled() )
                 {
                    broadcast_inv();
+
+                   fetch_next_from_fork_db();
                    
-                   if( !fetch_next_from_fork_db() )
+                   short_name_id_type trx_query = 0;
+                   if( _trx_broadcast_mgr.find_next_query( trx_query ) )
                    {
-                       short_name_id_type trx_query = 0;
-                       if( _trx_broadcast_mgr.find_next_query( trx_query ) )
-                       {
-                          auto cons = _peers->get_connections( _chan_id );
-                          fetch_name_from_best_connection( cons, trx_query );
-                          _trx_broadcast_mgr.item_queried( trx_query );
-                       }
-                       
-                       name_id_type blk_idx_query;
-                       if( _block_index_broadcast_mgr.find_next_query( blk_idx_query ) )
-                       {
-                          auto cons = _peers->get_connections( _chan_id );
-                          fetch_block_idx_from_best_connection( cons, blk_idx_query );
-                          _block_index_broadcast_mgr.item_queried( blk_idx_query );
-                       }
+                      auto cons = _peers->get_connections( _chan_id );
+                      fetch_name_from_best_connection( cons, trx_query );
+                      _trx_broadcast_mgr.item_queried( trx_query );
                    }
+                   
+                   name_id_type blk_idx_query;
+                   if( _block_index_broadcast_mgr.find_next_query( blk_idx_query ) )
+                   {
+                      auto cons = _peers->get_connections( _chan_id );
+                      fetch_block_idx_from_best_connection( cons, blk_idx_query );
+                      _block_index_broadcast_mgr.item_queried( blk_idx_query );
+                   }
+
+
                    /* By using a random sleep we give other peers the oppotunity to find
                     * out about messages before we pick who to fetch from.
                     * TODO: move constants to config.hpp
@@ -352,8 +367,8 @@ namespace bts { namespace bitname {
                  if( chan_data.available_blocks.find(id) != chan_data.available_blocks.end() )
                  {
                     ilog( "request ${msg}", ("msg",get_block_message(id)) );
-
-                    get_channel_data( cons[i] ).requested_block = fc::time_point::now();
+                    _pending_block_fetch = fc::time_point::now();
+                    get_channel_data( cons[i] ).requested_block = *_pending_block_fetch;
                     // TODO: track how many blocks I have requested from this connection... 
                     // and perform soem load balancing...
                     cons[i]->send( network::message( get_block_message(id), _chan_id ) );
@@ -602,6 +617,7 @@ namespace bts { namespace bitname {
              cdat.block_mgr.received_response( msg.index.header.id() );
 
              _fork_db.cache_header( msg.index.header );
+             _new_block_info = true;
 
              if( msg.index.name_trxs.size() == 0 )
              {
@@ -668,6 +684,7 @@ namespace bts { namespace bitname {
 
                // TODO: make sure that I requrested this block... 
                _fork_db.cache_block( msg.block );
+               _new_block_info = true;
                cdat.requested_block.reset();
                _pending_block_fetch.reset();
                try {
@@ -693,6 +710,7 @@ namespace bts { namespace bitname {
               // TODO: validate that all ids reported have the min proof of work for a name.
               ilog( "received ${msg}", ("msg",msg) );
               _fork_db.cache_header( msg.first );
+              _new_block_info = true;
               name_id_type prev_id = msg.first.id();
               for( auto itr = msg.headers.begin(); itr != msg.headers.end(); ++itr )
               {
@@ -732,6 +750,7 @@ namespace bts { namespace bitname {
           void submit_block( const name_block& block )
           { try {
              _fork_db.cache_block( block );
+             _new_block_info = true;
              _name_db.push_block( block ); // this throws on error
              _trx_broadcast_mgr.invalidate_all(); // current inventory is now invalid
              _block_index_broadcast_mgr.clear_old_inventory(); // we can clear old inventory

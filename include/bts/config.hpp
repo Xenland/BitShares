@@ -23,7 +23,8 @@
  *  TODO: update configs below to follow scheme described above
  */
 
-#define NETWORK_DEFAULT_PORT          (9876)
+#define NETWORK_DEFAULT_PORT             (9876)
+#define BITNAME_BLOCK_FETCH_TIMEOUT_SEC  (60)
 #define RPC_DEFAULT_PORT              (NETWORK_DEFAULT_PORT+1)
 
 #define SHARE                         (1000ll)                    // used to position the decimal place

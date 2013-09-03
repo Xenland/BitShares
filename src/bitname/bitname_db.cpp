@@ -337,7 +337,7 @@ namespace bts { namespace bitname {
                   ("trx_time",trx.utc_sec)
                   ("expected",my->_timekeeper.expected_time(head_block_num()+1))
                   ("chain_time",chain_time()));
-       FC_ASSERT( trx.difficulty( chain_head_id ) >= target_name_difficulty(), "perhaps wrong previous node?" );
+       FC_ASSERT( trx.difficulty( chain_head_id ) >= target_name_difficulty(), "perhaps wrong previous node?", ("chain_head_id",chain_head_id)("trx_id",trx.id(chain_head_id)) );
 
        auto prev_reg_itr = my->_name_hash_to_locs.find( trx.name_hash );
 
@@ -347,6 +347,7 @@ namespace bts { namespace bitname {
           FC_ASSERT( name_locs.size() > 0 );
           name_location prev_loc = name_locs.back();
 
+          ilog( "prev_loc.block_num ${block_num}", ("block_num",prev_loc.block_num) );
           std::vector<name_trx>  prev_block_trxs = my->_block_num_to_name_trxs.fetch( prev_loc.block_num );
           name_trx  prev_trx;
           
@@ -354,6 +355,7 @@ namespace bts { namespace bitname {
           if( prev_loc.trx_num == max_trx_num ) // then the last block earned me points!
           {
              repute += prev_block_trxs.size();
+             ilog( "prev_loc.block_num ${block_num}", ("block_num",prev_loc.block_num) );
              prev_trx = my->_block_num_to_header.fetch( prev_loc.block_num );
           }
           else
@@ -387,11 +389,13 @@ namespace bts { namespace bitname {
                      auto prev_prev_update_loc = name_locs[name_locs.size()-2];
                      if( prev_prev_update_loc.trx_num == max_trx_num )
                      {
+                          ilog( "prev_prev_update_loc.block_num ${block_num}", ("block_num",prev_prev_update_loc.block_num) );
                         auto prev_prev_header =  my->_block_num_to_header.fetch( prev_prev_update_loc.block_num );
                         FC_ASSERT( prev_prev_header.key == signed_key );
                      }
                      else
                      {
+                          ilog( "prev_prev_update_loc.block_num ${block_num}", ("block_num",prev_prev_update_loc.block_num) );
                         std::vector<name_trx>  prev_prev_block_trxs = my->_block_num_to_name_trxs.fetch( prev_prev_update_loc.block_num );
                         FC_ASSERT( prev_prev_block_trxs.size() > prev_prev_update_loc.trx_num );
                         FC_ASSERT( prev_prev_block_trxs[prev_prev_update_loc.trx_num].key == signed_key );
@@ -433,13 +437,42 @@ namespace bts { namespace bitname {
            }
            else
            {
-             wlog( "index appears to be corrupt, you might want to fix that." );
+             FC_ASSERT( !"index appears to be corrupt, you might want to fix that." );
            }
-           my->_name_hash_to_locs.store( old_head.name_trxs[i].name_hash, locs ); 
+           if( locs.size() )
+           {
+               my->_name_hash_to_locs.store( old_head.name_trxs[i].name_hash, locs ); 
+           }
+           else
+           {
+               my->_name_hash_to_locs.remove( old_head.name_trxs[i].name_hash );
+           }
         }
+        std::vector<name_location> locs = my->_name_hash_to_locs.fetch( old_head.name_hash ); 
+        if( locs.back().block_num == head_num )
+        {
+          locs.pop_back();
+        }
+        else
+        {
+          FC_ASSERT( !"index appears to be corrupt, you might want to fix that." );
+        }
+        if( locs.size() == 0 )
+        {
+            my->_name_hash_to_locs.remove( old_head.name_hash );
+        }
+        else
+        {
+            my->_name_hash_to_locs.store( old_head.name_hash, locs ); 
+        }
+
+
+
         my->_block_num_to_header.remove( head_num );
         my->_block_num_to_name_trxs.remove( head_num );
         my->_timekeeper.pop( head_num );
+        my->_id_to_block_num.erase( old_head.id() );
+        my->_chain_difficulty -= old_head.difficulty();
         my->_header_ids.pop_back();
     } FC_RETHROW_EXCEPTIONS( warn, "" ) }
     
@@ -546,6 +579,17 @@ namespace bts { namespace bitname {
 
     void name_db::dump()
     {
+       {
+          auto itr = my->_name_hash_to_locs.begin();
+          ilog( "name to locs\n--------------------------------------" );
+          while( itr.valid() )
+          {
+             ilog( "${key} => ${val}", ("key",itr.key())("val",itr.value()) );
+             ++itr;
+          }
+          wlog( "header_ids ${ids}", ("ids",my->_header_ids) );
+
+       } // END DEBUG
        auto genesis = create_genesis_block(); 
        blockchain::time_keeper timekeep;
        timekeep.configure( genesis.utc_sec, 

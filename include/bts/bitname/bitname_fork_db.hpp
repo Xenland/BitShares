@@ -10,13 +10,14 @@ namespace bts { namespace bitname {
   struct meta_header : public name_header
   {
      meta_header( const name_header& h )
-     :name_header(h),chain_difficulty(0),height(-1),valid(true){}
+     :name_header(h),chain_difficulty(0),height(-1),valid(true),unavailable_count(0){}
      meta_header()
      :chain_difficulty(0),height(-1),valid(true){}
 
      uint64_t chain_difficulty;
      int32_t  height;
      bool     valid;
+     uint32_t unavailable_count;
   };
 
   /**
@@ -39,9 +40,16 @@ namespace bts { namespace bitname {
         *  All header IDs that we do not know the header for.  
         */
        std::vector<name_id_type> fetch_unknown();
+       std::vector<name_id_type> best_fork_ids();
 
        name_id_type              best_fork_head_id();
+       uint32_t                  best_fork_height();
        name_id_type              best_fork_fetch_next( const name_id_type& b );
+
+       /** 
+        *  Return the header at hieight H in the best fork.
+        */
+       meta_header              best_fork_fetch_at( uint32_t height );
 
        /**
         * All forks that branch from a particular node.

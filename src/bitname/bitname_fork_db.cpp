@@ -50,6 +50,17 @@ namespace bts { namespace bitname {
         db::level_pod_map<name_id_type,name_id_type>                        _unknown; // unknown id to the block that refs it.
 
         // cached for performance reasons... 
+        void dump_fork( name_id_type head )
+        {
+           wlog( "FORK ${fork}", ("fork",head) );
+           auto cur = head;
+           while( cur != name_id_type() )
+           {
+              auto h = _headers.fetch(cur);
+              ilog( "   ${H} => height:  ${height}  difficulty: ${diff}  valid: ${v}", ("H",h.id())("height",h.height)("diff",h.chain_difficulty)("v",h.valid));
+              cur = h.prev;
+           }
+        }
 
         void add_next( name_id_type prev, name_id_type next )
         { try {
@@ -59,9 +70,14 @@ namespace bts { namespace bitname {
            {
              nexts = nexts_itr.value();
            }
+           
            if( nexts.insert(next).second )
            {
              _nexts.store(prev,nexts);
+           }
+           if( nexts.size() == 1 )
+           {
+              update_fork_list();
            }
         } FC_RETHROW_EXCEPTIONS( warn, "", ("prev",prev)("next",next) ) }
 
@@ -109,7 +125,20 @@ namespace bts { namespace bitname {
                  _forks.store( fork_index( cur_id, cur_meta.chain_difficulty), 0 );
                }
            }
+           update_fork_list();
         } FC_RETHROW_EXCEPTIONS( warn, "", ("id",update_id) ) } // update_chain
+
+        void update_fork_list()
+        {
+           for( auto itr = _forks.begin(); itr.valid(); ++itr )
+           {
+               auto nexts_itr = _nexts.find( itr.key().fork_header );
+               if( nexts_itr.valid() && nexts_itr.value().size() )
+               {
+                 _forks.remove( itr.key() );
+               }
+           }
+        }
     };
 
   } // namespace detail
@@ -134,6 +163,12 @@ namespace bts { namespace bitname {
      my->_unknown.open( db_dir / "unknown", create );
 
      cache_block( create_genesis_block() );
+
+     my->update_fork_list();
+     for( auto itr = my->_forks.begin(); itr.valid(); ++itr )
+     {
+       my->dump_fork( itr.key().fork_header );
+     }
 
   } FC_RETHROW_EXCEPTIONS( warn, "unable to open fork database ${path}", ("path",db_dir) ) }
 
@@ -231,6 +266,7 @@ namespace bts { namespace bitname {
 
   void fork_db::set_valid( const name_id_type& blk_id, bool is_valid )
   { try {
+    ilog( "set_valid ${block}  ${v}", ("block",blk_id)("v",is_valid) );
     auto cur_meta = fetch_header(blk_id);
     FC_ASSERT( cur_meta.height > 0 ); // note: cannot set valid state on disconnected node!
     if( is_valid != cur_meta.valid )
@@ -281,7 +317,52 @@ namespace bts { namespace bitname {
      }
      return result;
   } FC_RETHROW_EXCEPTIONS( warn, "" ) }
+ 
+ std::vector<name_id_type> fork_db::best_fork_ids()
+ {
+    std::vector<name_id_type> ids;
+    fork_index best_fork;
+    if( my->_forks.last( best_fork ) )
+    {
+      ids.push_back( best_fork.fork_header );
+      auto cur_head  = fetch_header( best_fork.fork_header );
+      while( cur_head.prev != name_id_type() )
+      {
+         ids.push_back( cur_head.prev );
+         cur_head = fetch_header( cur_head.prev );
+      }
+    }
+    return ids;
+ }
+ uint32_t     fork_db::best_fork_height()
+ {
+    fork_index best_fork;
+    if( my->_forks.last( best_fork ) )
+    {
+       auto cur = fetch_header( best_fork.fork_header );
+       return cur.height;
+    }
+    return 0;
+ }
 
+ meta_header fork_db::best_fork_fetch_at( uint32_t height )
+ { try {
+    fork_index best_fork;
+    // TODO: while last.unavailable_count... get next best.
+    if( my->_forks.last( best_fork ) )
+    {
+       auto cur = fetch_header( best_fork.fork_header );
+       //FC_ASSERT( cur.valid, "", ("cur",cur) );
+       FC_ASSERT( cur.height >= height );
+
+       while( cur.height > height )
+       {
+          cur = fetch_header( cur.prev );
+       }
+       return cur;
+    }
+    FC_ASSERT( !"No forks found?" );
+ } FC_RETHROW_EXCEPTIONS( warn, "", ("height",height) ) }
 
 
 } }  // namespace bts::bitname
