@@ -7,7 +7,7 @@
 #include <fc/io/fstream.hpp>
 #include <fc/thread/thread.hpp>
 #include <sstream>
-
+#include <fc/io/json.hpp>
 #include <iostream>
 
 using namespace bts;
@@ -126,6 +126,20 @@ int main( int argc, char** argv )
               std::getline( ss, msg );
               app->send_text_message( bitchat::private_text_message(msg), fc::ecc::public_key(opt_name_rec->pub_key), my_priv_key );
           }
+       }
+       else if( cmd == "log" )
+       {
+          std::string bit_id;
+          ss >> bit_id;
+
+       }
+       else if( cmd == "inbox" )
+       {
+          auto inbox = pro->get_inbox();
+          fc::optional<fc::ecc::public_key_data> to;
+          fc::optional<fc::ecc::public_key_data> from;
+          auto msgs = inbox->fetch_headers( bitchat::private_message_type::text_msg, fc::time_point_sec(), fc::time_point::now(), to, from );
+          ilog( "inbox: ${inbox}", ("inbox", fc::json::to_pretty_string(msgs) ) );
        }
 
      }

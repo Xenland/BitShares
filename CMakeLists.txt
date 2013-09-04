@@ -105,6 +105,7 @@ set( sources
      src/bitchat/bitchat_channel.cpp
      src/bitchat/bitchat_client.cpp 
      src/bitchat/bitchat_message_cache.cpp
+     src/bitchat/bitchat_message_db.cpp
 
      src/addressbook/addressbook.cpp 
 

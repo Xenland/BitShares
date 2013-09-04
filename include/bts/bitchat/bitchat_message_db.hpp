@@ -14,8 +14,6 @@ namespace bts { namespace bitchat {
   struct message_header
   {
       fc::enum_type<uint32_t,private_message_type>   type;
-      fc::enum_type<uint32_t,encryption_type>        encryption;
-      fc::enum_type<uint32_t,compression_type>       compression;
       fc::time_point_sec                             received_time;
       fc::ecc::public_key_data                       to_key;
       fc::ecc::public_key_data                       from_key;
@@ -67,8 +65,6 @@ namespace bts { namespace bitchat {
 
 FC_REFLECT( bts::bitchat::message_header, 
     (type)
-    (encryption)
-    (compression)
     (received_time)
     (to_key)
     (digest) 

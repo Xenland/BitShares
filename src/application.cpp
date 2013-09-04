@@ -30,11 +30,22 @@ namespace bts {
           virtual void bitchat_message_received( const bitchat::decrypted_message& m )
           {
               ilog( "received ${msg}", ("msg",m) );
+              if( _profile ) _profile->cache( m );
               switch( m.msg_type )
               {
                  case bitchat::private_message_type::text_msg:
                  {
-                   ilog( "text message ${msg}", ("msg",m.as<bitchat::private_text_message>()) );
+                   auto txt = m.as<bitchat::private_text_message>();
+                   ilog( "text message ${msg}", ("msg",txt) );
+                   if( _delegate ) _delegate->received_text( txt, *m.from_key, m.decrypt_key->get_public_key() );
+                   break;
+                 }
+                 case bitchat::private_message_type::email_msg:
+                 {
+                   auto email = m.as<bitchat::private_email_message>();
+                   ilog( "email message ${msg}", ("msg",m.as<bitchat::private_email_message>()) );
+                   if( _delegate ) _delegate->received_email( email, *m.from_key, m.decrypt_key->get_public_key() );
+                   break;
                  }
               }
           }

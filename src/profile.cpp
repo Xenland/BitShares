@@ -29,6 +29,7 @@ namespace bts {
   :my( new detail::profile_impl() )
   {
     my->_addressbook = std::make_shared<addressbook::addressbook>();
+    my->_message_db  = std::make_shared<bitchat::message_db>();
   }
   
 
@@ -60,6 +61,7 @@ namespace bts {
       my->_keychain.set_seed( fc::raw::unpack<fc::sha512>(stretched_seed_data) );
       my->_addressbook->open( profile_dir / "addressbook" );
       my->_idents.open( profile_dir / "idents" );
+      my->_message_db->open( profile_dir / "messages", profile_cfg_key );
 
   } FC_RETHROW_EXCEPTIONS( warn, "", ("profile_dir",profile_dir) ) }
 
@@ -84,6 +86,7 @@ namespace bts {
   //void  profile::cache( const bts::blockchain::meta_transaction& mtrx );
   void    profile::cache( const bts::bitchat::decrypted_message& msg    )
   {
+    my->_message_db->store( msg );
   }
   /*
   std::vector<meta_transaction> profile::get_transactions()const
