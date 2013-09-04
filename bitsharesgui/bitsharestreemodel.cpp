@@ -2,7 +2,8 @@
 #include <algorithm>
 #include <assert.h>
 
-
+/** For now I think a contact should represent a single identity of another person. Later we should probably define
+a class that represents a single person with multiple identities (as far as the user knows, anyways), but do we need it right away? */
 struct TContact
 {
     QString _name;
@@ -16,8 +17,9 @@ class ITreeNode
 public:
     virtual   QVariant name() = 0;
     virtual ITreeNode* parent() = 0;
+    virtual       void addChild(ITreeNode*) = 0;
     virtual        int childCount() = 0;
-    virtual ITreeNode* child(int row) = 0;
+    virtual ITreeNode* child(int row) = 0; ///implmentations should return nullptr if children are not ITreeNodes (implies they are leaf nodes)
     virtual   QVariant data(int row) = 0;
     virtual        int getRow() = 0;
     virtual        int findRow(ITreeNode* child) = 0;
@@ -29,8 +31,8 @@ class ATreeNode : public ITreeNode
        QString _name;
     ITreeNode* _parent;
 public:
-               //TODO: automate telling the parent about this new child here instead of requiring manual call.
-               ATreeNode(const char* name, ITreeNode* parent) : _name(name), _parent(parent) { }
+               ATreeNode(const char* name, ITreeNode* parent) : _name(name), _parent(parent) {}
+          void addChild(ITreeNode*) { assert(false && "only override this if derived class accepts ITreeNodes as children"); }
       QVariant name()   { return QVariant(_name); }
     ITreeNode* parent() { return _parent; }
            int getRow() { return parent()->findRow(this); }
@@ -45,8 +47,8 @@ protected:
 public:
                ATreeNodeParentNode(const char* name, ITreeNode* parent) : ATreeNode(name,parent) {}
            int childCount()  { return _children.size(); }
-           //return nullptr if children are not ITreeNodes (implies they are leaf nodes)
-    ITreeNode* child(int row) { return _children[row]; }
+          void addChild(ITreeNode* child) { _children.push_back(child); }           
+    ITreeNode* child(int row) { return _children[row]; } 
       QVariant data(int row) { return _children[row]->name(); }
            int findRow(ITreeNode* child) 
              {
@@ -54,6 +56,7 @@ public:
              return foundI - _children.begin();
              }
 };
+
 
 
 /** TTreeRoot is a singleton that represents the root of the tree. It manages the top level nodes of the tree,
@@ -91,7 +94,7 @@ class TMailBoxListNode : public ATreeNode
 public:
                TMailBoxListNode(ITreeNode* parent);               
            int childCount() { return _mailBoxes.size(); }
-    ITreeNode* child(int /* row */) { return nullptr; }
+    ITreeNode* child(int /* row */) { return nullptr; } 
       QVariant data(int row) { return _mailBoxes[row]->name(); }
 };
 
@@ -108,7 +111,7 @@ TMailBoxListNode::TMailBoxListNode(ITreeNode* parent)
   _mailBoxes.push_back(&_sentBox);
 }
 
-/** Tree node that manages list of email and chat contacts (people you communicate with) for an identity
+/** Tree node that manages the list of email and chat contacts (people you communicate with) for an identity
 */
 class TContactListNode : public ATreeNode
 {
@@ -120,6 +123,7 @@ public:
       QVariant data(int row) { return _contacts[row]->_name; }
 };
 
+/** A tree node that represents one of the user's identities (bitname) */
 class TIdentityNode : public ATreeNodeParentNode
 {
   TMailBoxListNode mailBoxList;
@@ -137,7 +141,7 @@ TIdentityNode::TIdentityNode(const char* name, ITreeNode* parent)
   _children.push_back(&contactList);
 }
 
-/** Tree node that manages list of user identities (e.g. for email and chat)
+/** Tree node that manages the list of user identities (e.g. for email and chat) in the profile
 */
 class TIdentityListNode : public ATreeNodeParentNode
 {
@@ -146,9 +150,9 @@ public:
                   : ATreeNodeParentNode("Identities",parent) 
                  {
                  //TODO: remove sample data
-                 _children.push_back(new TIdentityNode("Dan1",this));
-                 _children.push_back(new TIdentityNode("Dan2",this));
-                 _children.push_back(new TIdentityNode("Dan3",this));
+                 addChild(new TIdentityNode("Dan1",this));
+                 addChild(new TIdentityNode("Dan2",this));
+                 addChild(new TIdentityNode("Dan3",this));
                  }
 };
 
@@ -157,9 +161,8 @@ public:
 TTreeRoot::TTreeRoot()
  : ATreeNodeParentNode("invisibleRoot",nullptr)
 {
-    TIdentityListNode* identityListNode = new TIdentityListNode(this);
-    _children.push_back(identityListNode);
-    _children.push_back(new TContactListNode(this));
+    addChild(new TIdentityListNode(this));
+    addChild(new TContactListNode(this));
 }
 
 
