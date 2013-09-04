@@ -437,7 +437,8 @@ namespace bts { namespace bitname {
 
           /* ===================================================== */   
           void handle_message( const connection_ptr& con, const message& m )
-          { try {
+          { 
+            try {
              chan_data& cdat = get_channel_data(con);
    
              ilog( "${msg_type}", ("msg_type", (bitname::message_type)m.msg_type ) );
@@ -480,7 +481,12 @@ namespace bts { namespace bitname {
                  default:
                    FC_THROW_EXCEPTION( exception, "unknown bitname message type ${msg_type}", ("msg_type", m.msg_type ) );
              }
-          } FC_RETHROW_EXCEPTIONS( warn, "${from} - ${msg}", ("from",con->remote_endpoint())("msg",m) ) } // handle_message
+            } 
+            catch ( fc::exception& e )
+            {
+              wlog( "${e}  ${from}", ("e",e.to_detail_string())("from",con->remote_endpoint()) );
+            }
+          }  // handle_message
 
 
           /* ===================================================== */   

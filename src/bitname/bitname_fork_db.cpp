@@ -186,11 +186,13 @@ namespace bts { namespace bitname {
      cache_block( create_genesis_block() );
 
      my->update_fork_list();
+     /*
      for( auto itr = my->_forks.begin(); itr.valid(); ++itr )
      {
        ilog( "fork... ${f}", ("f",itr.key()));
        my->dump_fork( itr.key().fork_header );
      }
+     */
 
   } FC_RETHROW_EXCEPTIONS( warn, "unable to open fork database ${path}", ("path",db_dir) ) }
 

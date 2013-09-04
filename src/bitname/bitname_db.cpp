@@ -583,7 +583,7 @@ namespace bts { namespace bitname {
 
     void name_db::dump()
     {
-       {
+       /*{
           auto itr = my->_name_hash_to_locs.begin();
           ilog( "name to locs\n--------------------------------------" );
           while( itr.valid() )
@@ -594,6 +594,7 @@ namespace bts { namespace bitname {
           wlog( "header_ids ${ids}", ("ids",my->_header_ids) );
 
        } // END DEBUG
+       */
        auto genesis = create_genesis_block(); 
        blockchain::time_keeper timekeep;
        timekeep.configure( genesis.utc_sec, 
