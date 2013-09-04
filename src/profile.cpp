@@ -85,9 +85,9 @@ namespace bts {
    */
   //void  profile::cache( const bts::blockchain::meta_transaction& mtrx );
   void    profile::cache( const bts::bitchat::decrypted_message& msg    )
-  {
+  { try {
     my->_message_db->store( msg );
-  }
+  } FC_RETHROW_EXCEPTIONS( warn, "", ("msg",msg)) }
   /*
   std::vector<meta_transaction> profile::get_transactions()const
   {
