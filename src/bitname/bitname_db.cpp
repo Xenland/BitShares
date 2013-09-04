@@ -174,6 +174,7 @@ namespace bts { namespace bitname {
                  auto header = fetch_block_header( block_num );
                  name_block block(header);
                  block.name_trxs = _block_num_to_name_trxs.fetch( block_num );
+                 FC_ASSERT( block.trxs_hash == block.calc_trxs_hash() );
                  return block;
              } FC_RETHROW_EXCEPTIONS( warn, "unable to fetch block num ${block_num}", ("block_num",block_num) ) }
        };
@@ -247,6 +248,7 @@ namespace bts { namespace bitname {
 
     void name_db::push_block( const name_block& next_block )
     { try {
+       FC_ASSERT( next_block.calc_trxs_hash() == next_block.trxs_hash );
        fc::sha224 next_id = next_block.id();
        uint64_t   block_diff = next_block.block_difficulty();
 
@@ -351,6 +353,7 @@ namespace bts { namespace bitname {
 
           ilog( "prev_loc.block_num ${block_num}", ("block_num",prev_loc.block_num) );
           std::vector<name_trx>  prev_block_trxs = my->_block_num_to_name_trxs.fetch( prev_loc.block_num );
+          ilog( "prev block trxs: ${trx}", ("trx",prev_block_trxs) );
           name_trx  prev_trx;
           
           uint32_t repute = 1;
@@ -625,10 +628,12 @@ namespace bts { namespace bitname {
              std::cerr<<"chain drift: "<<std::setw(8)<<timekeep.current_time_error() << " sec ";
              auto delta = (timekeep.expected_time(i)-blkhead.utc_sec);
              std::cerr<<"real drift: "<<std::setw(8)<<delta.count()/1000000 << " sec ";
+             std::cerr<<"trxs: "<<fc::variant(blkhead.trxs_hash).as_string().substr(0,8)<<"";
 
              std::cerr<<"\n";
+             auto blk = fetch_block(i); //my->_block_num_to_header.fetch(i); 
              std::vector<name_trx> blktrxs = my->_block_num_to_name_trxs.fetch(i);
-             for( uint32_t t = 0; t < blktrxs.size(); ++t )
+             for( uint32_t t = 0; t < blk.name_trxs.size(); ++t )
              {
                 std::cerr<<"\t\t"<<std::setw(3)<<t<<") ";
                 std::cerr<<std::setw(24)<<blktrxs[t].name_hash<<" ";

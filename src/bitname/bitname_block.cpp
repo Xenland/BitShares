@@ -49,8 +49,8 @@ namespace bts { namespace bitname {
   name_trxs_hash_type name_block::calc_trxs_hash()const
   {
      fc::sha512::encoder enc;
-     fc::raw::pack( prev );
-     fc::raw::pack( name_trxs );
+     fc::raw::pack( enc, prev );
+     fc::raw::pack( enc, name_trxs );
      auto result = enc.result();
      // city hash isn't crypto secure, but its input is sha512 which is.
      // we use city to compress the hash for bandwidth purposes
