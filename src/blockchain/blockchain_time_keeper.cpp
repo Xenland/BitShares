@@ -196,6 +196,7 @@ void time_keeper::pop( uint32_t block_num )
    {
       my->_records.pop_back();
    }
+   my->update_stats();
 }
 
 

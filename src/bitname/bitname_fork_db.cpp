@@ -167,6 +167,7 @@ namespace bts { namespace bitname {
      my->update_fork_list();
      for( auto itr = my->_forks.begin(); itr.valid(); ++itr )
      {
+       ilog( "fork... ${f}", ("f",itr.key()));
        my->dump_fork( itr.key().fork_header );
      }
 
@@ -176,7 +177,7 @@ namespace bts { namespace bitname {
   void fork_db::cache_header( const name_header& head )
   { try {
       auto id = head.id();
-      ilog( "                 ***              ***\n         cache header:  ${id} = ${h}", ("id",id)("h",head) );
+      ilog( "      cache header:  ${id} = ${h}", ("id",id)("h",head) );
       meta_header meta(head);
 
       if( head.prev == name_id_type() ) // better be genesis!
@@ -186,7 +187,7 @@ namespace bts { namespace bitname {
         meta.height = 0;
         meta.valid  = true;
         my->_forks.store( fork_index( id, meta.chain_difficulty ), 0 );
-        wlog( "                 ***              ***\n         cache header:  ${id} = ${h}", ("id",id)("h",head) );
+        wlog( "        cache header:  ${id} = ${h}", ("id",id)("h",head) );
         my->_headers.store(id,meta);
         return;
       }
@@ -248,6 +249,11 @@ namespace bts { namespace bitname {
   fc::optional<name_block>  fork_db::fetch_block( const name_id_type& id )
   { try {
      auto head = fetch_header( id );
+     name_block nb(head);
+
+     if( nb.calc_trxs_hash() == head.trxs_hash )
+         return nb;
+
      if( head.trxs_hash == name_trxs_hash_type() )
      {
        return name_block(head);

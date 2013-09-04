@@ -467,7 +467,6 @@ namespace bts { namespace bitname {
         }
 
 
-
         my->_block_num_to_header.remove( head_num );
         my->_block_num_to_name_trxs.remove( head_num );
         my->_timekeeper.pop( head_num );

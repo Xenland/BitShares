@@ -176,16 +176,23 @@ namespace bts { namespace bitname {
               {
                   _new_block_info = false;
                   auto valid_head_num = _name_db.head_block_num(); 
+                  ilog( "valid_head_num: ${v}", ("v",valid_head_num) ); 
                   if( valid_head_num >= _fork_db.best_fork_height() )
                   {
                      return;
                   }
-                  meta_header next_best = _fork_db.best_fork_fetch_at( valid_head_num + 1 );
+                  meta_header next_best = _fork_db.best_fork_fetch_at( valid_head_num + 1);
+                  ilog( "next_best: ${v}", ("v",next_best) ); 
+                  ilog( "head_block_id: ${v}", ("v",_name_db.head_block_id()) ); 
+
                   while( next_best.prev != _name_db.head_block_id() )
                   {
+                     wlog( "pop back!" );
                      _name_db.pop_block();
                      next_best = _fork_db.fetch_header( next_best.prev );
+                     ilog( "next_best: ${v}", ("v",next_best) ); 
                   }
+
                   fc::optional<name_block> next_block = _fork_db.fetch_block( next_best.id() );
                   if( next_block )
                   {
