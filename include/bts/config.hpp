@@ -24,6 +24,8 @@
  */
 
 #define NETWORK_DEFAULT_PORT             (9876)
+#define BITNAME_BLOCK_INTERVAL_SEC       (5*1)  // 5 minutes
+#define BITNAME_TIMEKEEPER_WINDOW        (64)    // blocks used for estimating time
 #define BITNAME_BLOCK_FETCH_TIMEOUT_SEC  (60)
 #define RPC_DEFAULT_PORT              (NETWORK_DEFAULT_PORT+1)
 
@@ -68,8 +70,6 @@
 #define MAX_BLOCK_TRXS_SIZE           (1024*1024 - 2*sizeof( bts::blockchain::block )  )
 
 
-#define BITNAME_BLOCK_INTERVAL_SEC         (5*1)  // 5 minutes
-#define BITNAME_TIMEKEEPER_WINDOW          (64)    // blocks used for estimating time
 #define BLOCKCHAIN_TIMEKEEPER_MIN_BACK_SEC (60*60) // 60 minutes
 #define BITNAME_TIME_TOLLERANCE_SEC        (60*60) // 60 minutes
 #define BITNAME_BLOCKS_BEFORE_TRANSFER     (288*7) // 1 week before a transfer is complete 

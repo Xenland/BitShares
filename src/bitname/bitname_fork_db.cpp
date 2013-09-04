@@ -2,6 +2,9 @@
 #include <bts/db/level_pod_map.hpp>
 #include <bts/difficulty.hpp>
 #include <fc/reflect/variant.hpp>
+#include <bts/config.hpp>
+
+#include <algorithm>
 
 #include <unordered_set>
 
@@ -61,6 +64,24 @@ namespace bts { namespace bitname {
               cur = h.prev;
            }
         }
+        uint64_t cur_difficulty( name_id_type head_id )
+        {
+           if( head_id == name_id_type() ) return 0;
+           std::vector<uint64_t> window( BITNAME_TIMEKEEPER_WINDOW );
+           for( uint32_t i = 0; i < BITNAME_TIMEKEEPER_WINDOW; ++i )
+           {
+             auto head = _headers.fetch(head_id);
+             window[i] = head.difficulty();
+             head_id = head.prev;
+             if( head_id == name_id_type() )
+             {
+                window.resize(i+1);
+                i = BITNAME_TIMEKEEPER_WINDOW;
+             }
+           }
+           std::sort( window.begin(), window.end() );
+           return window[window.size()/2];
+        }
 
         void add_next( name_id_type prev, name_id_type next )
         { try {
@@ -109,7 +130,7 @@ namespace bts { namespace bitname {
                   for( auto itr = next_set.begin(); itr != next_set.end(); ++itr )
                   {
                      auto next_meta             = _headers.fetch( *itr );
-                     next_meta.chain_difficulty = cur_meta.chain_difficulty + bts::difficulty( *itr ); 
+                     next_meta.chain_difficulty = cur_meta.chain_difficulty + cur_difficulty( next_meta.prev ); //bts::difficulty( *itr ); 
                      next_meta.height           = cur_meta.height + 1;
                      next_meta.valid            = cur_meta.valid;
                      _headers.store( *itr, next_meta );
@@ -198,7 +219,7 @@ namespace bts { namespace bitname {
          if( prev_meta.height != -1 )
          {
              meta.height           = prev_meta.height + 1;
-             meta.chain_difficulty = prev_meta.chain_difficulty + bts::difficulty(id);
+             meta.chain_difficulty = prev_meta.chain_difficulty + my->cur_difficulty(prev_meta.id()); //bts::difficulty(id);
              meta.valid            = prev_meta.valid;
 
              my->update_fork( prev_meta, meta );

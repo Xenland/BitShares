@@ -274,6 +274,8 @@ namespace bts { namespace bitname {
             try {
                 pop_block();
                 push_block( next_block );
+                wlog( "replaced head block" );
+                return;
             } 
             catch ( fc::exception& e )
             {

@@ -82,7 +82,7 @@ namespace bts { namespace blockchain {
                 uint32_t median_pos = index.size() / 2;
                 std::nth_element( index.begin(), index.begin()+median_pos, index.end(), 
                    [&](int32_t a, int32_t b) { return _records[a].block_difficulty < _records[b].block_difficulty; } );
-                _cur_difficulty = _records[index[median_pos]].block_difficulty;
+                _cur_difficulty =_records[index[median_pos]].block_difficulty; 
             }
 
             void update_next_difficulty()
@@ -169,7 +169,7 @@ void time_keeper::push( uint32_t block_num, fc::time_point block_time, uint64_t 
    FC_ASSERT( my->_records.size() > 0 );
  //  ilog( "records.size: ${s}", ("s", my->_records.size() ) );
    FC_ASSERT( my->_records.back().block_num + 1 == block_num, "${block_num}", ("block_num", block_num)("records.back.blocknum",my->_records.back().block_num) );
-   FC_ASSERT( block_difficulty >= my->_next_difficulty        ); // we set a difficulty for a reason!
+   FC_ASSERT( block_difficulty >= my->_next_difficulty, "", ("block_difficulty",block_difficulty)("next",my->_next_difficulty)        ); // we set a difficulty for a reason!
    FC_ASSERT( block_time >= (my->_cur_time - fc::seconds(BLOCKCHAIN_TIMEKEEPER_MIN_BACK_SEC) ),
               "block_time: ${block_time} _cur_time: ${cur_time}", 
               ("block_time", block_time)("cur_time",my->_cur_time)); // 1 hr grace.. 

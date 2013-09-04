@@ -693,7 +693,7 @@ namespace bts { namespace bitname {
                cdat.requested_block.reset();
                _pending_block_fetch.reset();
                try {
-                  _name_db.push_block( msg.block ); 
+                  submit_block(msg.block); //_name_db.push_block( msg.block ); 
                } 
                catch( const fc::exception& e )
                {
@@ -747,7 +747,10 @@ namespace bts { namespace bitname {
                } 
                catch ( const fc::exception& e )
                {
-                 elog( "delegate threw exception... it shouldn't do that!\n ${e}", ("e", e.to_detail_string() ) );
+                 // This could fail if the head block was replaced between the start of the last
+                 // mining round and the discovery of a name... perhaps catch this earlier rather than
+                 // waiting until we get here!
+                 wlog( "delegate threw exception... it shouldn't do that!\n ${e}", ("e", e.to_detail_string() ) );
                }
              }
           } FC_RETHROW_EXCEPTIONS( warn, "error submitting name", ("new_name_trx", new_name_trx) ) }
