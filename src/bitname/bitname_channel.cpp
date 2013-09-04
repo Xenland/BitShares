@@ -15,9 +15,6 @@
 
 #include <unordered_map>
 
-#ifndef WIN32
-#include <unistd.h> // TODO: remove this and usleep below
-#endif
 
 namespace bts { namespace bitname {
 
@@ -203,9 +200,6 @@ namespace bts { namespace bitname {
                      {
                          elog( "error applying block from this fork, this fork must be invalid\n${e}", ( "e", e.to_detail_string() ) );
                          _fork_db.set_valid( next_block->id(), false );
-                         #ifndef WIN32
-                         usleep( 5*1000*1000 );
-                         #endif
                      }
                      _new_block_info = true; // attempt another block on next call
                   }
