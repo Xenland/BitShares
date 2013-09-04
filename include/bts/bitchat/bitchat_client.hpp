@@ -1,6 +1,7 @@
 #pragma once
 #include <bts/peer/peer_channel.hpp>
 #include <bts/addressbook/addressbook.hpp>
+#include <bts/bitchat/bitchat_private_message.hpp>
 #include <fc/crypto/elliptic.hpp>
 #include <fc/reflect/reflect.hpp>
 #include <fc/time.hpp>
@@ -10,70 +11,17 @@ namespace bts { namespace bitchat
 {
     namespace detail { class client_impl; }
 
-    struct contact
-    {
-        contact( std::string l, fc::ecc::public_key k )
-        :label( std::move(l) ), key( std::move(k) ){}
-        contact(){}
-
-        std::string                        label;
-        fc::ecc::public_key                key;
-        ///< contact broadcasts here,  I should listen
-        fc::optional<fc::ecc::private_key> recv_broadcast;
-        std::vector<uint16_t>              send_channels;
-    };
-
-    struct contact_status
-    {
-        contact               ident;
-        std::string           away_message;
-        bool                  online;
-    };
-
-    struct identity 
-    {
-        std::string            label;
-        fc::ecc::private_key   key;
-        fc::ecc::private_key   broadcast; 
-        std::vector<uint16_t>  recv_channels;
-    };
-
-    class bitchat_delegate
+    class client_delegate
     {
        public:
-         virtual ~bitchat_delegate(){}
-         virtual void contact_signon( const contact& id ){};
-         virtual void contact_signoff( const contact& id ){};
-         virtual void contact_idle( const contact& id ){};
-         virtual void contact_away( const contact& id, 
-                                   const std::string& msg ){};
-
-         virtual void contact_request( const contact& id, 
-                                      const std::string& msg ){};
-
-         virtual void received_message( const std::string& msg, 
-                                        const identity& to,
-                                        const contact& from ){};
-         virtual void received_anonymous_message( const std::string& msg, 
-                                                  const identity& to){};
-
-         virtual void received_broadcast( const std::string& msg, 
-                                          const contact& from ){};
-        
-         /** perhaps we should warn the user that someone else is using
-          *  their keys to communicate... 
-          */
-         virtual void received_from_self( const std::string& msg,
-                                           const identity& to ){};
+         virtual void bitchat_message_received( const decrypted_message& m ){}          
     };
-
-    std::string         to_address( const fc::ecc::public_key& e );
-    fc::ecc::public_key from_address( const std::string& s );
-
 
     /**
      *  Provides checked conversion of public key to / from bitchat address
-     */
+     *  TODO: move this someplace else, this type of address representation
+     *  is only useful for user-facing interfaces, under the hood we just
+     *  deal with public keys.
     struct address
     {
        address( const fc::ecc::public_key& k );
@@ -85,6 +33,7 @@ namespace bts { namespace bitchat
        uint32_t                 check;
        fc::ecc::public_key_data key;
     };
+     */
 
 
     /**
@@ -95,31 +44,16 @@ namespace bts { namespace bitchat
     class client
     {
         public:
-          struct config
-          {
-             std::vector<identity> idents; // my ids
-             std::vector<contact>  contacts; ///< information about my contacts
-          };
-
-          client( const bts::peer::peer_channel_ptr& s, 
-                  const addressbook::addressbook_ptr& abook, bitchat_delegate* d );
+          client( const bts::peer::peer_channel_ptr& s, client_delegate* d );
           ~client();
 
-          void               add_identity( const identity& id );
-          identity           get_identity( const std::string& label );
+          void configure( const fc::path& dir );
 
-          void               add_contact( const contact& c );
-          contact            get_contact( const std::string& label );
+          /** sets the private keys that are used to receive incoming messages*/
+          void set_receive_keys( const std::vector<fc::ecc::private_key>& recv_keys );
 
-          void send_message( const std::string& msg, 
-                             const contact& to, 
-                             const identity& from );
-
-          void request_contact( const identity& id, const std::string& msg );
-
-          void broadcast_away( const identity& id, const std::string& msg );
-          void broadcast_signoff( const identity& id );
-          void broadcast_signon( const identity& id );
+          void join_channel( uint16_t chan_num );
+          void send_message( const decrypted_message& m, const fc::ecc::public_key& to, uint16_t chan = 0);
 
         private:
           std::unique_ptr<detail::client_impl> my;
@@ -127,11 +61,5 @@ namespace bts { namespace bitchat
     
     typedef std::shared_ptr<client> client_ptr;
 } } // bts::bitchat
-
-#include <fc/reflect/reflect.hpp>
-FC_REFLECT( bts::bitchat::client::config,  (idents)(contacts) )
-FC_REFLECT( bts::bitchat::identity, (label)(key)(broadcast)(recv_channels) )
-FC_REFLECT( bts::bitchat::contact,  (label)(key)(recv_broadcast)(send_channels) )
-FC_REFLECT( bts::bitchat::address,  (key)(check) )
 
 

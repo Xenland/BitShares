@@ -45,9 +45,11 @@ bool  encrypted_message::decrypt( const fc::ecc::private_key& with, decrypted_me
     {
       return false;
     }
+    wlog( "we passed checksum test... unpack message.." );
 
     std::vector<char> tmp = fc::aes_decrypt( aes_key, data );
     m = fc::raw::unpack<decrypted_message>(tmp);
+    ilog( "type: ${t}", ("t",uint64_t(m.msg_type)) );
     if( m.from_sig )
     {
         try {
@@ -71,9 +73,7 @@ fc::future<bool>  encrypted_message::do_proof_work( uint64_t tar_per_kb )
 
 
 decrypted_message::decrypted_message()
-: msg_type( unknown_msg ),
- compression_format(no_compression),
- encryption_method(no_encryption) // no 'additional' encryption beyond the standard aes
+: msg_type( unknown_msg )
  {}
 
 

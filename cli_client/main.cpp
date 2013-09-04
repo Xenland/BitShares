@@ -6,6 +6,7 @@
 #include <fc/log/logger.hpp>
 #include <fc/io/fstream.hpp>
 #include <fc/thread/thread.hpp>
+#include <sstream>
 
 #include <iostream>
 
@@ -88,9 +89,8 @@ int main( int argc, char** argv )
         idents = pro->identities();
      }
 
-     app->mine_name( idents[0].bit_id, 
-                     pro->get_keychain().get_identity_key( idents[0].bit_id ).get_public_key(), 
-                     idents[0].mining_effort );
+     fc::ecc::private_key my_priv_key = pro->get_keychain().get_identity_key( idents[0].bit_id );
+
 
 
      std::string line;
@@ -98,6 +98,36 @@ int main( int argc, char** argv )
      fc::cout<<"$] ";
      while( _cin.async([&](){ return !std::getline( std::cin, line ).eof(); } ).wait() ) 
      {
+       std::stringstream ss(line);
+       std::string cmd;
+       ss >> cmd;
+       if( cmd == "mine" ) 
+       {
+          app->mine_name( idents[0].bit_id, 
+                          pro->get_keychain().get_identity_key( idents[0].bit_id ).get_public_key(), 
+                          idents[0].mining_effort );
+       }
+       else if( cmd == "lookup" )
+       {
+          std::string bit_id;
+          ss >> bit_id;
+          ilog( "record: ${rec}", ("rec",app->lookup_name(bit_id)) );
+       }
+       else if( cmd == "send" )
+       {
+          std::string bit_id;
+          ss >> bit_id;
+
+          auto opt_name_rec  = app->lookup_name(bit_id);
+          ilog( "record: ${rec}", ("rec",app->lookup_name(bit_id)) );
+          if( opt_name_rec )
+          {
+              std::string msg;
+              std::getline( ss, msg );
+              app->send_text_message( bitchat::private_text_message(msg), fc::ecc::public_key(opt_name_rec->pub_key), my_priv_key );
+          }
+       }
+
      }
 
      ilog( "shutting down" );
