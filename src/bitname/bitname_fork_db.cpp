@@ -200,7 +200,7 @@ namespace bts { namespace bitname {
   void fork_db::cache_header( const name_header& head )
   { try {
       auto id = head.id();
-      ilog( "      cache header:  ${id} = ${h}", ("id",id)("h",head) );
+      //ilog( "      cache header:  ${id} = ${h}", ("id",id)("h",head) );
       meta_header meta(head);
 
       if( head.prev == name_id_type() ) // better be genesis!
@@ -210,7 +210,7 @@ namespace bts { namespace bitname {
         meta.height = 0;
         meta.valid  = true;
         my->_forks.store( fork_index( id, meta.chain_difficulty ), 0 );
-        wlog( "        cache header:  ${id} = ${h}", ("id",id)("h",head) );
+       // wlog( "        cache header:  ${id} = ${h}", ("id",id)("h",head) );
         my->_headers.store(id,meta);
         return;
       }

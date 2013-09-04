@@ -173,14 +173,14 @@ namespace bts { namespace bitname {
               {
                   _new_block_info = false;
                   auto valid_head_num = _name_db.head_block_num(); 
-                  ilog( "valid_head_num: ${v}", ("v",valid_head_num) ); 
+                  //ilog( "valid_head_num: ${v}", ("v",valid_head_num) ); 
                   if( valid_head_num >= _fork_db.best_fork_height() )
                   {
                      return;
                   }
                   meta_header next_best = _fork_db.best_fork_fetch_at( valid_head_num + 1);
-                  ilog( "next_best: ${v}", ("v",next_best) ); 
-                  ilog( "head_block_id: ${v}", ("v",_name_db.head_block_id()) ); 
+                  //ilog( "next_best: ${v}", ("v",next_best) ); 
+                  //ilog( "head_block_id: ${v}", ("v",_name_db.head_block_id()) ); 
 
                   while( next_best.prev != _name_db.head_block_id() )
                   {
@@ -828,7 +828,7 @@ namespace bts { namespace bitname {
   {
      auto id = block_to_submit.id();
      uint64_t block_difficulty = bts::difficulty(id);
-     ilog( "target: ${target}  block ${block}", ("target",my->_name_db.target_difficulty())("block",block_difficulty) );
+     //ilog( "target: ${target}  block ${block}", ("target",my->_name_db.target_difficulty())("block",block_difficulty) );
      if( block_difficulty >= my->_name_db.target_difficulty() )
      {
          my->submit_block( block_to_submit );
