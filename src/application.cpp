@@ -1,6 +1,7 @@
 #include <bts/application.hpp>
 #include <bts/bitname/bitname_client.hpp>
 #include <bts/bitchat/bitchat_client.hpp>
+#include <bts/network/upnp.hpp>
 #include <fc/reflect/variant.hpp>
 
 #include <fc/log/logger.hpp>
@@ -25,6 +26,7 @@ namespace bts {
           bts::peer::peer_channel_ptr       _peers;
           bts::bitname::client_ptr          _bitname_client;
           bts::bitchat::client_ptr          _bitchat_client;     
+          bts::network::upnp_service        _upnp;
 
 
           virtual void bitchat_message_received( const bitchat::decrypted_message& m )
@@ -86,6 +88,12 @@ namespace bts {
      my->_profile_dir = cfg.data_dir / "profiles";
      
      fc::create_directories( my->_profile_dir );
+
+     if( cfg.enable_upnp )
+     {
+        my->_upnp.map_port( cfg.network_port );
+     }
+
 
      my->_server = std::make_shared<bts::network::server>();    
 
