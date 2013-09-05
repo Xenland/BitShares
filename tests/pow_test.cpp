@@ -28,7 +28,8 @@ bts::pow_hash test_proof_of_work( const fc::sha256& seed, unsigned char* buffer,
    uint64_t* read_pos  = (uint64_t*)(buffer);
    uint64_t* write_pos = (uint64_t*)(buffer+32);
 
-   fc::aes_encoder enc( key, iv );
+   fc::aes_encoder enc;
+   enc.init( key, iv );
    auto loop_count = size / (2*BLOCK_SIZE);
    auto half_loop = loop_count / 4;
    uint32_t count = 0;

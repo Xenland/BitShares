@@ -1,5 +1,7 @@
 #include <bts/network/stcp_socket.hpp>
 #include <fc/crypto/hex.hpp>
+#include <fc/crypto/aes.hpp>
+#include <fc/crypto/city.hpp>
 #include <assert.h>
 #include <fc/log/logger.hpp>
 #include <fc/network/ip.hpp>
@@ -27,8 +29,10 @@ void     stcp_socket::connect_to( const fc::ip::endpoint& ep )
 
     auto shared_secret = _priv_key.get_shared_secret( rpub );
 //    ilog("shared secret ${s}", ("s", shared_secret) );
-    _send_bf.start( (unsigned char*)&shared_secret, 54 );
-    _recv_bf.start( (unsigned char*)&shared_secret, 54 );
+    _send_aes.init( fc::sha256::hash( (char*)&shared_secret, sizeof(shared_secret) ), 
+                    fc::city_hash_crc_128((char*)&shared_secret,sizeof(shared_secret) ) );
+    _recv_aes.init( fc::sha256::hash( (char*)&shared_secret, sizeof(shared_secret) ), 
+                    fc::city_hash_crc_128((char*)&shared_secret,sizeof(shared_secret) ) );
 }
 
 /**
@@ -47,7 +51,7 @@ size_t   stcp_socket::readsome( char* buffer, size_t max )
         _sock.read( buffer + s, 8 - s );
         s = 8;
     }
-    //_recv_bf.decrypt( (unsigned char*)buffer, s );
+    //_recv_aes.decrypt( (unsigned char*)buffer, s );
     return s;
 }
 
@@ -69,7 +73,7 @@ size_t   stcp_socket::writesome( const char* buffer, size_t len )
      * for now because we are going to upgrade to something
      * better.
      */
-    //_send_bf.encrypt( (unsigned char*)crypt_buf, len );
+    //_send_aes.encrypt( (unsigned char*)crypt_buf, len );
     _sock.write( (char*)buffer, len );
     return len;
 }
@@ -99,8 +103,10 @@ void    stcp_socket::accept()
 
     auto shared_secret = _priv_key.get_shared_secret( fc::ecc::public_key(rpub) );
 //    ilog("shared secret ${s}", ("s", shared_secret) );
-    _send_bf.start( (unsigned char*)&shared_secret, 54 );
-    _recv_bf.start( (unsigned char*)&shared_secret, 54 );
+    _send_aes.init( fc::sha256::hash( (char*)&shared_secret, sizeof(shared_secret) ), 
+                    fc::city_hash_crc_128((char*)&shared_secret,sizeof(shared_secret) ) );
+    _recv_aes.init( fc::sha256::hash( (char*)&shared_secret, sizeof(shared_secret) ), 
+                    fc::city_hash_crc_128((char*)&shared_secret,sizeof(shared_secret) ) );
 }
 
 
