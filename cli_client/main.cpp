@@ -157,6 +157,8 @@ int main( int argc, char** argv )
           ss >> label;
           ss >> bit_id;
 
+          auto bitrecord = app->lookup_name(bit_id);
+          ilog( "record: ${rec}", ("rec",bitrecord) );
           fc::optional<bts::addressbook::contact>   con =   pro->get_addressbook()->get_contact_by_bitname( bit_id );
           if( con )
           {

@@ -3,10 +3,10 @@ cmake_minimum_required( VERSION 2.8.11 )
 
 #set( CMAKE_AUTOMOC ON )
 
-set( CMAKE_PREFIX_PATH  ${CMAKE_PREFIX_PATH} ";${CMAKE_SOURCE_DIR}/vendor/qt.5.1/5.1.0/msvc2012/lib/cmake/Qt5Widgets" )
-find_package( Qt5Widgets )
-
+set( CMAKE_PREFIX_PATH  ${CMAKE_PREFIX_PATH} ";${CMAKE_SOURCE_DIR}/vendor/qt.5.1/5.1.0/msvc2012/lib/cmake" )
 set( CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/fc/CMakeModules" ${CMAKE_MODULE_PATH} )
+
+
 FIND_PACKAGE( OpenSSL )
 SET( ALL_OPENSSL_LIBRARIES
        ${OPENSSL_LIBRARIES}
@@ -140,11 +140,6 @@ set( sources
 
 add_library( bshare ${sources} )
 
-IF( NOT Qt5Widgets_DIR MATCHES Qt5Widgets_DIR-NOTFOUND )
-add_subdirectory( src/gui )
-ENDIF()
-
-
 #add_executable( wallet_test tests/wallet_test.cpp )
 #target_link_libraries( wallet_test bshare fc ${BOOST_LIBRARIES})
 #setup_library( bshare SOURCES ${sources} LIBRARY_TYPE STATIC )
@@ -160,5 +155,6 @@ ENDIF()
 
 #add_executable( bitshared bitshared.cpp )
 #target_link_libraries( bitshared bshare fc ${BOOST_LIBRARIES} )
+add_subdirectory( keyhotee )
 add_subdirectory( cli_client )
 add_subdirectory( tests )

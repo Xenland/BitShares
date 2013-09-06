@@ -127,6 +127,11 @@ namespace bts {
      my->_delegate = del;
   }
 
+  bool                        application::has_profile()const
+  {
+     return fc::exists( my->_profile_dir / "default" );
+  }
+
   profile_ptr                 application::get_profile()
   {
     FC_ASSERT( my->_config );
