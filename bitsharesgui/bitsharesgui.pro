@@ -29,16 +29,19 @@ INCLUDEPATH += ../fc/include
 SOURCES += main.cpp \
     bitsharesmainwindow.cpp \
     profileeditor.cpp \
-    bitsharestreemodel.cpp
+    bitsharestreemodel.cpp \
+    chatwidget.cpp
 
 HEADERS  += \
     bitsharesmainwindow.h \
     profileeditor.h \
-    bitsharestreemodel.h
+    bitsharestreemodel.h \
+    chatwidget.h
 
 FORMS    += \
     bitsharesmainwindow.ui \
-    profileeditor.ui
+    profileeditor.ui \
+    chatwidget.ui
 
 
 #SOURCES += main.cpp \
@@ -53,4 +56,7 @@ FORMS    += \
 
 #FORMS    += \
 #    bshare_gui.ui
+
+RESOURCES += \
+    bitshares.qrc
 

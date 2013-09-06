@@ -38,6 +38,17 @@ public:
     QAction *actionNew_Profile;
     QAction *actionRecent_Profiles;
     QAction *actionAbout;
+    QAction *actionCreateMail;
+    QAction *actionReply;
+    QAction *actionReply_To_all;
+    QAction *actionForward;
+    QAction *actionUndo;
+    QAction *actionRedo;
+    QAction *actionCut;
+    QAction *actionCopy;
+    QAction *actionPaste;
+    QAction *actionDelete_Message;
+    QAction *actionFind;
     QWidget *centralWidget;
     QSplitter *treeStackSplitter;
     QTreeView *bitSharesTreeView;
@@ -53,6 +64,8 @@ public:
     QSplitter *splitter;
     QMenuBar *menuBar;
     QMenu *menuBitShares;
+    QMenu *menuEdit;
+    QMenu *menuMail;
     QMenu *menuHelp;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
@@ -72,6 +85,31 @@ public:
         actionRecent_Profiles->setObjectName(QStringLiteral("actionRecent_Profiles"));
         actionAbout = new QAction(BitSharesMainWindow);
         actionAbout->setObjectName(QStringLiteral("actionAbout"));
+        actionCreateMail = new QAction(BitSharesMainWindow);
+        actionCreateMail->setObjectName(QStringLiteral("actionCreateMail"));
+        QIcon icon;
+        icon.addFile(QStringLiteral(":/images/images/pencil_small.png"), QSize(), QIcon::Normal, QIcon::Off);
+        actionCreateMail->setIcon(icon);
+        actionReply = new QAction(BitSharesMainWindow);
+        actionReply->setObjectName(QStringLiteral("actionReply"));
+        actionReply_To_all = new QAction(BitSharesMainWindow);
+        actionReply_To_all->setObjectName(QStringLiteral("actionReply_To_all"));
+        actionForward = new QAction(BitSharesMainWindow);
+        actionForward->setObjectName(QStringLiteral("actionForward"));
+        actionUndo = new QAction(BitSharesMainWindow);
+        actionUndo->setObjectName(QStringLiteral("actionUndo"));
+        actionRedo = new QAction(BitSharesMainWindow);
+        actionRedo->setObjectName(QStringLiteral("actionRedo"));
+        actionCut = new QAction(BitSharesMainWindow);
+        actionCut->setObjectName(QStringLiteral("actionCut"));
+        actionCopy = new QAction(BitSharesMainWindow);
+        actionCopy->setObjectName(QStringLiteral("actionCopy"));
+        actionPaste = new QAction(BitSharesMainWindow);
+        actionPaste->setObjectName(QStringLiteral("actionPaste"));
+        actionDelete_Message = new QAction(BitSharesMainWindow);
+        actionDelete_Message->setObjectName(QStringLiteral("actionDelete_Message"));
+        actionFind = new QAction(BitSharesMainWindow);
+        actionFind->setObjectName(QStringLiteral("actionFind"));
         centralWidget = new QWidget(BitSharesMainWindow);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         treeStackSplitter = new QSplitter(centralWidget);
@@ -137,6 +175,10 @@ public:
         menuBar->setGeometry(QRect(0, 0, 667, 21));
         menuBitShares = new QMenu(menuBar);
         menuBitShares->setObjectName(QStringLiteral("menuBitShares"));
+        menuEdit = new QMenu(menuBar);
+        menuEdit->setObjectName(QStringLiteral("menuEdit"));
+        menuMail = new QMenu(menuBar);
+        menuMail->setObjectName(QStringLiteral("menuMail"));
         menuHelp = new QMenu(menuBar);
         menuHelp->setObjectName(QStringLiteral("menuHelp"));
         BitSharesMainWindow->setMenuBar(menuBar);
@@ -148,16 +190,32 @@ public:
         BitSharesMainWindow->setStatusBar(statusBar);
 
         menuBar->addAction(menuBitShares->menuAction());
+        menuBar->addAction(menuEdit->menuAction());
+        menuBar->addAction(menuMail->menuAction());
         menuBar->addAction(menuHelp->menuAction());
         menuBitShares->addAction(actionNew_Profile);
         menuBitShares->addAction(actionOpen_Profile);
         menuBitShares->addAction(actionExit);
         menuBitShares->addAction(actionRecent_Profiles);
+        menuEdit->addAction(actionUndo);
+        menuEdit->addAction(actionRedo);
+        menuEdit->addSeparator();
+        menuEdit->addAction(actionCut);
+        menuEdit->addAction(actionCopy);
+        menuEdit->addAction(actionPaste);
+        menuEdit->addAction(actionDelete_Message);
+        menuEdit->addSeparator();
+        menuEdit->addAction(actionFind);
+        menuMail->addAction(actionCreateMail);
+        menuMail->addAction(actionReply);
+        menuMail->addAction(actionReply_To_all);
+        menuMail->addAction(actionForward);
         menuHelp->addAction(actionAbout);
+        mainToolBar->addAction(actionCreateMail);
 
         retranslateUi(BitSharesMainWindow);
 
-        stackedWidget->setCurrentIndex(1);
+        stackedWidget->setCurrentIndex(0);
 
 
         QMetaObject::connectSlotsByName(BitSharesMainWindow);
@@ -171,7 +229,21 @@ public:
         actionNew_Profile->setText(QApplication::translate("BitSharesMainWindow", "New Profile...", 0));
         actionRecent_Profiles->setText(QApplication::translate("BitSharesMainWindow", "Recent Profiles", 0));
         actionAbout->setText(QApplication::translate("BitSharesMainWindow", "About", 0));
+        actionCreateMail->setText(QApplication::translate("BitSharesMainWindow", "New Mail Message", 0));
+        actionCreateMail->setShortcut(QApplication::translate("BitSharesMainWindow", "Ctrl+N", 0));
+        actionReply->setText(QApplication::translate("BitSharesMainWindow", "Reply", 0));
+        actionReply_To_all->setText(QApplication::translate("BitSharesMainWindow", "Reply to all", 0));
+        actionForward->setText(QApplication::translate("BitSharesMainWindow", "Forward", 0));
+        actionUndo->setText(QApplication::translate("BitSharesMainWindow", "Undo", 0));
+        actionRedo->setText(QApplication::translate("BitSharesMainWindow", "Redo", 0));
+        actionCut->setText(QApplication::translate("BitSharesMainWindow", "Cut", 0));
+        actionCopy->setText(QApplication::translate("BitSharesMainWindow", "Copy", 0));
+        actionPaste->setText(QApplication::translate("BitSharesMainWindow", "Paste", 0));
+        actionDelete_Message->setText(QApplication::translate("BitSharesMainWindow", "Delete Message", 0));
+        actionFind->setText(QApplication::translate("BitSharesMainWindow", "Find", 0));
         menuBitShares->setTitle(QApplication::translate("BitSharesMainWindow", "File", 0));
+        menuEdit->setTitle(QApplication::translate("BitSharesMainWindow", "Edit", 0));
+        menuMail->setTitle(QApplication::translate("BitSharesMainWindow", "Mail", 0));
         menuHelp->setTitle(QApplication::translate("BitSharesMainWindow", "Help", 0));
     } // retranslateUi
 
