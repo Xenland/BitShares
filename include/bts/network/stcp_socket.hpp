@@ -1,6 +1,6 @@
 #pragma once
 #include <fc/network/tcp_socket.hpp>
-#include <fc/crypto/blowfish.hpp>
+#include <fc/crypto/aes.hpp>
 #include <fc/crypto/elliptic.hpp>
 
 namespace bts {  namespace network {
@@ -33,8 +33,8 @@ class stcp_socket : public virtual fc::iostream
     fc::array<char,8>    _buf;
     uint32_t             _buf_len;
     fc::tcp_socket       _sock;
-    fc::blowfish         _send_bf;
-    fc::blowfish         _recv_bf;
+    fc::aes_encoder      _send_aes;
+    fc::aes_decoder      _recv_aes;
 };
 
 typedef std::shared_ptr<stcp_socket> stcp_socket_ptr;

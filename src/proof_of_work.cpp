@@ -83,7 +83,8 @@ pow_hash proof_of_work( const fc::sha256& seed, unsigned char* buffer )
    uint64_t* read_pos  = (uint64_t*)(buffer);
    uint64_t* write_pos = (uint64_t*)(buffer+32);
 
-   fc::aes_encoder enc( key, iv );
+   fc::aes_encoder enc;
+   enc.init( key, iv );
    for( uint32_t i = 0; i < BUF_SIZE / (BLOCK_SIZE/2); ++i )
    {
       uint64_t wrote = enc.encode( (char*)read_pos, BLOCK_SIZE, (char*)write_pos ); 

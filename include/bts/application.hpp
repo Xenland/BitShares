@@ -12,11 +12,13 @@ namespace bts {
   {
       application_config()
       :network_port(NETWORK_DEFAULT_PORT),
-       rpc_port(RPC_DEFAULT_PORT){}
+       rpc_port(RPC_DEFAULT_PORT),
+       enable_upnp(false){}
 
       fc::path  data_dir;
       uint16_t  network_port;
       uint16_t  rpc_port;
+      bool      enable_upnp;
   };
 
   class application_delegate
@@ -70,4 +72,4 @@ namespace bts {
 
 } // namespace bts
 
-FC_REFLECT( bts::application_config, (data_dir)(network_port)(rpc_port) )
+FC_REFLECT( bts::application_config, (data_dir)(network_port)(rpc_port)(enable_upnp) )
