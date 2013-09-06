@@ -101,7 +101,16 @@ int main( int argc, char** argv )
        std::stringstream ss(line);
        std::string cmd;
        ss >> cmd;
-       if( cmd == "mine" ) 
+       if( cmd == "help" ) 
+       {
+         fc::cout<<"mine\n";
+         fc::cout<<"lookup  BIT_ID\n";
+         fc::cout<<"send BIT_ID MESSAGE\n";
+         fc::cout<<"inbox - print inbox\n";
+         fc::cout<<"addc - adds a contact\n";
+
+       }
+       else if( cmd == "mine" ) 
        {
           app->mine_name( idents[0].bit_id, 
                           pro->get_keychain().get_identity_key( idents[0].bit_id ).get_public_key(), 
@@ -141,7 +150,34 @@ int main( int argc, char** argv )
           auto msgs = inbox->fetch_headers( bitchat::private_message_type::text_msg, fc::time_point_sec(), fc::time_point::now(), to, from );
           ilog( "inbox: ${inbox}", ("inbox", fc::json::to_pretty_string(msgs) ) );
        }
+       else if( cmd == "addc" )
+       {
+          std::string label;
+          std::string bit_id;
+          ss >> label;
+          ss >> bit_id;
 
+          fc::optional<bts::addressbook::contact>   con =   pro->get_addressbook()->get_contact_by_bitname( bit_id );
+          if( con )
+          {
+              con->first_name = label;
+              pro->get_addressbook()->store_contact( *con );
+          }
+          else
+          {
+              bts::addressbook::contact con;
+              con.bitname_id = bit_id;
+              con.first_name = label;
+              pro->get_addressbook()->store_contact( con );
+          }
+       }
+       else if( cmd == "contacts" )
+       {
+          auto names = pro->get_addressbook()->get_known_bitnames();
+          fc::cout << fc::json::to_pretty_string(names) <<"\n";
+       }
+
+       fc::cout<<"\n$] ";
      }
 
      ilog( "shutting down" );

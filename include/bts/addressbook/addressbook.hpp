@@ -27,9 +27,9 @@ namespace bts { namespace addressbook {
          */
         std::vector<std::string> get_known_bitnames()const;
 
-        contact      get_contact_by_bitname( const std::string& bitname_label    )const;
-        std::string  get_bitname_by_address( const bts::address& bitname_address )const;
-        void         store_contact( const contact& contact_to_store );
+        fc::optional<contact> get_contact_by_bitname( const std::string& bitname_label    )const;
+        std::string           get_bitname_by_address( const bts::address& bitname_address )const;
+        void                  store_contact( const contact& contact_to_store );
 
      private:
         std::unique_ptr<detail::addressbook_impl> my;

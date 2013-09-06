@@ -40,13 +40,21 @@ namespace bts { namespace addressbook {
   std::vector<std::string> addressbook::get_known_bitnames()const
   {
       std::vector<std::string> known_bitnames;
-
+      auto itr = my->_contact_db.begin();
+      while( itr.valid() )
+      {
+         known_bitnames.push_back(itr.key());
+         ++itr;
+      }
       return known_bitnames;
   }
 
-  contact addressbook::get_contact_by_bitname( const std::string& bitname_id )const
+  fc::optional<contact> addressbook::get_contact_by_bitname( const std::string& bitname_id )const
   { try {
-      return my->_contact_db.fetch(bitname_id);
+      fc::optional<contact> con;
+      auto itr = my->_contact_db.find(bitname_id);
+      if( itr.valid() ) con = itr.value();
+      return con;
   } FC_RETHROW_EXCEPTIONS( warn, "", ("bitname_id", bitname_id) ) }
 
   std::string addressbook::get_bitname_by_address( const bts::address& bitname_address )const
