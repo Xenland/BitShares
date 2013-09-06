@@ -41,7 +41,12 @@ namespace bts { namespace network {
                message m;
                while( true )
                {
-                  fc::raw::unpack( *sock, m );  // unpack errors are fatal
+                  char tmp[16];
+                  sock->read( tmp, sizeof(tmp) );
+                  memcpy( (char*)&m, tmp, 8 );
+                  m.data.resize( m.size + 16 );
+                  memcpy( (char*)m.data.data(), tmp+8, 8 );
+                  sock->read( m.data.data() + 8, 16*((m.size -8 + 15)/16) );
 
                   try { // message handling errors are warnings... 
                     con_del->on_connection_message( self, m );
@@ -179,13 +184,6 @@ namespace bts { namespace network {
          try 
          {
             connect( *itr );
-            /*
-            my->sock = std::make_shared<stcp_socket>();
-            my->sock->connect_to(*itr); 
-            my->remote_ep = remote_endpoint();
-            ilog( "    connected to ${ep}", ("ep", *itr) );
-            my->read_loop_complete = fc::async( [=](){ my->read_loop(); } );
-            */
             return;
          } 
          catch ( const fc::exception& e )
@@ -200,8 +198,14 @@ namespace bts { namespace network {
   {
     try {
       fc::scoped_lock<fc::mutex> lock(my->write_lock);
-      fc::raw::pack( *my->sock, m );
-    } FC_RETHROW_EXCEPTIONS( warn, "unable to send message", ("m",m) );
+      size_t len = 8 + m.size;
+      len = 16*((len+15)/16);
+      std::vector<char> tmp(len);
+      memcpy( tmp.data(), (char*)&m, 8 );
+      memcpy( tmp.data() + 8, m.data.data(), m.size );
+      my->sock->write( tmp.data(), tmp.size() );
+      my->sock->flush();
+    } FC_RETHROW_EXCEPTIONS( warn, "unable to send message" );
   }
 
   void connection::set_channel_data( const channel_id& cid, const channel_data_ptr& d )

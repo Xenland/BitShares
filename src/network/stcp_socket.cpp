@@ -40,18 +40,22 @@ void     stcp_socket::connect_to( const fc::ip::endpoint& ep )
  *   the underlying TCP socket so that it can decrypt them. It
  *   will buffer any left-over.
  */
-size_t   stcp_socket::readsome( char* buffer, size_t max )
+size_t   stcp_socket::readsome( char* buffer, size_t len )
 {
-    assert( (max % 8) == 0 );
-    assert( max >= 8 );
+    //wlog( "readsome ${s}", ("s",len) );
+    assert( (len % 16) == 0 );
+    assert( len >= 16 );
+    char crypt_buf[2048];
+    len = std::min<size_t>(sizeof(crypt_buf),len);
 
-    size_t s = _sock.readsome( buffer, max );
-    if( s < 8 ) 
+    size_t s = _sock.readsome( crypt_buf, len );
+    if( s < 16 ) 
     {
-        _sock.read( buffer + s, 8 - s );
-        s = 8;
+        _sock.read( crypt_buf + s, 16 - s );
+        s = 16;
     }
-    //_recv_aes.decrypt( (unsigned char*)buffer, s );
+    _recv_aes.decode( crypt_buf, s, buffer );
+    //memcpy( buffer, crypt_buf, s );
     return s;
 }
 
@@ -62,9 +66,9 @@ bool     stcp_socket::eof()const
 
 size_t   stcp_socket::writesome( const char* buffer, size_t len )
 {
-    assert( len % 8 == 0 );
+    assert( len % 16 == 0 );
     assert( len > 0 );
-    unsigned char crypt_buf[2048];
+    char crypt_buf[2048];
     len = std::min<size_t>(sizeof(crypt_buf),len);
     memcpy( crypt_buf, buffer, len );
     /**
@@ -73,8 +77,11 @@ size_t   stcp_socket::writesome( const char* buffer, size_t len )
      * for now because we are going to upgrade to something
      * better.
      */
-    //_send_aes.encrypt( (unsigned char*)crypt_buf, len );
-    _sock.write( (char*)buffer, len );
+    //auto cipher_len =
+    _send_aes.encode( buffer, len, crypt_buf );
+    FC_ASSERT( len >= 16 );
+   // memcpy( crypt_buf, buffer, len );
+    _sock.write( (char*)crypt_buf, len );
     return len;
 }
 

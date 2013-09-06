@@ -55,18 +55,8 @@ namespace bts { namespace network {
         proto    = cid.proto;
         chan_num = cid.chan;
         msg_type = T::type;
-
-        fc::datastream<size_t> ps;
-        fc::raw::pack( ps, m );
-        data.resize( 8*((ps.tellp() + 7)/8) ); // round up to nearest 8 byte bounds.
-
-        // TODO: is it safe for the trailing garbage bytes to be uninitialized?
-        if( data.size() )
-        {
-           fc::datastream<char*> ds( data.data(), data.size() );
-           fc::raw::pack( ds, m );
-        }
-        size = data.size();
+        data     = fc::raw::pack(m);
+        size     = data.size();
      }
     
      /**
@@ -100,65 +90,9 @@ namespace bts { namespace network {
      }
   };
 
+
 } } // bts::network
 
-namespace fc 
-{ 
-   namespace raw 
-   {
-      namespace detail  // don't polute fc::raw with bts::blockchain specific types
-      {
-          struct packed_message_header
-          {
-            int32_t size : 24;
-            int32_t proto : 8;
-            int16_t chan_num;
-            int16_t msg_type;
-          };
-          static_assert( sizeof(packed_message_header) == sizeof(uint64_t), "packed_message_header should be tightly packed" );
-      }
-
-      /**
-       *  @read write in blocks of at least 8 bytes for encryption purposes
-       */
-      template<typename Stream>
-      inline void pack( Stream& s, const bts::network::message& m )
-      {
-         detail::packed_message_header packed_value;
-         packed_value.size = m.size;
-         packed_value.proto = m.proto;
-         packed_value.chan_num = m.chan_num;
-         packed_value.msg_type = m.msg_type;
-         FC_ASSERT( m.size % 8 == 0, ", size: ${s}", ("s",int64_t(m.size)) );
-         s.write( (char*)&packed_value, sizeof( packed_value ) );
-         if( m.size )
-         {
-            s.write( m.data.data(), m.data.size() );
-         }
-      }
-  
-      /**
-       *  @read read in blocks of at least 8 bytes for decryption purposes
-       */
-      template<typename Stream>
-      inline void unpack( Stream& s, bts::network::message& m )
-      {  
-         detail::packed_message_header packed_value;
-         s.read( (char*)&packed_value, sizeof( packed_value ) );
-         m.size = packed_value.size;
-         m.proto = packed_value.proto;
-         m.chan_num = packed_value.chan_num;
-         m.msg_type = packed_value.msg_type;
-         FC_ASSERT( m.size % 8 == 0 );
-         if( m.size > 0 )
-         {
-             m.data.resize( m.size ); // note: size is 24 bit, max 16 MB thus safe to use without check
-             s.read( m.data.data(), m.data.size() );
-         }
-      }
-  
-   } // namespace raw
-} // namespace fc
 
 FC_REFLECT( bts::network::message_header, (proto)(chan_num)(msg_type) )
-FC_REFLECT_DERIVED( bts::network::message, (bts::network::message_header), (data) )
+//FC_REFLECT_DERIVED( bts::network::message, (bts::network::message_header), (data) )

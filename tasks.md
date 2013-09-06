@@ -31,11 +31,6 @@ be imported into the code code base and your funds will be paid.
     must exersize every method and every branch in the code (verify this somehow?)
 
 
-1 BTC - update stcp_socket to use fc::aes_encoder 
---------------------------------
-    open for bids now.
-    must verify that communication via bts::network::connection remains functional.
-
 .25 BTC - implement from_variant in src/blockchain/transaction.cpp
    open for bids now
    void from_variant( const variant& var,  bts::blockchain::trx_output& vo )
