@@ -6,6 +6,7 @@ ChatWidget::ChatWidget(QWidget *parent) :
     ui(new Ui::ChatWidget)
 {
     ui->setupUi(this);
+    setAttribute(Qt::WA_DeleteOnClose);
 }
 
 void ChatWidget::setContact(QString contactName)

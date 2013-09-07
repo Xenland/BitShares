@@ -59,7 +59,7 @@ void BitSharesMainWindow::closeEvent(QCloseEvent *event)
 
 void BitSharesMainWindow::on_actionExit_triggered()
 {
-    close();
+    qApp->closeAllWindows();
 }
 
 void BitSharesMainWindow::on_actionCreateMail_triggered()
