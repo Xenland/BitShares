@@ -26,17 +26,24 @@ LIBS += -L${BOOST_LIBRARY_DIR} -lboost_context -lboost_thread -lboost_system -lb
 INCLUDEPATH += ../include
 INCLUDEPATH += ../fc/include
 
+PRECOMPILED_HEADER = bitsharesguiprecomp.h
+
 SOURCES += main.cpp \
     bitsharesmainwindow.cpp \
     profileeditor.cpp \
     bitsharestreemodel.cpp \
-    chatwidget.cpp
+    chatwidget.cpp \
+    selfsizingwidget.cpp \
+    selfsizingmainwindow.cpp
 
 HEADERS  += \
     bitsharesmainwindow.h \
     profileeditor.h \
     bitsharestreemodel.h \
-    chatwidget.h
+    chatwidget.h \
+    selfsizingwidget.h \
+    selfsizingmainwindow.h \
+    bitsharesguiprecomp.h
 
 FORMS    += \
     bitsharesmainwindow.ui \

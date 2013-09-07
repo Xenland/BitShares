@@ -1,13 +1,15 @@
 #ifndef CHATWIDGET_H
 #define CHATWIDGET_H
 
-#include <QWidget>
+//DLN only include one of these
+#include "selfsizingwidget.h"
+//#include "selfsizingmainwindow.h"
 
 namespace Ui {
 class ChatWidget;
 }
 
-class ChatWidget : public QWidget
+class ChatWidget : public SelfSizingWidget
 {
     Q_OBJECT
     //identity
@@ -18,6 +20,8 @@ public:
     explicit ChatWidget(QWidget *parent = 0);
     ~ChatWidget();
     
+    void setContact(QString contactName);
+
 private:
     Ui::ChatWidget *ui;
 };

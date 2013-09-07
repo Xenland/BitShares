@@ -2,13 +2,21 @@
 #include "ui_chatwidget.h"
 
 ChatWidget::ChatWidget(QWidget *parent) :
-    QWidget(parent),
+    SelfSizingWidget(parent),
     ui(new Ui::ChatWidget)
 {
     ui->setupUi(this);
+}
+
+void ChatWidget::setContact(QString contactName)
+{
+    setWindowTitle(contactName);
+    readSettings();
 }
 
 ChatWidget::~ChatWidget()
 {
     delete ui;
 }
+
+

@@ -1,14 +1,14 @@
 #ifndef BITSHARESMAINWINDOW_H
 #define BITSHARESMAINWINDOW_H
 
-#include <QMainWindow>
 #include "bitsharestreemodel.h"
+#include "selfsizingmainwindow.h"
 
 namespace Ui {
 class BitSharesMainWindow;
 }
 
-class BitSharesMainWindow : public QMainWindow
+class BitSharesMainWindow : public SelfSizingMainWindow
 {
     Q_OBJECT
 
