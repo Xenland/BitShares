@@ -36,10 +36,10 @@ IF( WIN32 )
   #boost
   SET( Boost_INCLUDE_DIR $ENV{BOOST_ROOT} )
   #openssl
-  set( OPENSSL_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor/openssl" )
-  set( LIB_EAY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/vendor/openssl/out32dll/libeay32.lib" )
-  set( SSL_EAY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/vendor/openssl/out32dll/ssleay32.lib" )
-  include_directories( "${CMAKE_CURRENT_SOURCE_DIR}/vendor/openssl/include" )
+  #set( OPENSSL_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor/openssl" )
+  #set( LIB_EAY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/vendor/openssl/out32dll/libeay32.lib" )
+  #set( SSL_EAY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/vendor/openssl/out32dll/ssleay32.lib" )
+  #include_directories( "${CMAKE_CURRENT_SOURCE_DIR}/vendor/openssl/include" )
 
   include_directories( ${CMAKE_SOURCE_DIR}/vendor/leveldb-win/include )
   add_subdirectory( vendor/leveldb-win )
