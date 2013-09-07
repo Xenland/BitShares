@@ -11,10 +11,15 @@ class BitSharesMainWindow;
 class BitSharesMainWindow : public QMainWindow
 {
     Q_OBJECT
-    
+
+    void readSettings();
+    void writeSettings();
+    void closeEvent(QCloseEvent *event);
+    bool okToContinue() { return true; }
+
 public:
     explicit BitSharesMainWindow(QWidget *parent = 0);
-    ~BitSharesMainWindow();
+             ~BitSharesMainWindow();
     
 private slots:
 

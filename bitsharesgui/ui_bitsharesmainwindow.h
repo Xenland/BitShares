@@ -26,6 +26,7 @@
 #include <QtWidgets/QTextBrowser>
 #include <QtWidgets/QToolBar>
 #include <QtWidgets/QTreeView>
+#include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
 
 QT_BEGIN_NAMESPACE
@@ -54,6 +55,7 @@ public:
     QTreeView *bitSharesTreeView;
     QStackedWidget *stackedWidget;
     QWidget *chatPage;
+    QVBoxLayout *verticalLayout;
     QSplitter *chatSplitter;
     QListView *chatView;
     QPlainTextEdit *chatTextEdit;
@@ -112,33 +114,37 @@ public:
         actionFind->setObjectName(QStringLiteral("actionFind"));
         centralWidget = new QWidget(BitSharesMainWindow);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
+        QSizePolicy sizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        sizePolicy.setHorizontalStretch(0);
+        sizePolicy.setVerticalStretch(0);
+        sizePolicy.setHeightForWidth(centralWidget->sizePolicy().hasHeightForWidth());
+        centralWidget->setSizePolicy(sizePolicy);
         treeStackSplitter = new QSplitter(centralWidget);
         treeStackSplitter->setObjectName(QStringLiteral("treeStackSplitter"));
-        treeStackSplitter->setGeometry(QRect(9, 9, 611, 511));
+        treeStackSplitter->setGeometry(QRect(10, 10, 300, 402));
+        sizePolicy.setHeightForWidth(treeStackSplitter->sizePolicy().hasHeightForWidth());
+        treeStackSplitter->setSizePolicy(sizePolicy);
         treeStackSplitter->setOrientation(Qt::Horizontal);
         bitSharesTreeView = new QTreeView(treeStackSplitter);
         bitSharesTreeView->setObjectName(QStringLiteral("bitSharesTreeView"));
         treeStackSplitter->addWidget(bitSharesTreeView);
         stackedWidget = new QStackedWidget(treeStackSplitter);
         stackedWidget->setObjectName(QStringLiteral("stackedWidget"));
-        QSizePolicy sizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
-        sizePolicy.setHorizontalStretch(0);
-        sizePolicy.setVerticalStretch(0);
         sizePolicy.setHeightForWidth(stackedWidget->sizePolicy().hasHeightForWidth());
         stackedWidget->setSizePolicy(sizePolicy);
         stackedWidget->setMinimumSize(QSize(100, 0));
         chatPage = new QWidget();
         chatPage->setObjectName(QStringLiteral("chatPage"));
-        QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        sizePolicy1.setHorizontalStretch(0);
-        sizePolicy1.setVerticalStretch(0);
-        sizePolicy1.setHeightForWidth(chatPage->sizePolicy().hasHeightForWidth());
-        chatPage->setSizePolicy(sizePolicy1);
+        sizePolicy.setHeightForWidth(chatPage->sizePolicy().hasHeightForWidth());
+        chatPage->setSizePolicy(sizePolicy);
+        verticalLayout = new QVBoxLayout(chatPage);
+        verticalLayout->setSpacing(6);
+        verticalLayout->setContentsMargins(11, 11, 11, 11);
+        verticalLayout->setObjectName(QStringLiteral("verticalLayout"));
         chatSplitter = new QSplitter(chatPage);
         chatSplitter->setObjectName(QStringLiteral("chatSplitter"));
-        chatSplitter->setGeometry(QRect(-30, 20, 256, 384));
-        sizePolicy1.setHeightForWidth(chatSplitter->sizePolicy().hasHeightForWidth());
-        chatSplitter->setSizePolicy(sizePolicy1);
+        sizePolicy.setHeightForWidth(chatSplitter->sizePolicy().hasHeightForWidth());
+        chatSplitter->setSizePolicy(sizePolicy);
         chatSplitter->setOrientation(Qt::Vertical);
         chatView = new QListView(chatSplitter);
         chatView->setObjectName(QStringLiteral("chatView"));
@@ -146,16 +152,19 @@ public:
         chatTextEdit = new QPlainTextEdit(chatSplitter);
         chatTextEdit->setObjectName(QStringLiteral("chatTextEdit"));
         chatSplitter->addWidget(chatTextEdit);
+
+        verticalLayout->addWidget(chatSplitter);
+
         stackedWidget->addWidget(chatPage);
         mailPage = new QWidget();
         mailPage->setObjectName(QStringLiteral("mailPage"));
-        sizePolicy1.setHeightForWidth(mailPage->sizePolicy().hasHeightForWidth());
-        mailPage->setSizePolicy(sizePolicy1);
+        sizePolicy.setHeightForWidth(mailPage->sizePolicy().hasHeightForWidth());
+        mailPage->setSizePolicy(sizePolicy);
         mailSplitter = new QSplitter(mailPage);
         mailSplitter->setObjectName(QStringLiteral("mailSplitter"));
         mailSplitter->setGeometry(QRect(10, 20, 225, 511));
-        sizePolicy1.setHeightForWidth(mailSplitter->sizePolicy().hasHeightForWidth());
-        mailSplitter->setSizePolicy(sizePolicy1);
+        sizePolicy.setHeightForWidth(mailSplitter->sizePolicy().hasHeightForWidth());
+        mailSplitter->setSizePolicy(sizePolicy);
         mailSplitter->setOrientation(Qt::Vertical);
         mailHeadersTable = new QTableView(mailSplitter);
         mailHeadersTable->setObjectName(QStringLiteral("mailHeadersTable"));

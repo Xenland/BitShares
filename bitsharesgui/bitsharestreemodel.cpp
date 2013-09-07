@@ -2,6 +2,13 @@
 #include <algorithm>
 #include <assert.h>
 
+//bitshares database info
+#if 1
+#include <bts/profile.hpp>
+#include <bts/addressbook/addressbook.hpp>
+#include <bts/addressbook/contact.hpp>
+#endif
+
 /** For now I think a contact should represent a single identity of another person. Later we should probably define
 a class that represents a single person with multiple identities (as far as the user knows, anyways), but do we need it right away? */
 struct TContact
