@@ -46,14 +46,14 @@ void BitSharesMainWindow::writeSettings()
 void BitSharesMainWindow::closeEvent(QCloseEvent *event)
 {
     if (okToContinue()) 
-        {
+    {
         writeSettings();
         event->accept();
-        } 
+    } 
     else
-        {
+    {
         event->ignore();
-        }
+    }
 }
 
 
