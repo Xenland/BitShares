@@ -10,6 +10,8 @@ General Coding Standards
   - char* y                (not char *y)
   - always use {} for conditionals and loops.
  
+Here is an example of proper usage of braces:
+
       while( true )
       {
       }
