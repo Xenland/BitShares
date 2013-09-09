@@ -6,6 +6,8 @@ General Coding Standards
   - pragma once instead of header guards
   - use private implementation classes for long-lived objects
 
+Example of using private implementation: 
+
     namespace detail { class_name_impl; }
     class class_name
     {
