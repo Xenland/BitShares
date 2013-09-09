@@ -93,6 +93,8 @@ void replace_char_runs( std::string& s )
 
 uint64_t  name_hash( const std::string& n )
 {
+  if( n.size() == 0 ) return 0;
+
   std::locale loc = std::locale::classic();
   std::string up(n);
   int length  = n.size();
@@ -103,6 +105,8 @@ uint64_t  name_hash( const std::string& n )
  
   // remove any and all hidden or invalid characters
   up.erase(std::remove_if(up.begin(), up.end(), is_invalid_char), up.end());
+
+  if( up.size() == 0 ) return 0;
 
   // replace NN UU ___ etc with a single instance to avoid any
   // confusion this way... yes this means mom, moon, noon will be the same.. boob, bob, bo will

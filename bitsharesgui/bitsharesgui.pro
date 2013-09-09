@@ -7,6 +7,9 @@
 QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+QMAKE_CXX=/opt/local/bin/g++
+QMAKE_LINK=/opt/local/bin/g++
+QMAKE_CC=/opt/local/bin/gcc
 
 TARGET = bitsharesgui
 TEMPLATE = app
@@ -20,13 +23,15 @@ LIBS += ../Debug/bshare.lib ../fc/Debug/fc_debug.lib
 } else {
 LIBS += ../libbshare.a ../fc/libfc.a
 LIBS += -L${BOOST_LIBRARY_DIR} -lboost_context -lboost_thread -lboost_system -lboost_chrono -lboost_filesystem -lboost_system -lboost_date_time -lboost_coroutine
+LIBS += ../libbshare.a ../fc/libfc.a 
 }
 
 
-INCLUDEPATH += ../include
+INCLUDEPATH += ../include 
+INCLUDEPATH += /usr/local/include
 INCLUDEPATH += ../fc/include
 
-PRECOMPILED_HEADER = bitsharesguiprecomp.h
+#PRECOMPILED_HEADER = bitsharesguiprecomp.h
 
 SOURCES += main.cpp \
     bitsharesmainwindow.cpp \

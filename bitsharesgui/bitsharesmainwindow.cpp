@@ -2,8 +2,8 @@
 #include "ui_bitsharesmainwindow.h"
 #include <qmessagebox.h>
 #include "chatwidget.h"
+#include <QSettings>
 
-const int VERSIONNUM = 1;
 
 BitSharesMainWindow::BitSharesMainWindow(QWidget *parent) :
     SelfSizingMainWindow(parent),

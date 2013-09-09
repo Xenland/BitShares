@@ -225,4 +225,15 @@ namespace bts {
      my->_server->connect_to(remote_ep);
   } FC_RETHROW_EXCEPTIONS( warn, "", ("endpoint",remote_ep) ) }
 
+
+  void application::quit()
+  { try {
+       my.reset();
+  } FC_RETHROW_EXCEPTIONS( warn, "" ) }
+ 
+  application_ptr application::instance()
+  {
+      static application_ptr app = std::make_shared<application>();
+      return app;
+  }
 } // namespace bts

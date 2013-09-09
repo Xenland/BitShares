@@ -48,6 +48,9 @@ namespace bts {
       application();
       ~application();
 
+      void                                  quit();
+      static std::shared_ptr<application>   instance();
+
       void                        configure( const application_config& cfg );
       application_config          get_configuration()const;
 
@@ -65,7 +68,8 @@ namespace bts {
 
       void  send_contact_request( const fc::ecc::public_key& to, const fc::ecc::private_key& from );
       void  send_email( const bitchat::private_email_message& email, const fc::ecc::public_key& to, const fc::ecc::private_key& from );
-      void  send_text_message( const bitchat::private_text_message& txtmsg, const fc::ecc::public_key& to, const fc::ecc::private_key& from );
+      void  send_text_message( const bitchat::private_text_message& txtmsg, 
+                               const fc::ecc::public_key& to, const fc::ecc::private_key& from );
 
     private:
       std::unique_ptr<detail::application_impl> my;

@@ -5,6 +5,8 @@ General Coding Standards
   - all c headers end in .h
   - pragma once instead of header guards
   - use private implementation classes for long-lived objects
+      - long-lived objects are anything that could be allocated on the heap without
+        significant overhead.  Not temporaries or 'structs'. 
 
 Example of using private implementation: 
 
@@ -18,6 +20,10 @@ Example of using private implementation:
        private:
           std::unique_ptr<detail::class_name_impl> my;
     };
+
+This should be used anytime where the private members would require an additional include
+dependency not required by the public API.
+
 
   - note the formatting of the class, braces, indentions, etc.
   - avoid abreviations as much as possible

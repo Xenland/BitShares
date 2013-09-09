@@ -1,4 +1,4 @@
-#ifdef WIN32
+#if 1
 #include "bitsharesmainwindow.h"
 #else
 #include "bshare_gui.h"
@@ -10,7 +10,7 @@
 int main(int argc, char *argv[])
 {
     QApplication application(argc, argv);
-#ifdef WIN32
+#if 1
     BitSharesMainWindow mainWindow;
     mainWindow.show();
 #else

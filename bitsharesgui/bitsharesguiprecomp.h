@@ -4,7 +4,8 @@
 #include <QtCore>
 #include <QtGui>
 
-extern const int VERSIONNUM;
+
+#define VERSIONNUM (int32_t(1))
 
 
 #endif // BITSHARESGUIPRECOMP_H

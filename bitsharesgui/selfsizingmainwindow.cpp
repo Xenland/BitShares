@@ -1,4 +1,7 @@
 #include "selfsizingmainwindow.h"
+#include <bitsharesguiprecomp.h>
+#include <QtCore>
+#include <QtGui>
 
 
 SelfSizingMainWindow::SelfSizingMainWindow(QWidget *parent) :
