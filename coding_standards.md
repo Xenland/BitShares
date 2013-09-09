@@ -4,7 +4,20 @@ General Coding Standards
   - all c++ headers end in .hpp
   - all c headers end in .h
   - pragma once instead of header guards
-  - use private implementation classes with unique_ptr
+  - use private implementation classes for long-lived objects
+
+    namespace detail { class_name_impl; }
+    class class_name
+    {
+       public:
+          class_name();
+          ~class_name();
+
+       private:
+          std::unique_ptr<detail::class_name_impl> my;
+    };
+
+  - note the formatting of the class, braces, indentions, etc.
   - avoid abreviations as much as possible
   - const std::string& x   (not const string &x)
   - char* y                (not char *y)
