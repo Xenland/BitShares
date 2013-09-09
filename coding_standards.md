@@ -10,29 +10,29 @@ General Coding Standards
   - char* y                (not char *y)
   - always use {} for conditionals and loops.
  
-  while( true )
-  {
-  }
-
-  try {
-
-  }
-  catch ( ... ) 
-  {
-  }
-
-  switch( x )
-  {
-     case a:
-        break;
-     case b:
-     {
-        int local = 0;
-        break;
-     }
-     default:
-        break;
-  }
+      while( true )
+      {
+      }
+      
+      try {
+      
+      }
+      catch ( ... ) 
+      {
+      }
+      
+      switch( x )
+      {
+         case a:
+            break;
+         case b:
+         {
+            int local = 0;
+            break;
+         }
+         default:
+            break;
+      }
 
 GUI Coding Standards
 --------------------
