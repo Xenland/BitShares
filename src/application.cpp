@@ -162,12 +162,13 @@ namespace bts {
 
   profile_ptr                 application::create_profile( const profile_config& cfg, const std::string& password )
   { try {
-    fc::create_directories( my->_profile_dir );
+    fc::create_directories( my->_profile_dir  );
 
     // note: stored in temp incase create throws.
     auto tmp_profile = std::make_shared<profile>();
 
     tmp_profile->create( my->_profile_dir / "default", cfg, password );
+    tmp_profile->open( my->_profile_dir / "default", password );
 
     return my->_profile = tmp_profile;
 

@@ -179,17 +179,11 @@ namespace bts { namespace bitname {
 
   void client::configure( const client::config& client_config )
   { try {
-
      my->_config = client_config;
-      
-     if( !fc::exists( my->_config.data_dir / "bitname" ) )
-     {
-       fc::create_directories( my->_config.data_dir / "bitname" );
-     }
+     fc::create_directories( my->_config.data_dir / "bitname" );
      bitname::name_channel::config chan_config;
      chan_config.name_db_dir =  my->_config.data_dir / "bitname" / "channel";
      my->_chan->configure( chan_config );
-
   } FC_RETHROW_EXCEPTIONS( warn, "error configuring bitname client", ("config",client_config) ) }
 
   fc::optional<name_record> client::lookup_name( const std::string& name )

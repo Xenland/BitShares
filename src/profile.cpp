@@ -55,6 +55,11 @@ namespace bts {
 
   void profile::open( const fc::path& profile_dir, const std::string& password )
   { try {
+      fc::create_directories( profile_dir );
+      fc::create_directories( profile_dir / "addressbook" );
+      fc::create_directories( profile_dir / "idents" );
+      fc::create_directories( profile_dir / "messages" );
+
       auto profile_cfg_key         = fc::sha512::hash( password.c_str(), password.size() );
       auto stretched_seed_data     = fc::aes_load( profile_dir / ".stretched_seed", profile_cfg_key );
      

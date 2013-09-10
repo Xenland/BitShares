@@ -805,6 +805,8 @@ namespace bts { namespace bitname {
 
   void name_channel::configure( const name_channel::config& c )
   {
+      fc::create_directories( c.name_db_dir / "forks" );
+
       my->_name_db.open( c.name_db_dir, true/*create*/ );
       my->_fork_db.open( c.name_db_dir / "forks" , true/*create*/ );
 

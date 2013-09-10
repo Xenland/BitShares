@@ -50,7 +50,9 @@ public:
     QAction *actionPaste;
     QAction *actionDelete_Message;
     QAction *actionFind;
+    QAction *actionAdd_Contact;
     QWidget *centralWidget;
+    QVBoxLayout *verticalLayout_3;
     QSplitter *treeStackSplitter;
     QTreeView *bitSharesTreeView;
     QStackedWidget *stackedWidget;
@@ -60,15 +62,16 @@ public:
     QListView *chatView;
     QPlainTextEdit *chatTextEdit;
     QWidget *mailPage;
+    QVBoxLayout *verticalLayout_2;
     QSplitter *mailSplitter;
     QTableView *mailHeadersTable;
     QTextBrowser *mailPreview;
-    QSplitter *splitter;
     QMenuBar *menuBar;
     QMenu *menuBitShares;
     QMenu *menuEdit;
     QMenu *menuMail;
     QMenu *menuHelp;
+    QMenu *menuContacts;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
 
@@ -76,7 +79,7 @@ public:
     {
         if (BitSharesMainWindow->objectName().isEmpty())
             BitSharesMainWindow->setObjectName(QStringLiteral("BitSharesMainWindow"));
-        BitSharesMainWindow->resize(667, 692);
+        BitSharesMainWindow->resize(832, 708);
         actionOpen_Profile = new QAction(BitSharesMainWindow);
         actionOpen_Profile->setObjectName(QStringLiteral("actionOpen_Profile"));
         actionExit = new QAction(BitSharesMainWindow);
@@ -112,6 +115,8 @@ public:
         actionDelete_Message->setObjectName(QStringLiteral("actionDelete_Message"));
         actionFind = new QAction(BitSharesMainWindow);
         actionFind->setObjectName(QStringLiteral("actionFind"));
+        actionAdd_Contact = new QAction(BitSharesMainWindow);
+        actionAdd_Contact->setObjectName(QStringLiteral("actionAdd_Contact"));
         centralWidget = new QWidget(BitSharesMainWindow);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         QSizePolicy sizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -119,20 +124,26 @@ public:
         sizePolicy.setVerticalStretch(0);
         sizePolicy.setHeightForWidth(centralWidget->sizePolicy().hasHeightForWidth());
         centralWidget->setSizePolicy(sizePolicy);
+        verticalLayout_3 = new QVBoxLayout(centralWidget);
+        verticalLayout_3->setSpacing(6);
+        verticalLayout_3->setContentsMargins(11, 11, 11, 11);
+        verticalLayout_3->setObjectName(QStringLiteral("verticalLayout_3"));
         treeStackSplitter = new QSplitter(centralWidget);
         treeStackSplitter->setObjectName(QStringLiteral("treeStackSplitter"));
-        treeStackSplitter->setGeometry(QRect(10, 10, 300, 402));
-        sizePolicy.setHeightForWidth(treeStackSplitter->sizePolicy().hasHeightForWidth());
-        treeStackSplitter->setSizePolicy(sizePolicy);
         treeStackSplitter->setOrientation(Qt::Horizontal);
         bitSharesTreeView = new QTreeView(treeStackSplitter);
         bitSharesTreeView->setObjectName(QStringLiteral("bitSharesTreeView"));
+        QSizePolicy sizePolicy1(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
+        sizePolicy1.setHorizontalStretch(0);
+        sizePolicy1.setVerticalStretch(0);
+        sizePolicy1.setHeightForWidth(bitSharesTreeView->sizePolicy().hasHeightForWidth());
+        bitSharesTreeView->setSizePolicy(sizePolicy1);
         treeStackSplitter->addWidget(bitSharesTreeView);
         stackedWidget = new QStackedWidget(treeStackSplitter);
         stackedWidget->setObjectName(QStringLiteral("stackedWidget"));
         sizePolicy.setHeightForWidth(stackedWidget->sizePolicy().hasHeightForWidth());
         stackedWidget->setSizePolicy(sizePolicy);
-        stackedWidget->setMinimumSize(QSize(100, 0));
+        stackedWidget->setMinimumSize(QSize(50, 0));
         chatPage = new QWidget();
         chatPage->setObjectName(QStringLiteral("chatPage"));
         sizePolicy.setHeightForWidth(chatPage->sizePolicy().hasHeightForWidth());
@@ -160,9 +171,12 @@ public:
         mailPage->setObjectName(QStringLiteral("mailPage"));
         sizePolicy.setHeightForWidth(mailPage->sizePolicy().hasHeightForWidth());
         mailPage->setSizePolicy(sizePolicy);
+        verticalLayout_2 = new QVBoxLayout(mailPage);
+        verticalLayout_2->setSpacing(6);
+        verticalLayout_2->setContentsMargins(11, 11, 11, 11);
+        verticalLayout_2->setObjectName(QStringLiteral("verticalLayout_2"));
         mailSplitter = new QSplitter(mailPage);
         mailSplitter->setObjectName(QStringLiteral("mailSplitter"));
-        mailSplitter->setGeometry(QRect(10, 20, 225, 511));
         sizePolicy.setHeightForWidth(mailSplitter->sizePolicy().hasHeightForWidth());
         mailSplitter->setSizePolicy(sizePolicy);
         mailSplitter->setOrientation(Qt::Vertical);
@@ -172,16 +186,18 @@ public:
         mailPreview = new QTextBrowser(mailSplitter);
         mailPreview->setObjectName(QStringLiteral("mailPreview"));
         mailSplitter->addWidget(mailPreview);
+
+        verticalLayout_2->addWidget(mailSplitter);
+
         stackedWidget->addWidget(mailPage);
         treeStackSplitter->addWidget(stackedWidget);
-        splitter = new QSplitter(centralWidget);
-        splitter->setObjectName(QStringLiteral("splitter"));
-        splitter->setGeometry(QRect(0, 0, 0, 0));
-        splitter->setOrientation(Qt::Vertical);
+
+        verticalLayout_3->addWidget(treeStackSplitter);
+
         BitSharesMainWindow->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(BitSharesMainWindow);
         menuBar->setObjectName(QStringLiteral("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 667, 21));
+        menuBar->setGeometry(QRect(0, 0, 832, 22));
         menuBitShares = new QMenu(menuBar);
         menuBitShares->setObjectName(QStringLiteral("menuBitShares"));
         menuEdit = new QMenu(menuBar);
@@ -190,6 +206,8 @@ public:
         menuMail->setObjectName(QStringLiteral("menuMail"));
         menuHelp = new QMenu(menuBar);
         menuHelp->setObjectName(QStringLiteral("menuHelp"));
+        menuContacts = new QMenu(menuBar);
+        menuContacts->setObjectName(QStringLiteral("menuContacts"));
         BitSharesMainWindow->setMenuBar(menuBar);
         mainToolBar = new QToolBar(BitSharesMainWindow);
         mainToolBar->setObjectName(QStringLiteral("mainToolBar"));
@@ -200,6 +218,7 @@ public:
 
         menuBar->addAction(menuBitShares->menuAction());
         menuBar->addAction(menuEdit->menuAction());
+        menuBar->addAction(menuContacts->menuAction());
         menuBar->addAction(menuMail->menuAction());
         menuBar->addAction(menuHelp->menuAction());
         menuBitShares->addAction(actionNew_Profile);
@@ -220,11 +239,12 @@ public:
         menuMail->addAction(actionReply_To_all);
         menuMail->addAction(actionForward);
         menuHelp->addAction(actionAbout);
+        menuContacts->addAction(actionAdd_Contact);
         mainToolBar->addAction(actionCreateMail);
 
         retranslateUi(BitSharesMainWindow);
 
-        stackedWidget->setCurrentIndex(0);
+        stackedWidget->setCurrentIndex(1);
 
 
         QMetaObject::connectSlotsByName(BitSharesMainWindow);
@@ -259,10 +279,12 @@ public:
         actionDelete_Message->setShortcut(QApplication::translate("BitSharesMainWindow", "Del", 0));
         actionFind->setText(QApplication::translate("BitSharesMainWindow", "Find", 0));
         actionFind->setShortcut(QApplication::translate("BitSharesMainWindow", "Ctrl+F", 0));
+        actionAdd_Contact->setText(QApplication::translate("BitSharesMainWindow", "Add Contact", 0));
         menuBitShares->setTitle(QApplication::translate("BitSharesMainWindow", "File", 0));
         menuEdit->setTitle(QApplication::translate("BitSharesMainWindow", "Edit", 0));
         menuMail->setTitle(QApplication::translate("BitSharesMainWindow", "Mail", 0));
         menuHelp->setTitle(QApplication::translate("BitSharesMainWindow", "Help", 0));
+        menuContacts->setTitle(QApplication::translate("BitSharesMainWindow", "Contacts", 0));
     } // retranslateUi
 
 };

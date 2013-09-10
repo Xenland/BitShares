@@ -58,7 +58,8 @@ namespace bts {
       uint8_t     birth_month;
       uint8_t     birth_day_of_month;
       uint16_t    birth_year;
-      std::string ssn;
+      std::string governmentid;
+      std::string brainkey;
   };
 
 
@@ -118,5 +119,6 @@ FC_REFLECT( bts::profile_config,
   (birth_month)
   (birth_day_of_month)
   (birth_year)
-  (ssn)
+  (governmentid)
+  (brainkey)
 )
